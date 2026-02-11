@@ -1,0 +1,288 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Web Automation Pro Recording Session",
+  "description": "Schema for recording browser actions during web exploration for automation code generation",
+  "type": "object",
+  "required": ["sessionId", "startedAt", "baseUrl", "intent", "status", "steps"],
+  "properties": {
+    "sessionId": {
+      "type": "string",
+      "description": "Unique session identifier (format: YYYY-MM-DD-short-descriptor)",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}-.+"
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when recording started"
+    },
+    "completedAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when recording completed"
+    },
+    "baseUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "Base URL of the application being tested"
+    },
+    "intent": {
+      "type": "string",
+      "enum": ["automation", "exploration"],
+      "description": "Whether this session is for automation code generation or one-time exploration"
+    },
+    "targetFramework": {
+      "type": ["string", "null"],
+      "enum": ["playwright", "cypress", "selenium-python", "selenium-java", "selenium-js", "webdriverio", null],
+      "description": "Target automation framework for code generation"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["in-progress", "completed", "aborted"],
+      "description": "Current status of the recording session"
+    },
+    "steps": {
+      "type": "array",
+      "description": "Ordered list of recorded browser actions",
+      "items": {
+        "$ref": "#/definitions/Step"
+      }
+    },
+    "pageObjects": {
+      "type": "object",
+      "description": "Auto-built page object map grouped by page URL pattern",
+      "additionalProperties": {
+        "$ref": "#/definitions/PageObject"
+      }
+    },
+    "locatorQualitySummary": {
+      "$ref": "#/definitions/LocatorQualitySummary"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "browserUsed": { "type": "string" },
+        "totalSteps": { "type": "integer", "minimum": 0 },
+        "visualAssertionSteps": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "description": "Step numbers where visual assertions are recommended"
+        },
+        "pagesVisited": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of unique URL paths visited"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Step": {
+      "type": "object",
+      "required": ["stepNumber", "timestamp", "action", "url"],
+      "properties": {
+        "stepNumber": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "action": {
+          "type": "string",
+          "enum": ["navigate", "click", "type", "fill_form", "select", "upload", "press_key", "hover", "drag", "wait", "screenshot", "evaluate", "dialog", "scroll"]
+        },
+        "url": {
+          "type": "string",
+          "description": "Current page URL at time of action"
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of what this step does"
+        },
+        "target": {
+          "$ref": "#/definitions/ElementTarget"
+        },
+        "input": {
+          "type": "object",
+          "description": "Input data for the action (value, fields, key, etc.)",
+          "properties": {
+            "value": { "type": "string" },
+            "type": { "type": "string" },
+            "fields": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "selector": { "type": "string" },
+                  "value": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "beforeScreenshot": {
+          "type": ["string", "null"],
+          "description": "File path to screenshot taken before this action"
+        },
+        "afterScreenshot": {
+          "type": ["string", "null"],
+          "description": "File path to screenshot taken after this action"
+        },
+        "pageSnapshot": {
+          "type": ["string", "null"],
+          "description": "File path to accessibility tree snapshot"
+        },
+        "visualAssertionRecommended": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this step should use visual comparison in generated tests"
+        },
+        "visualConfig": {
+          "type": "object",
+          "description": "Configuration for visual assertions if recommended",
+          "properties": {
+            "maskElements": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "threshold": { "type": "number", "minimum": 0, "maximum": 1 },
+            "fullPage": { "type": "boolean" },
+            "waitForAnimations": { "type": "boolean" }
+          }
+        },
+        "assertions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Assertion"
+          }
+        },
+        "networkRequests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/NetworkRequest"
+          }
+        },
+        "consoleErrors": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "waitCondition": {
+          "type": ["object", "null"],
+          "properties": {
+            "type": { "type": "string", "enum": ["text", "selector", "navigation", "load", "networkidle"] },
+            "value": { "type": "string" },
+            "timeout": { "type": "integer" }
+          }
+        },
+        "notes": {
+          "type": "string",
+          "description": "Agent observations about this step"
+        }
+      }
+    },
+    "ElementTarget": {
+      "type": ["object", "null"],
+      "properties": {
+        "primaryLocator": {
+          "type": "string",
+          "description": "Best available locator for this element"
+        },
+        "fallbackLocators": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Alternative locator strategies"
+        },
+        "locatorStrategy": {
+          "type": "string",
+          "enum": ["data-testid", "aria-label", "role", "id", "name", "placeholder", "text", "css-class", "css-complex", "xpath"],
+          "description": "Strategy used for the primary locator"
+        },
+        "locatorConfidence": {
+          "type": "string",
+          "enum": ["high", "medium", "low"]
+        },
+        "elementTag": { "type": "string" },
+        "elementRole": { "type": "string" },
+        "elementDescription": {
+          "type": "string",
+          "description": "Human-readable description of the element"
+        }
+      },
+      "required": ["primaryLocator", "locatorConfidence"]
+    },
+    "Assertion": {
+      "type": "object",
+      "required": ["type", "confidence"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["text_visible", "url_changed", "url_is", "element_visible", "element_hidden", "api_response", "title_is", "visual_match", "attribute_value", "element_count"]
+        },
+        "expected": {
+          "type": "string",
+          "description": "Expected value for the assertion"
+        },
+        "selector": {
+          "type": "string",
+          "description": "Element selector for element-based assertions"
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["high", "medium", "low"]
+        }
+      }
+    },
+    "NetworkRequest": {
+      "type": "object",
+      "properties": {
+        "method": { "type": "string" },
+        "url": { "type": "string" },
+        "status": { "type": "integer" },
+        "requestBodySummary": { "type": "string" },
+        "responseBodySummary": { "type": "string" }
+      }
+    },
+    "PageObject": {
+      "type": "object",
+      "properties": {
+        "urlPattern": {
+          "type": "string",
+          "description": "URL path pattern for this page"
+        },
+        "elements": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "locator": { "type": "string" },
+              "fallbacks": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "type": { "type": "string" },
+              "role": { "type": "string" }
+            },
+            "required": ["locator", "type"]
+          }
+        },
+        "actions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of action method names for this page"
+        }
+      }
+    },
+    "LocatorQualitySummary": {
+      "type": "object",
+      "properties": {
+        "totalElements": { "type": "integer", "minimum": 0 },
+        "highConfidence": { "type": "integer", "minimum": 0 },
+        "mediumConfidence": { "type": "integer", "minimum": 0 },
+        "lowConfidence": { "type": "integer", "minimum": 0 },
+        "visualAssertionNeeded": { "type": "integer", "minimum": 0 },
+        "recommendation": { "type": "string" }
+      }
+    }
+  }
+}
