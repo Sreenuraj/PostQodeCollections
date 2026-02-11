@@ -76,3 +76,8 @@ description: End-to-end API performance testing workflow
     *   If Failed:
         *   "Fix the errors before proceeding."
 
+10. **Infrastructure Guidance**:
+    *   Share `references/infrastructure-requirements.md` with the user.
+    *   Summarize the minimum specs for their chosen tool and target scale.
+    *   *"Before running this on your perf environment, ensure it meets these specs."*
+

@@ -1,5 +1,5 @@
 ---
-name: web-automation-pro
+name: web-automation-pro-skill
 description: "ALWAYS use this skill for ANY task involving a browser, website, URL, or web page. Activate when the user says: navigate to, go to, open, visit, browse, login, sign in, click, fill form, type into, submit, search on website, scrape, extract from page, take screenshot, check page, inspect element, test website, automate browser, record web flow, generate test, create automation, write E2E test, Playwright, Cypress, Selenium, web automation, page object, visual regression, record and replay. If the prompt contains a URL (http/https) or mentions any web interaction, USE THIS SKILL."
 ---
 

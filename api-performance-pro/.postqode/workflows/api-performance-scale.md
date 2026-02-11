@@ -28,6 +28,7 @@ description: Workflow for scaling up performance tests (Load/Stress/Soak)
     *   Use `rules/load-model-selection.md` to calculate VUs.
     *   *Example*: `Target RPS = 100`, `Avg Response = 0.5s` -> `VUs = 50`.
     *   **Ask User**: "Calculated [X] VUs for [Y] RPS. Proceed?"
+    *   **Infra Check**: Reference `references/infrastructure-requirements.md` — confirm the execution environment meets the recommended specs for this scale.
 
 3.  **Generate Script**:
     *   Modify the existing baseline script to use the new scale.

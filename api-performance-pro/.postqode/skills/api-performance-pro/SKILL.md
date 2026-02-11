@@ -38,11 +38,12 @@ description: Strict, intent-driven API performance testing (Baseline -> Load -> 
 
 ## Tool Selection
 
-| Tool | Best For | Rules Location |
+| Tool | Best For | Reference |
 | :--- | :--- | :--- |
 | **k6** | Developer-friendly, JS-based, high performance | `references/k6-template.md` |
 | **JMeter** | Enterprise standard, detailed protocol support | `rules/jmeter-guidelines.md` |
 | **Locust** | Python-based, easy distributed testing | `references/locust-template.md` |
+| **Infra Specs** | Minimum hardware/software to run tests | `references/infrastructure-requirements.md` |
 
 ## Mandatory Steps
 
@@ -50,3 +51,4 @@ description: Strict, intent-driven API performance testing (Baseline -> Load -> 
 2.  **Start Small**: Always start with 1-10 users.
 3.  **Monitor**: Watch for degradation *during* the test, not just the final report.
 4.  **Intent**: Every test must have a specific question (e.g., "Will DB connection pool exhaust at 500 RPS?").
+5.  **Know Your Infra**: Before running on a perf environment, verify it meets the specs in `references/infrastructure-requirements.md`.
