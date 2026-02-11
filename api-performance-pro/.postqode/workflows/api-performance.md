@@ -6,7 +6,8 @@ description: End-to-end API performance testing workflow
 
 > [!IMPORTANT]
 > **Strict Workflow Enforced**
-> Do NOT skip steps. Perform "API Understanding" and "Baseline" before any Load/Stress testing.
+> Do NOT skip steps. Perform "Explore & Understand" and "Baseline" before any Load/Stress testing.
+> **Explore first, generate second.** The agent actively explores the API (curl, docs, codebase) to understand architecture, auth, and rate limits, then generates scripts for the user.
 
 ## Phase 1: Strategize & Input
 
@@ -26,18 +27,23 @@ description: End-to-end API performance testing workflow
 
 3.  **Define Success Criteria**:
     *   Target RPS (Requests Per Second)
-    *   Max Latency (e.g., p95 < 500ms)
     *   Max Error Rate (e.g., < 1%)
+    *   **Test Data Strategy**: Ask "Do we need dynamic data (e.g., new user per request) or static data?" (Ref: `references/test-data-strategy.md`)
 
 ---
 
-## Phase 2: API Understanding (MANDATORY)
+## Phase 2: Explore & Understand (MANDATORY)
 
 > [!CAUTION]
 > **STOP.** Do not write a script yet.
-> You must verify you can talk to the API first.
+> You must verify architecture, connectivity, and constraints first.
 
-4.  **Manual Verification**:
+4.  **API Analysis & Exploration**:
+    *   **Identify Architecture**: REST? GraphQL? SOAP? Async? Microservices?
+    *   **Rate Limit Check**: Check response headers (`X-RateLimit-*`) for constraints.
+    *   **Auth Verification**: Confirm token expiration/renewal needs.
+
+5.  **Manual Verification**:
     *   Construct a `curl` command based on user input.
     *   **EXECUTE** the `curl` command (using `run_command`).
     *   **Analyze Response**:

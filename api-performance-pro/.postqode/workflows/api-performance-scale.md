@@ -5,6 +5,7 @@ description: Workflow for scaling up performance tests (Load/Stress/Soak)
 # /api-performance-scale
 
 > [!IMPORTANT]
+> **Explore first, generate second.** Verify the baseline test passed before scaling up.
 > **Prerequisite**: You must have a STABLE baseline test (0% errors) before running this.
 
 ## Phase 0: Prerequisite Check

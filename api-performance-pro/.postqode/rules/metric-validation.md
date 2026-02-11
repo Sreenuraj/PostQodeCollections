@@ -23,6 +23,18 @@ Watch for these signs that the system is "bending" before it breaks:
 *   **Connection Refused (TCP)**: OS file descriptor exhaustion or port exhaustion.
 
 ## 4. Throughput (RPS)
-*   **Target vs Actual**: Did we hit the generated load?
-    *   *If `Actual RPS < Target RPS`* AND *`CPU usage is low`*: The **Load Generator** might be the bottleneck (injector is too slow).
-    *   *Solution*: Distribute load or optimize script.
+*   **Definition**: Transactions processed per second. `Throughput = Total Requests / Total Time`.
+*   **Throughput vs Load**: Load is what you *send* (VUs). Throughput is what the server *handles*.
+*   **Upper Bound**: Every system has a max throughput. Testing establishes this ceiling.
+*   **Target Check**:
+    *   *If Actual RPS < Target RPS* AND *Response Time is low*: **Load Generator Bottleneck** (need more CPU/machines).
+    *   *If Actual RPS < Target RPS* AND *Response Time is high*: **System Saturation** (you found the limit).
+
+## 5. Rate Limit Awareness
+*   **Signal**: `HTTP 429 Too Many Requests`.
+*   **Rule**: 429s are NOT always failures — they prove rate limiting works.
+    *   *Load Test*: 429s are bad (we shouldn't hit them). Request limit increase or use sandbox.
+    *   *Security Test*: 429s are good (blocking abuse).
+*   **Handling**:
+    *   Check headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `Retry-After`.
+    *   Stagger load ramp-up to avoid triggering burst limits.
