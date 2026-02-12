@@ -101,6 +101,22 @@ After all steps pass in flat test:
 | Cypress | `cypress.config.ts` | `cypress/e2e/` |
 | Selenium | `pytest.ini` | `tests/` |
 
+## Debug Mode
+
+When a test is failing and the user needs help diagnosing it, invoke `/web-debug` workflow.
+
+```
+Detect Framework → Inject Screenshots → Run → Analyse Failure Window → Confirm with User → Fix → Verify → Cleanup
+```
+
+**Key principles:**
+- Detect framework first — never assume Playwright
+- Use AI-optimised screenshots (JPEG Q80, 1024×768 viewport) — see `.postqode/rules/ai-screenshot-optimization.md`
+- Inject interaction logging — see `.postqode/rules/debug-interaction-logging.md`
+- Tag injected lines with `DEBUG-SCREENSHOT` or `DEBUG-INTERACTION-LOG` for easy cleanup
+- Always confirm diagnosis with user before fixing
+- Follow ALL rules when manually fixing steps
+
 ## Best Practices
 
 **DO:**
@@ -108,8 +124,10 @@ After all steps pass in flat test:
 - ✅ Auto-retry with alternatives before asking user
 - ✅ Convert to POM after all steps pass
 - ✅ Follow tool priority
+- ✅ Use `/web-debug` for post-creation test failures
 
 **DON'T:**
 - ❌ Record all steps first, generate tests later
 - ❌ Skip headless validation
 - ❌ Use chrome-devtools for basic actions
+- ❌ Fix failing tests without screenshot analysis first
