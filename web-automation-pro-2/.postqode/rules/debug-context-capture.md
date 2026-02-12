@@ -8,77 +8,56 @@ Capture these 4 artifacts per step to give the AI full context.
 
 | Artifact | Purpose | Method |
 |----------|---------|--------|
-| **Screenshot** | Visual state (Layout, Modals) | JPEG Q80, 1024×768 Viewport |
-| **DOM Snapshot** | Structural state (Hidden elements) | `document.documentElement.outerHTML` (Simplified) |
-| **Interaction Log** | Action details (Target, Coords) | `activeElement` properties via JS |
-| **Network Log** | Failure context (4xx/5xx) | `performance.getEntries()` (Basic) |
+| **Screenshot** | Visual state | JPEG Q80, 1024×768, saved as `.jpg` |
+| **DOM Snapshot** | Structural state | Simplified HTML (stripped of scripts/styles) |
+| **Interaction Log** | Action details | `activeElement` tag, text, coords |
+| **Network Log** | Failure context | `performance.getEntries()` (4xx/5xx errors) |
 
-## 2. Injection Logic (Universal JS)
+## 2. Injection Pattern (Self-Contained)
 
-Inject this `captureDebugContext()` helper at the start of the test, or eval it per step.
-
-```javascript
-/* DEBUG-CONTEXT-CAPTURE-HELPER */
-window.captureDebugContext = () => {
-  const active = document.activeElement;
-  const rect = active ? active.getBoundingClientRect() : null;
-  
-  // Simplified DOM: Strip scripts, styles, comments to save tokens
-  const clone = document.documentElement.cloneNode(true);
-  ['script', 'style', 'svg', 'iframe', 'canvas', 'noscript'].forEach(tag => {
-    clone.querySelectorAll(tag).forEach(el => el.remove());
-  });
-  // Remove comments
-  const cleanDOM = clone.outerHTML.replace(/<!--[\s\S]*?-->/g, '');
-
-  return {
-    url: window.location.href,
-    title: document.title,
-    timestamp: new Date().toISOString(),
-    interaction: {
-      tag: active ? active.tagName.toLowerCase() : null,
-      id: active ? active.id : null,
-      text: active ? active.textContent.trim().substring(0, 50) : null,
-      coords: rect ? { x: Math.round(rect.x), y: Math.round(rect.y) } : null,
-      path: active ? getDomPath(active) : null // Helper for CSS path
-    },
-    domSnapshot: cleanDOM.substring(0, 50000), // Truncate if massive
-    networkErrors: performance.getEntriesByType('resource')
-      .filter(r => r.responseStatus >= 400)
-      .map(r => ({ url: r.name, status: r.responseStatus }))
-  };
-  
-  function getDomPath(el) {
-    if (!el.parentNode) return '';
-    const path = [];
-    while (el.nodeType === Node.ELEMENT_NODE) {
-      let selector = el.nodeName.toLowerCase();
-      if (el.id) { selector += '#' + el.id; path.unshift(selector); break; }
-      let sib = el, nth = 1;
-      while (sib = sib.previousElementSibling) { if (sib.nodeName.toLowerCase() == selector) nth++; }
-      if (nth != 1) selector += ":nth-of-type("+nth+")";
-      path.unshift(selector);
-      el = el.parentNode;
-    }
-    return path.join(" > ");
-  }
-};
-/* DEBUG-CONTEXT-CAPTURE-HELPER */
-```
-
-## 3. Framework Implementation
+Inject this **EXACT BLOCK** after every step. Do not use helper functions.
 
 ### Playwright
 
 ```typescript
-// 1. Setup (Once)
-await page.setViewportSize({ width: 1024, height: 768 });
-
-// 2. Per-Step Injection
 // DEBUG-CONTEXT
-await page.screenshot({ path: `debug-context/step-${i}.jpg`, type: 'jpeg', quality: 80 });
-const context = await page.evaluate(() => window.captureDebugContext ? window.captureDebugContext() : 'Context Helper Missing');
-require('fs').writeFileSync(`debug-context/step-${i}.json`, JSON.stringify(context, null, 2));
+{
+  const stepId = 'step-NAME'; // REPLACE THIS with dynamic step name
+  const debugDir = require('path').resolve(process.cwd(), 'debug-context');
+  if (!require('fs').existsSync(debugDir)) require('fs').mkdirSync(debugDir, { recursive: true });
+
+  // 1. Screenshot
+  await page.screenshot({ path: require('path').join(debugDir, `${stepId}.jpg`), type: 'jpeg', quality: 80 });
+
+  // 2. Context (DOM + Logs)
+  const context = await page.evaluate(() => {
+    const active = document.activeElement;
+    const rect = active ? active.getBoundingClientRect() : null;
+    
+    // Strip heavy elements for DOM snapshot
+    const clone = document.documentElement.cloneNode(true);
+    ['script', 'style', 'svg', 'iframe', 'canvas', 'noscript'].forEach(tag => {
+      clone.querySelectorAll(tag).forEach(el => el.remove());
+    });
+    
+    return {
+      url: window.location.href,
+      title: document.title,
+      timestamp: new Date().toISOString(),
+      interaction: {
+        tag: active ? active.tagName.toLowerCase() : null,
+        text: active ? active.textContent.trim().substring(0, 50) : null,
+        coords: rect ? { x: Math.round(rect.x), y: Math.round(rect.y) } : null
+      },
+      networkErrors: performance.getEntriesByType('resource')
+        .filter(r => r.responseStatus >= 400)
+        .map(r => ({ url: r.name, status: r.responseStatus })),
+      dom: clone.outerHTML.replace(/<!--[\s\S]*?-->/g, '').substring(0, 50000)
+    };
+  });
+
+  require('fs').writeFileSync(require('path').join(debugDir, `${stepId}.json`), JSON.stringify(context, null, 2));
+}
 // DEBUG-CONTEXT
 ```
 
@@ -86,16 +65,32 @@ require('fs').writeFileSync(`debug-context/step-${i}.json`, JSON.stringify(conte
 
 ```javascript
 // DEBUG-CONTEXT
-cy.screenshot(`debug-context/step-${i}`, { overwrite: true, capture: 'viewport' });
+const stepId = 'step-NAME'; // REPLACE THIS
+cy.screenshot(`../debug-context/${stepId}`, { overwrite: true, capture: 'viewport' });
 cy.window().then(win => {
-  const context = win.captureDebugContext ? win.captureDebugContext() : {};
-  cy.writeFile(`debug-context/step-${i}.json`, context);
+  const active = win.document.activeElement;
+  const rect = active ? active.getBoundingClientRect() : null;
+  const clone = win.document.documentElement.cloneNode(true);
+  
+  // Cleanup DOM
+  const toRemove = clone.querySelectorAll('script, style, svg, iframe, canvas, noscript');
+  toRemove.forEach(el => el.remove());
+
+  const context = {
+    url: win.location.href,
+    interaction: {
+      tag: active ? active.tagName.toLowerCase() : null,
+      text: active ? active.textContent.trim().substring(0, 50) : null,
+       coords: rect ? { x: Math.round(rect.x), y: Math.round(rect.y) } : null
+    },
+    dom: clone.outerHTML.substring(0, 50000)
+  };
+  cy.writeFile(`debug-context/${stepId}.json`, context);
 });
 // DEBUG-CONTEXT
 ```
 
-## 4. Cleanup
+## 3. Cleanup Rules
 
-**Mandatory:**
-1.  **Pre-Run:** Delete `debug-context/` folder to ensure clean state.
-2.  **Post-Run:** Remove blocks tagged `DEBUG-CONTEXT`.
+1.  **Tag Everything:** Every injected line MUST be inside `// DEBUG-CONTEXT` comments.
+2.  **Delete First:** workflow MUST delete `debug-context/` at the start.

@@ -55,21 +55,33 @@ description: Debug failing web automation tests with screenshot-driven analysis
    <project-root>/debug-context/
    ```
 
-2. **Inject the Unified Capture Helper**:
-   - Insert the `window.captureDebugContext` JS helper (from rule) at the top of the test.
-
-3. **Inject Capture Calls after EVERY step action**:
-   - Use `DEBUG-CONTEXT` tag for all lines.
-   - **CRITICAL:** Use absolute paths or project-root relative paths for file saving.
+3. **Inject Self-Contained Capture Block after EVERY step action**:
+   - **Copy the block exactly** from `.postqode/rules/debug-context-capture.md`.
+   - **Replace `step-NAME`** with a unique identifier (e.g., `step-03`).
+   - Ensure the block is wrapped in `// DEBUG-CONTEXT`.
    
-   **Playwright Example:**
+   **Playwright Example Pattern:**
    ```typescript
    // Step 3: Click Create Dashboard
    await page.getByText('Create Dashboard').click();
+   
    // DEBUG-CONTEXT
-   await page.screenshot({ path: 'debug-context/step-03.jpg', type: 'jpeg', quality: 80 });
-   const ctx3 = await page.evaluate(() => window.captureDebugContext());
-   require('fs').writeFileSync('debug-context/step-03.json', JSON.stringify(ctx3));
+   {
+     const stepId = 'step-03';
+     const debugDir = require('path').resolve(process.cwd(), 'debug-context');
+     // ... rest of the block from rule ...
+   }
+   // DEBUG-CONTEXT
+   ```
+
+   **Cypress Example Pattern:**
+   ```javascript
+   // Step 3: Click Create Dashboard
+   cy.contains('Create Dashboard').click();
+   
+   // DEBUG-CONTEXT
+   const stepId = 'step-03';
+   // ... Copy Cypress block from rule ...
    // DEBUG-CONTEXT
    ```
 
