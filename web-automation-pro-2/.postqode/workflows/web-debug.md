@@ -44,70 +44,40 @@ description: Debug failing web automation tests with screenshot-driven analysis
 
 ---
 
-## Phase 1: Inject AI-Optimised Screenshots + Execute
+## Phase 1: Inject Debug Context Capture + Execute
 
 > [!CAUTION]
-> **MINIMAL INJECTION ONLY.**
-> Insert exactly ONE screenshot call per step. No wrappers, no helper imports, no config changes.
-> This keeps cleanup trivial — just delete the injected lines.
->
-> **Follow `.postqode/rules/ai-screenshot-optimization.md` for all screenshot settings.**
-> These screenshots are for AI analysis, not human viewing — use JPEG Q80, 1024×768 viewport.
+> **Follow `.postqode/rules/debug-context-capture.md` strictly.**
+> This rule provides the unified `captureDebugContext()` helper that collects specific AI-optimised data.
 
-1. **Create screenshot directory**:
+1. **Create context directory**:
    ```
-   <project-root>/debug-screenshots/
+   <project-root>/debug-context/
    ```
 
-2. **Set viewport to AI-optimised size** (add once at test start):
-   ```typescript
-   // Playwright
-   await page.setViewportSize({ width: 1024, height: 768 }); // DEBUG-SCREENSHOT
-   ```
+2. **Inject the Unified Capture Helper**:
+   - Insert the `window.captureDebugContext` JS helper (from rule) at the top of the test.
 
-3. **Inject framework-appropriate screenshot call after EVERY step action**:
-
-   **Playwright example:**
+3. **Inject Capture Calls after EVERY step action**:
+   - Use `DEBUG-CONTEXT` tag for all lines.
+   - **CRITICAL:** Use absolute paths or project-root relative paths for file saving.
+   
+   **Playwright Example:**
    ```typescript
    // Step 3: Click Create Dashboard
    await page.getByText('Create Dashboard').click();
-   await page.screenshot({ path: 'debug-screenshots/step-03-click-create-dashboard.jpg', type: 'jpeg', quality: 80 }); // DEBUG-SCREENSHOT
+   // DEBUG-CONTEXT
+   await page.screenshot({ path: 'debug-context/step-03.jpg', type: 'jpeg', quality: 80 });
+   const ctx3 = await page.evaluate(() => window.captureDebugContext());
+   require('fs').writeFileSync('debug-context/step-03.json', JSON.stringify(ctx3));
+   // DEBUG-CONTEXT
    ```
 
-   **Cypress example:**
-   ```javascript
-   // Step 3: Click Create Dashboard
-   cy.contains('Create Dashboard').click();
-   cy.screenshot('debug-screenshots/step-03-click-create-dashboard'); // DEBUG-SCREENSHOT
-   ```
+4. **Run the test** using the framework's standard command.
 
-   **Selenium (Python) example:**
-   ```python
-   # Step 3: Click Create Dashboard
-   driver.find_element(By.XPATH, "//button[text()='Create Dashboard']").click()
-   driver.save_screenshot('debug-screenshots/step-03-click-create-dashboard.png')  # DEBUG-SCREENSHOT
-   # Convert to JPEG Q80 for AI analysis
-   from PIL import Image; Image.open('debug-screenshots/step-03-click-create-dashboard.png').save('debug-screenshots/step-03-click-create-dashboard.jpg', 'JPEG', quality=80)  # DEBUG-SCREENSHOT
-   ```
-
-   > [!TIP]
-   > **Tag ALL injected lines** with `// DEBUG-SCREENSHOT` (or `# DEBUG-SCREENSHOT` for Python)
-   > so they can be found and removed cleanly in Phase 4.
-   >
-   > See `.postqode/rules/ai-screenshot-optimization.md` for element-level cropping and
-   > dynamic content masking to further reduce token cost.
-
-4. **Inject interaction logging** (see `.postqode/rules/debug-interaction-logging.md`):
-   - Inject standard `page.evaluate` logging block after each action
-   - Tag with `// DEBUG-INTERACTION-LOG`
-   - Logs element tag, text, coordinates, and context to `debug-screenshots/interaction-log.json`
-
-5. **Run the test** using the framework's standard command (see table above)
-
-6. **Record results**:
-   - Which step failed (from test report/log)
-   - All screenshots saved to `debug-screenshots/`
-   - Interaction log saved to `debug-screenshots/interaction-log.json`
+5. **Record results**:
+   - Which step failed
+   - Artifacts in `debug-context/` (screenshots, logs, DOM snapshots)
 
 ---
 
@@ -146,9 +116,7 @@ description: Debug failing web automation tests with screenshot-driven analysis
 > The agent MUST manually perform the fix using PostQode browser tools.
 > Follow ALL rules strictly:
 > - `.postqode/rules/tool-priority.md`
-> - `.postqode/rules/coordinate-fallback.md`
-> - `.postqode/rules/hover-handling.md`
-> - `.postqode/rules/slider-handling.md`
+> - `.postqode/rules/interaction-fallbacks.md` (Covers coordinates, hover, slider, drag&drop)
 
 // turbo-all
 
@@ -170,6 +138,11 @@ description: Debug failing web automation tests with screenshot-driven analysis
 
 ## Phase 4: Verify the Fix + Cleanup
 
+5. **Robust Cleanup (Pre-run)**:
+   - Check for existing `debug-context/` folder
+   - If exists, DELETE IT to ensure a clean slate (prevent stale data confusion)
+   - Check for any leftover `DEBUG-CONTEXT` tags in the file and remove them
+
 1. **Re-run the full test with screenshots still injected** (DEBUG-SCREENSHOT lines still present)
 
 2. **If test passes**:
@@ -183,12 +156,11 @@ description: Debug failing web automation tests with screenshot-driven analysis
 4. **On user confirmation that the fix is correct**:
 
    a. **Remove all injected debug lines**:
-      - Search for `DEBUG-SCREENSHOT` and DELETE
-      - Search for `DEBUG-INTERACTION-LOG` and DELETE
+      - Search for `DEBUG-CONTEXT` and DELETE
    
-   b. **Delete the debug-screenshots directory**:
+   b. **Delete the debug-context directory**:
       ```bash
-      rm -rf debug-screenshots/
+      rm -rf debug-context/
       ```
    
    c. **Save the corrected test file** in its proper location and order
@@ -204,13 +176,13 @@ User invokes /web-debug
         ↓
 Phase 0: Detect framework + identify test + parse steps
         ↓
-Phase 1: Inject screenshots → Run test → Collect results
+Phase 1: Inject Debug Context Capture → Run test → Collect results
         ↓
 Phase 2: Analyse failure window → Present diagnosis → User confirms
         ↓
 Phase 3: Manual fix with PostQode tools → Update code
         ↓
-Phase 4: Re-run with screenshots → User verifies → Cleanup
+Phase 4: Re-run with Context → User verifies → Cleanup
         ↓
      ✅ Done
 ```

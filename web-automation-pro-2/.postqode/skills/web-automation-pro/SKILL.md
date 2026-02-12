@@ -56,30 +56,12 @@ When a step fails headless validation:
 - **Form Submit**: Check success message/redirect
 - **Navigation**: Check URL updated
 
-## Coordinate Fallback
+When x,y/hover/sliders are needed (follow `.postqode/rules/interaction-fallbacks.md`):
 
-When x,y is needed (follow `.postqode/rules/coordinate-fallback.md`):
-
-1. **Drag & Drop**: Use `boundingBox()` for dynamic positioning (recommended)
-2. **Canvas/chart clicks**: Lock viewport + `page.mouse.click(x, y)`
-3. Always comment explaining why coordinates were needed
-
-## Hover Handling
-
-For chart bars, canvas elements, tooltips (follow `.postqode/rules/hover-handling.md`):
-
-1. Try stable locator first (CSS, data-testid)
-2. Use relative positioning from text labels (recommended for charts)
-3. Always wait for tooltip after hover
-
-## Slider Handling
-
-For range inputs, jQuery UI, custom sliders (follow `.postqode/rules/slider-handling.md`):
-
-1. Inspect DOM structure first to identify slider type
-2. HTML `<input type="range">`: Use direct value setting
-3. jQuery UI: Click on track at target percentage
-4. Always verify slider value changed after interaction
+1. **Coordinates**: Use `boundingBox()` for dynamic positioning (e.g., drag & drop).
+2. **Hover**: Find stable label/container and move relative to it.
+3. **Sliders**: Use unified JS setter or track clicking.
+4. **Canvas**: Lock viewport + `page.mouse.click(x, y)` as last resort.
 
 ## Code Generation (After Validation)
 
@@ -111,9 +93,9 @@ Detect Framework → Inject Screenshots → Run → Analyse Failure Window → C
 
 **Key principles:**
 - Detect framework first — never assume Playwright
-- Use AI-optimised screenshots (JPEG Q80, 1024×768 viewport) — see `.postqode/rules/ai-screenshot-optimization.md`
-- Inject interaction logging — see `.postqode/rules/debug-interaction-logging.md`
-- Tag injected lines with `DEBUG-SCREENSHOT` or `DEBUG-INTERACTION-LOG` for easy cleanup
+- Use Unified Debug Capture (Screenshot+DOM+Logs) — see `.postqode/rules/debug-context-capture.md`
+- Tag injected lines with `DEBUG-CONTEXT` for easy cleanup
+- **Cleanup First:** Always check/delete `debug-context/` before starting
 - Always confirm diagnosis with user before fixing
 - Follow ALL rules when manually fixing steps
 
