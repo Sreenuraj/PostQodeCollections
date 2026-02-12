@@ -55,10 +55,15 @@ description: Debug failing web automation tests with screenshot-driven analysis
    <project-root>/debug-context/
    ```
 
-3. **Inject Self-Contained Capture Block after EVERY step action**:
-   - **Copy the block exactly** from `.postqode/rules/debug-context-capture.md`.
+3. **Inject Debug Helper Function (ONCE)**:
+   - Copy the `captureDebugContext` function from `.postqode/rules/debug-context-capture.md`.
+   - Paste it at the **bottom of the test file** (or top-level scope).
+   - Wrap in `// DEBUG-HELPER` tags.
+
+4. **Inject Capture Calls after EVERY step action**:
+   - Insert the function call `captureDebugContext(...)`.
    - **Replace `step-NAME`** with a unique identifier (e.g., `step-03`).
-   - Ensure the block is wrapped in `// DEBUG-CONTEXT`.
+   - Wrap in `// DEBUG-CONTEXT`.
    
    **Playwright Example Pattern:**
    ```typescript
@@ -66,11 +71,7 @@ description: Debug failing web automation tests with screenshot-driven analysis
    await page.getByText('Create Dashboard').click();
    
    // DEBUG-CONTEXT
-   {
-     const stepId = 'step-03';
-     const debugDir = require('path').resolve(process.cwd(), 'debug-context');
-     // ... rest of the block from rule ...
-   }
+   await captureDebugContext(page, 'step-03');
    // DEBUG-CONTEXT
    ```
 
@@ -80,14 +81,13 @@ description: Debug failing web automation tests with screenshot-driven analysis
    cy.contains('Create Dashboard').click();
    
    // DEBUG-CONTEXT
-   const stepId = 'step-03';
-   // ... Copy Cypress block from rule ...
+   captureDebugContext('step-03');
    // DEBUG-CONTEXT
    ```
 
-4. **Run the test** using the framework's standard command.
+5. **Run the test** using the framework's standard command.
 
-5. **Record results**:
+6. **Record results**:
    - Which step failed
    - Artifacts in `debug-context/` (screenshots, logs, DOM snapshots)
 
@@ -169,6 +169,7 @@ description: Debug failing web automation tests with screenshot-driven analysis
 
    a. **Remove all injected debug lines**:
       - Search for `DEBUG-CONTEXT` and DELETE
+      - Search for `DEBUG-HELPER` and DELETE
    
    b. **Delete the debug-context directory**:
       ```bash

@@ -13,28 +13,24 @@ Capture these 4 artifacts per step to give the AI full context.
 | **Interaction Log** | Action details | `activeElement` tag, text, coords |
 | **Network Log** | Failure context | `performance.getEntries()` (4xx/5xx errors) |
 
-## 2. Injection Pattern (Self-Contained)
+## 2. Injection Pattern (Helper Function)
 
-Inject this **EXACT BLOCK** after every step. Do not use helper functions.
+Keep the test file clean. Inject the helper **ONCE** at the bottom/top, and call it per step.
 
 ### Playwright
 
+**1. Inject Helper (Bottom of file):**
 ```typescript
-// DEBUG-CONTEXT
-{
-  const stepId = 'step-NAME'; // REPLACE THIS with dynamic step name
+// DEBUG-HELPER
+async function captureDebugContext(page: any, stepId: string) {
   const debugDir = require('path').resolve(process.cwd(), 'debug-context');
   if (!require('fs').existsSync(debugDir)) require('fs').mkdirSync(debugDir, { recursive: true });
 
-  // 1. Screenshot
   await page.screenshot({ path: require('path').join(debugDir, `${stepId}.jpg`), type: 'jpeg', quality: 80 });
-
-  // 2. Context (DOM + Logs)
+  
   const context = await page.evaluate(() => {
     const active = document.activeElement;
     const rect = active ? active.getBoundingClientRect() : null;
-    
-    // Strip heavy elements for DOM snapshot
     const clone = document.documentElement.cloneNode(true);
     ['script', 'style', 'svg', 'iframe', 'canvas', 'noscript'].forEach(tag => {
       clone.querySelectorAll(tag).forEach(el => el.remove());
@@ -58,39 +54,53 @@ Inject this **EXACT BLOCK** after every step. Do not use helper functions.
 
   require('fs').writeFileSync(require('path').join(debugDir, `${stepId}.json`), JSON.stringify(context, null, 2));
 }
+// DEBUG-HELPER
+```
+
+**2. Inject Call (After each step):**
+```typescript
+// DEBUG-CONTEXT
+await captureDebugContext(page, 'step-NAME'); // REPLACE step-NAME
 // DEBUG-CONTEXT
 ```
 
 ### Cypress
 
+**1. Inject Helper (Bottom of file):**
+```javascript
+// DEBUG-HELPER
+function captureDebugContext(stepId) {
+  cy.screenshot(`../debug-context/${stepId}`, { overwrite: true, capture: 'viewport' });
+  cy.window().then(win => {
+    const active = win.document.activeElement;
+    const rect = active ? active.getBoundingClientRect() : null;
+    const clone = win.document.documentElement.cloneNode(true);
+    const toRemove = clone.querySelectorAll('script, style, svg, iframe, canvas, noscript');
+    toRemove.forEach(el => el.remove());
+
+    const context = {
+      url: win.location.href,
+      interaction: {
+        tag: active ? active.tagName.toLowerCase() : null,
+        text: active ? active.textContent.trim().substring(0, 50) : null,
+         coords: rect ? { x: Math.round(rect.x), y: Math.round(rect.y) } : null
+      },
+      dom: clone.outerHTML.substring(0, 50000)
+    };
+    cy.writeFile(`debug-context/${stepId}.json`, context);
+  });
+}
+// DEBUG-HELPER
+```
+
+**2. Inject Call (After each step):**
 ```javascript
 // DEBUG-CONTEXT
-const stepId = 'step-NAME'; // REPLACE THIS
-cy.screenshot(`../debug-context/${stepId}`, { overwrite: true, capture: 'viewport' });
-cy.window().then(win => {
-  const active = win.document.activeElement;
-  const rect = active ? active.getBoundingClientRect() : null;
-  const clone = win.document.documentElement.cloneNode(true);
-  
-  // Cleanup DOM
-  const toRemove = clone.querySelectorAll('script, style, svg, iframe, canvas, noscript');
-  toRemove.forEach(el => el.remove());
-
-  const context = {
-    url: win.location.href,
-    interaction: {
-      tag: active ? active.tagName.toLowerCase() : null,
-      text: active ? active.textContent.trim().substring(0, 50) : null,
-       coords: rect ? { x: Math.round(rect.x), y: Math.round(rect.y) } : null
-    },
-    dom: clone.outerHTML.substring(0, 50000)
-  };
-  cy.writeFile(`debug-context/${stepId}.json`, context);
-});
+captureDebugContext('step-NAME'); // REPLACE step-NAME
 // DEBUG-CONTEXT
 ```
 
 ## 3. Cleanup Rules
 
-1.  **Tag Everything:** Every injected line MUST be inside `// DEBUG-CONTEXT` comments.
-2.  **Delete First:** workflow MUST delete `debug-context/` at the start.
+1.  **Delete Helper:** Remove `DEBUG-HELPER` block at end of run.
+2.  **Delete Calls:** Remove `DEBUG-CONTEXT` lines.
