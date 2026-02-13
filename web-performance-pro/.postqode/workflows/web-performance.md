@@ -29,7 +29,11 @@ description: End-to-end web application performance auditing workflow
 3.  **Identify Environment**:
     *   Ask: "What environments do you have access to? (local, staging, production)"
     *   Ask: "What CI/CD platform? (GitHub Actions, GitLab CI, Jenkins, Bitrise, none)"
-    *   **Record in `test-plan.md`**
+
+4.  **Document Plan**:
+    *   **Create/Update `test-plan.md`**:
+        *   Synthesize all gathered info (**Intent**, **Scope**, **Environment**) into the test plan file.
+        *   **Action**: Create the file now if it doesn't exist.
 
 ---
 

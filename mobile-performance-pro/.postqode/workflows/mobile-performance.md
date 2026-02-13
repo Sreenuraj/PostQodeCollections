@@ -41,6 +41,11 @@ description: End-to-end mobile app performance profiling workflow
         *   Memory Growth (30 min): < 10%
     *   Ask: "Any custom thresholds? Or use our defaults?"
 
+5.  **Document Plan**:
+    *   **Create `perf-tests/test-plan.md`**:
+        *   Initialize the file with the gathered details: **Intent**, **Target**, **Devices**, and **Success Criteria**.
+        *   This ensures the strategy is locked before moving to profiling.
+
 ---
 
 ## Phase 2: App Understanding (MANDATORY)

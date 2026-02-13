@@ -30,6 +30,11 @@ description: End-to-end API performance testing workflow
     *   Max Error Rate (e.g., < 1%)
     *   **Test Data Strategy**: Ask "Do we need dynamic data (e.g., new user per request) or static data?" (Ref: `references/test-data-strategy.md`)
 
+4.  **Document Plan**:
+    *   **Create `test-plan.md`**:
+        *   Initialize the file with the gathered details: **Intent**, **Target**, and **Success Criteria**.
+        *   This serves as the source of truth for the session.
+
 ---
 
 ## Phase 2: Explore & Understand (MANDATORY)

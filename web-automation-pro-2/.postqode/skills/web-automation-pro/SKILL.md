@@ -99,6 +99,11 @@ Detect Framework → Inject Screenshots → Run → Analyse Failure Window → C
 - Always confirm diagnosis with user before fixing
 - Follow ALL rules when manually fixing steps
 
+> [!NOTE]
+> **Why Custom Injection vs Playwright Traces?**
+> While Playwright Traces (`trace.zip`) contain everything, they produce massive JSON files (50MB+) that are expensive and slow for AI to parse.
+> Our **Custom Injection** (`debug-context-capture.md`) generates concise, AI-optimized artifacts (~50KB) for instant, cost-effective reasoning.
+
 ## Best Practices
 
 **DO:**
