@@ -216,6 +216,27 @@ description: Unified web automation workflow with step-by-step validation
 
 6. Detect or setup test framework (default: Playwright).
 
+> [!IMPORTANT]
+> ## Framework Configuration: Report Auto-Open Prevention
+>
+> **The HTML report MUST NOT open automatically after test runs.**
+> This prevents unwanted browser windows from interrupting the workflow,
+> especially during the group validation loop where tests are run repeatedly.
+>
+> **For Playwright**, ensure `playwright.config.js` has the reporter configured as:
+> ```javascript
+> reporter: [['html', { open: 'never' }]],
+> ```
+>
+> **If this setting is missing or set to `'always'` / `'on-failure'`:**
+> - Update `playwright.config.js` BEFORE running any tests
+> - This is a one-time setup step — verify it exists during framework analysis
+>
+> **Why this matters:**
+> - Validation runs happen frequently (every group + checkpoints)
+> - Auto-opening reports after each run disrupts the exploration browser session
+> - Reports can still be viewed manually via `npx playwright show-report` when needed
+
 7. **If framework exists — Analyze it BEFORE exploring** (MANDATORY):
    - Read existing test files, page objects, helpers
    - Identify coding patterns (POM style, naming conventions, folder structure)
