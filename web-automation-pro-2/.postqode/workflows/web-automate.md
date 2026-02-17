@@ -72,13 +72,34 @@ description: Unified web automation workflow with step-by-step validation
 > **Decision tree when uncertain:**
 > ```
 > Uncertain about browser state?
->   → Take screenshot / snapshot
->     → Does it match test-session.md state?
->       → YES: Proceed from current step
->       → NO, but page is usable: Update test-session.md, proceed from actual state
->       → NO, page is broken/error: Follow Browser Session Recovery Protocol
->                                    (replay only up to LAST_COMPLETED_STEP, not from Step 1)
+>   → Attempt screenshot / snapshot
+>     → Screenshot SUCCEEDED?
+>       → YES: Analyze the screenshot
+>         → Does it match test-session.md state?
+>           → YES: Proceed from current step
+>           → NO, but page is usable: Update test-session.md, proceed from actual state
+>           → NO, page is broken/error: Follow Browser Session Recovery Protocol
+>       → NO (screenshot failed / ambiguous / cannot determine):
+>         → ASK THE USER: "Is the browser still open?"
+>           → User says YES → Take a fresh screenshot/snapshot to understand
+>             current position, update test-session.md, continue from there
+>           → User says NO → Browser is truly closed.
+>             Follow Browser Session Recovery Protocol
+>             (which includes the COST-SAVING REPLAY CHOICE — see below)
 > ```
+>
+> **⚠️ COST & CONTEXT SAVING — MANDATORY BEHAVIORS:**
+>
+> These two behaviors are **critical** for saving cost and context window usage.
+> They MUST be followed in every situation where they apply:
+>
+> 1. **When unable to determine browser state** → ASK the user instead of guessing.
+>    Do NOT waste context replaying steps if the browser might still be open.
+>
+> 2. **When browser needs fresh open with replay** → ALWAYS offer the user a choice
+>    between agent replay and user manual replay. User manual replay saves significant
+>    cost and context. See "Cost-Saving Replay Choice Protocol" in Browser Session
+>    Recovery Protocol for details.
 
 ---
 
@@ -448,10 +469,110 @@ description: Unified web automation workflow with step-by-step validation
            - Update `test-session.md` to reflect the ACTUAL state
            - Proceed from the ACTUAL current state — do NOT restart from Step 1
            - Only if the page is in an error/unrecoverable state → follow Browser Session Recovery Protocol
-      - If `CLOSED` → Open a new browser session and replay all previously completed steps
-        to reach the current state (use the code already in temp-flow.spec.ts as reference).
-        **Do NOT start from Step 1 if steps have already been completed** — replay only
-        up to `LAST_COMPLETED_STEP` to fast-forward to the correct state.
+        5. **If screenshot/snapshot FAILS or you CANNOT determine browser state:**
+           - **DO NOT assume the browser is closed. ASK THE USER:**
+             ```
+             ⚠️ I'm unable to determine if the browser is still open.
+             
+             Is the browser still open?
+               (A) Yes, the browser is still open
+               (B) No, the browser is closed
+             ```
+           - **If user says YES (browser is open):**
+             - Take a fresh screenshot or snapshot to understand the current position
+             - Analyze the screenshot to determine which step/page the browser is at
+             - Update `test-session.md` with the actual state
+             - Continue exploration from the verified position
+           - **If user says NO (browser is closed):**
+             - Follow the **Cost-Saving Replay Choice Protocol** below
+
+      - If `CLOSED` → Follow the **Cost-Saving Replay Choice Protocol**:
+
+      > [!CAUTION]
+      > ## 💰 COST-SAVING REPLAY CHOICE PROTOCOL
+      >
+      > **This protocol is MANDATORY whenever the browser needs to be opened fresh
+      > and there are previously completed steps that need to be replayed.**
+      > It saves significant cost and context by giving the user the option to
+      > manually perform the prerequisite steps instead of the agent replaying them.
+      >
+      > **ALWAYS ask the user before replaying steps:**
+      > ```
+      > The browser needs to be opened fresh. There are [N] previously completed
+      > steps that need to be replayed to reach the current exploration point.
+      >
+      > To save cost and context, would you prefer:
+      >   (A) I replay all the steps automatically (uses more tokens/context)
+      >   (B) You perform the steps manually — I'll list them for you
+      >       (saves cost and context)
+      > ```
+      >
+      > **If user chooses (A) — Agent Replay:**
+      >
+      > > [!CAUTION]
+      > > **FAST-FORWARD MODE — DO NOT verify each step individually.**
+      > > The code for these steps is already written and validated.
+      > > Execute all steps rapidly without screenshots or verification
+      > > between steps. Only verify ONCE at the very end.
+      >
+      > - **Preferred method — Run existing code in browser (if possible):**
+      >   If the agent's browser supports executing JavaScript or the agent
+      >   can run the Playwright test headed and then connect to that browser,
+      >   run the already-validated code from `temp-flow.spec.ts` directly.
+      >   This is the fastest and most reliable replay method since the code
+      >   is already proven to work.
+      >
+      > - **Fallback method — Rapid manual replay:**
+      >   If running code directly is not possible:
+      >   1. Open a new browser session
+      >   2. **Execute ALL steps rapidly** using the code in `temp-flow.spec.ts`
+      >      as your exact reference — navigate, click, type in quick succession
+      >   3. **DO NOT take screenshots between steps**
+      >   4. **DO NOT verify or analyze after each step**
+      >   5. **DO NOT explore or learn** — just execute the known actions
+      >   6. Only add brief waits where the code has explicit waits
+      >      (e.g., `waitForSelector`, `waitForURL`)
+      >
+      > - **After ALL steps are executed** → Take ONE screenshot to verify
+      >   the final state matches `LAST_COMPLETED_STEP`
+      > - Update `test-session.md` to `BROWSER_STATUS: OPEN`
+      > - Continue with exploration
+      >
+      > **If user chooses (B) — User Manual Replay:**
+      > 1. **Agent MUST open the browser first** — Launch a new browser session
+      >    (using `browser_action` launch) so the agent has a live browser session
+      >    to work with. Navigate to the application's starting URL.
+      >    **The user will perform steps in THIS agent-opened browser.**
+      > 2. **Print the steps the user needs to perform**, clearly numbered:
+      >    ```
+      >    I've opened the browser at [URL]. Please perform these steps in the
+      >    browser I just opened, then let me know when done:
+      >    
+      >    1. Enter "[username]" in the username field
+      >    2. Enter "[password]" in the password field
+      >    3. Click the "Login" button
+      >    4. Wait for the dashboard to load
+      >    5. Click "Create Dashboard" button
+      >    ...
+      >    
+      >    Once you've completed all steps, please let me know and I'll take a
+      >    screenshot to verify and continue from there.
+      >    ```
+      > 3. **Wait for user confirmation** that they have completed the steps
+      > 4. **Once user confirms** → Take a screenshot or snapshot of the agent's
+      >    browser session to understand the current position and verify the state
+      > 5. **Analyze the screenshot** to confirm the browser is at the expected state
+      > 6. **Update `test-session.md`** to `BROWSER_STATUS: OPEN` with the verified state
+      > 7. **Continue exploration** from the verified position in the SAME browser session
+      >
+      > **⚠️ CRITICAL: The agent MUST open the browser so it owns the session.**
+      > Without this, the agent cannot take screenshots, interact with the page,
+      > or continue exploration. The user performs steps in the agent's browser.
+      >
+      > **This protocol applies in ALL scenarios where replay is needed:**
+      > - Browser Session Recovery Protocol
+      > - Step A when `BROWSER_STATUS: CLOSED`
+      > - Any situation where the browser must be reopened mid-workflow
 
    c. **Explore ALL steps in the current group** in the live browser session:
       - For each step: interact with the page, find locators, note what works
@@ -622,12 +743,83 @@ description: Unified web automation workflow with step-by-step validation
 >    - Attempt to take a screenshot (`browser_take_screenshot`) or use `browser_snapshot`
 >    - If the screenshot succeeds → the browser is still open. Update `test-session.md`
 >      to `BROWSER_STATUS: OPEN` and proceed from the current state shown in the screenshot
->    - If the screenshot fails → the browser is truly closed. Proceed to step 4
-> 4. **Open a new browser session** and replay steps up to `LAST_COMPLETED_STEP`:
->    - Use the code already in `temp-flow.spec.ts` as your replay reference
->    - Execute each step as browser commands (navigate, click, type)
->    - This fast-forwards to where you left off — NOT back to Step 1
-> 5. **After replay, take a screenshot** to verify you've reached the correct state:
+>    - If the screenshot fails or result is ambiguous → **ASK THE USER:**
+>      ```
+>      ⚠️ I'm unable to determine if the browser is still open.
+>      
+>      Is the browser still open?
+>        (A) Yes, the browser is still open
+>        (B) No, the browser is closed
+>      ```
+>      - **If user says YES** → Take a fresh screenshot/snapshot to understand the
+>        current position, update `test-session.md`, and continue from there
+>      - **If user says NO** → Browser is truly closed. Proceed to step 4
+> 4. **💰 COST-SAVING REPLAY CHOICE — Ask the user before replaying:**
+>
+>    > [!CAUTION]
+>    > **DO NOT automatically replay steps. ALWAYS ask the user first.**
+>    > This saves significant cost and context window usage.
+>
+>    ```
+>    The browser is closed and needs to be reopened. There are [N] previously
+>    completed steps (Steps 1-[LAST_COMPLETED_STEP]) that need to be replayed
+>    to reach the point where exploration continues.
+>    
+>    To save cost and context, would you prefer:
+>      (A) I replay all the steps automatically (uses more tokens/context)
+>      (B) You perform the steps manually — I'll list them for you
+>          (saves cost and context)
+>    ```
+>
+>    **If user chooses (A) — Agent Replay:**
+>
+>    > **FAST-FORWARD MODE — DO NOT verify each step individually.**
+>    > The code is already written and validated. Execute rapidly.
+>
+>    - **Preferred method — Run existing code in browser (if possible):**
+>      Run the already-validated code from `temp-flow.spec.ts` directly
+>      in the browser session (e.g., via headed Playwright run or JavaScript
+>      execution). This is fastest since the code is proven to work.
+>
+>    - **Fallback method — Rapid manual replay:**
+>      1. Open a new browser session
+>      2. Execute ALL steps rapidly using `temp-flow.spec.ts` as reference
+>      3. **DO NOT take screenshots between steps**
+>      4. **DO NOT verify or analyze after each step**
+>      5. **DO NOT explore or learn** — just execute known actions quickly
+>      6. Only add brief waits where the code has explicit waits
+>
+>    - After ALL steps executed → Take ONE screenshot to verify final state
+>    - Continue to step 5
+>
+>    **If user chooses (B) — User Manual Replay:**
+>    - **Agent MUST open the browser first** — Launch a new browser session
+>      (using `browser_action` launch) and navigate to the application's starting URL.
+>      The user will perform steps in THIS agent-opened browser so the agent
+>      retains ownership of the session for screenshots and continued exploration.
+>    - **Print ALL the steps the user needs to perform**, clearly numbered with
+>      exact actions (text to type, buttons to click, etc.):
+>      ```
+>      I've opened the browser at [URL]. Please perform these steps in the
+>      browser I just opened, then let me know when done:
+>      
+>      1. Enter "[username]" in the username field
+>      2. Enter "[password]" in the password field
+>      3. Click the "Login" button
+>      4. Wait for the dashboard to load
+>      ...
+>      
+>      Once you've completed all steps, please confirm and I'll take a
+>      screenshot to verify the state and continue from there.
+>      ```
+>    - **Wait for user confirmation** that they have completed the steps
+>    - **Once user confirms** → Proceed to step 5
+>
+>    **⚠️ CRITICAL: The agent MUST open the browser so it owns the session.**
+>    Without this, the agent cannot take screenshots, interact with the page,
+>    or continue exploration. The user performs steps in the agent's browser.
+>
+> 5. **After replay (agent or user), take a screenshot** to verify the correct state:
 >    - Compare against `CURRENT_PAGE_STATE` from `test-session.md`
 >    - If the state matches → proceed
 >    - If the state doesn't match → analyze the screenshot, determine actual state,
@@ -643,6 +835,8 @@ description: Unified web automation workflow with step-by-step validation
 >
 > **This protocol ensures you NEVER lose progress due to a browser session issue.**
 > **You NEVER restart from Step 1 — you always resume from the last known good state.**
+> **The user replay option saves significant cost and context when the agent doesn't
+> need to burn tokens replaying known-good steps.**
 
 ---
 
@@ -869,12 +1063,22 @@ description: Unified web automation workflow with step-by-step validation
 │  0. READ test-session.md  ← ALWAYS DO THIS FIRST            │
 │     └─ Check BROWSER_STATUS, NEXT_ACTION, CURRENT_STEP      │
 │     └─ If in doubt → TAKE SCREENSHOT to verify actual state  │
+│     └─ If screenshot fails → ASK USER if browser is open     │
 │     └─ Proceed from VERIFIED state, NOT from Step 1          │
 │                                                              │
 │  1. VERIFY browser state (screenshot/snapshot if uncertain)  │
 │     └─ Matches test-session.md? → Proceed                    │
 │     └─ Doesn't match? → Update test-session.md, adjust       │
+│     └─ Can't determine? → ASK USER if browser is open        │
+│        └─ User says YES → take screenshot, continue          │
+│        └─ User says NO → Cost-Saving Replay Choice           │
 │     └─ Broken/error? → Recovery Protocol (NOT Step 1)        │
+│                                                              │
+│  1b. IF BROWSER NEEDS FRESH OPEN (💰 COST SAVING):          │
+│     └─ ASK USER: Agent replay OR User manual replay?         │
+│        └─ Agent replay → agent replays steps automatically   │
+│        └─ User replay → print steps, wait for confirmation,  │
+│           then take screenshot to verify & continue           │
 │                                                              │
 │  2. EXPLORE all steps in group (live browser)                │
 │     └─ Find locators, test interactions                      │
@@ -895,7 +1099,8 @@ description: Unified web automation workflow with step-by-step validation
 │                                                              │
 │  ⚠️  NEVER skip steps 3-5. NEVER proceed without updating.  │
 │  ⚠️  NEVER open a new browser if one is already OPEN.        │
-│  ⚠️  NEVER assume browser is closed — VERIFY first.          │
+│  ⚠️  NEVER assume browser is closed — ASK USER if unsure.    │
+│  ⚠️  NEVER auto-replay — ASK USER for replay preference.     │
 │  ⚠️  NEVER restart from Step 1 — resume from last known good │
 │      state. Take a screenshot if unsure.                     │
 └──────────────────────────────────────────────────────────────┘
@@ -917,14 +1122,16 @@ description: Unified web automation workflow with step-by-step validation
 
 1. **Before ANY browser action** → Read `test-session.md` → Check `BROWSER_STATUS`
 2. **If `BROWSER_STATUS: OPEN`** → Do NOT launch new browser. Resume existing session.
-3. **If `BROWSER_STATUS: CLOSED` and you need browser** → Open new session, replay completed steps to catch up, update `test-session.md` to `OPEN`
+3. **If `BROWSER_STATUS: CLOSED` and you need browser** → **ASK the user** whether they want agent replay or manual replay (Cost-Saving Replay Choice Protocol), then open new session accordingly, update `test-session.md` to `OPEN`
 4. **After closing browser** → Update `test-session.md` to `BROWSER_STATUS: CLOSED`
 5. **After validation run completes** → The validation browser closes automatically. Your EXPLORATION browser is still OPEN. **DO NOT change BROWSER_STATUS.**
 6. **If browser session is lost** → Follow the Browser Session Recovery Protocol in Phase 2.
 7. **🚫 NEVER close the exploration browser during Phase 2** unless ALL groups are COMPLETE or Level 3 Graceful Exit is triggered.
-8. **🚫 NEVER assume the browser is closed** — always verify by reading `test-session.md` first. If in doubt, take a screenshot to confirm the actual state.
+8. **🚫 NEVER assume the browser is closed** — always verify by reading `test-session.md` first. If in doubt, take a screenshot. **If screenshot fails or is ambiguous, ASK THE USER** if the browser is still open.
 9. **🚫 NEVER restart from Step 1** unless you have visually confirmed (via screenshot) that the current state is irrecoverably broken. Always resume from `LAST_COMPLETED_STEP`.
 10. **📸 When in doubt, take a screenshot** — use `browser_take_screenshot` or `browser_snapshot` to see the actual browser state before making any decisions about restarting or replaying steps.
+11. **💰 NEVER auto-replay steps when browser needs fresh open** — ALWAYS ask the user first if they want agent replay or manual replay. This is critical for saving cost and context.
+12. **🗣️ ALWAYS ask the user when browser state is uncertain** — If you cannot determine whether the browser is open, ASK. Do not guess or assume.
 
 ## Quick Reference: When to Update BROWSER_STATUS
 
