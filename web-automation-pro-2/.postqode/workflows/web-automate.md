@@ -42,6 +42,46 @@ description: Unified web automation workflow with step-by-step validation
 
 ---
 
+> [!CAUTION]
+> ## 🚫 NEVER ASSUME BROWSER STATE — VERIFY BEFORE ACTING
+>
+> **You MUST NOT assume the browser is closed, open, or at any particular step.**
+> The ONLY source of truth is `test-session.md` combined with visual verification.
+>
+> **Before ANY browser-related decision, follow this protocol:**
+>
+> 1. **Read `test-session.md`** — Check `BROWSER_STATUS`, `CURRENT_URL`, `CURRENT_PAGE_STATE`,
+>    `LAST_COMPLETED_STEP`, and `CURRENT_GROUP`
+> 2. **If in ANY doubt about the actual browser state** (e.g., you're unsure if the browser
+>    is truly open, or unsure which page/step it's on):
+>    - **Take a screenshot** (`browser_take_screenshot`) or **use `browser_snapshot`**
+>      to visually confirm the current state of the browser
+>    - Compare the screenshot against `CURRENT_URL` and `CURRENT_PAGE_STATE` in `test-session.md`
+>    - Determine which step/stage the browser is actually at
+> 3. **Proceed from the VERIFIED current state** — Do NOT restart from Step 1
+> 4. **NEVER start from Step 1 unless you have CONFIRMED** that the current state is
+>    irrecoverably wrong (e.g., the page shows an error, the session expired, or the
+>    application state is corrupted beyond recovery)
+>
+> **Why this matters:**
+> - Restarting from Step 1 wastes all previous progress
+> - The browser may still be at a valid intermediate state
+> - A simple screenshot can save minutes of unnecessary replay
+> - `test-session.md` tracks exactly where you left off — trust it, then verify visually
+>
+> **Decision tree when uncertain:**
+> ```
+> Uncertain about browser state?
+>   → Take screenshot / snapshot
+>     → Does it match test-session.md state?
+>       → YES: Proceed from current step
+>       → NO, but page is usable: Update test-session.md, proceed from actual state
+>       → NO, page is broken/error: Follow Browser Session Recovery Protocol
+>                                    (replay only up to LAST_COMPLETED_STEP, not from Step 1)
+> ```
+
+---
+
 ## Phase 0: Create Test Tracker + Session State + Step Groups
 
 > [!IMPORTANT]
@@ -397,10 +437,21 @@ description: Unified web automation workflow with step-by-step validation
 
    a. **Read `test-session.md`** — Confirm `NEXT_ACTION` says `EXPLORE_GROUP_N`
 
-   b. **Check `BROWSER_STATUS`**:
-      - If `OPEN` → Resume the existing session. Do NOT open a new browser.
+   b. **Check `BROWSER_STATUS` and VERIFY actual browser state**:
+      - If `OPEN`:
+        1. Do NOT launch a new browser. Resume the existing session.
+        2. **Take a screenshot or snapshot** to verify the browser is actually at the
+           expected page/state described in `CURRENT_URL` and `CURRENT_PAGE_STATE`.
+        3. If the screenshot matches → proceed with exploration from the current step.
+        4. If the screenshot does NOT match `test-session.md`:
+           - Determine which step/stage the browser is actually at by analyzing the screenshot
+           - Update `test-session.md` to reflect the ACTUAL state
+           - Proceed from the ACTUAL current state — do NOT restart from Step 1
+           - Only if the page is in an error/unrecoverable state → follow Browser Session Recovery Protocol
       - If `CLOSED` → Open a new browser session and replay all previously completed steps
         to reach the current state (use the code already in temp-flow.spec.ts as reference).
+        **Do NOT start from Step 1 if steps have already been completed** — replay only
+        up to `LAST_COMPLETED_STEP` to fast-forward to the correct state.
 
    c. **Explore ALL steps in the current group** in the live browser session:
       - For each step: interact with the page, find locators, note what works
@@ -564,22 +615,34 @@ description: Unified web automation workflow with step-by-step validation
 > [!IMPORTANT]
 > **If you realize the browser session was lost or closed unexpectedly:**
 >
-> 1. Read `test-session.md` — Check `LAST_COMPLETED_STEP` and `CURRENT_URL`
-> 2. Do NOT start from scratch
-> 3. Open a new browser session
-> 4. Use the code already in `temp-flow.spec.ts` to replay steps up to `LAST_COMPLETED_STEP`:
+> 1. **Read `test-session.md`** — Check `LAST_COMPLETED_STEP`, `CURRENT_URL`, and `CURRENT_PAGE_STATE`
+> 2. **Do NOT start from scratch. Do NOT start from Step 1.**
+>    - The session file tells you exactly where you were — trust it
+> 3. **Before assuming the browser is truly closed, VERIFY:**
+>    - Attempt to take a screenshot (`browser_take_screenshot`) or use `browser_snapshot`
+>    - If the screenshot succeeds → the browser is still open. Update `test-session.md`
+>      to `BROWSER_STATUS: OPEN` and proceed from the current state shown in the screenshot
+>    - If the screenshot fails → the browser is truly closed. Proceed to step 4
+> 4. **Open a new browser session** and replay steps up to `LAST_COMPLETED_STEP`:
+>    - Use the code already in `temp-flow.spec.ts` as your replay reference
 >    - Execute each step as browser commands (navigate, click, type)
->    - This fast-forwards to where you left off
-> 5. Update `test-session.md`:
+>    - This fast-forwards to where you left off — NOT back to Step 1
+> 5. **After replay, take a screenshot** to verify you've reached the correct state:
+>    - Compare against `CURRENT_PAGE_STATE` from `test-session.md`
+>    - If the state matches → proceed
+>    - If the state doesn't match → analyze the screenshot, determine actual state,
+>      and adjust your position accordingly
+> 6. **Update `test-session.md`**:
 >    ```markdown
 >    ## Browser
 >    - BROWSER_STATUS: OPEN
 >    - CURRENT_URL: [current URL after replay]
->    - CURRENT_PAGE_STATE: [describe current state]
+>    - CURRENT_PAGE_STATE: [describe current state verified by screenshot]
 >    ```
-> 6. Continue with the next step/group from where you left off
+> 7. Continue with the next step/group from where you left off
 >
 > **This protocol ensures you NEVER lose progress due to a browser session issue.**
+> **You NEVER restart from Step 1 — you always resume from the last known good state.**
 
 ---
 
@@ -803,8 +866,15 @@ description: Unified web automation workflow with step-by-step validation
 ┌──────────────────────────────────────────────────────────────┐
 │  FOR EACH GROUP:                                             │
 │                                                              │
-│  1. READ test-session.md  ← ALWAYS DO THIS FIRST            │
-│     └─ Check BROWSER_STATUS, NEXT_ACTION                     │
+│  0. READ test-session.md  ← ALWAYS DO THIS FIRST            │
+│     └─ Check BROWSER_STATUS, NEXT_ACTION, CURRENT_STEP      │
+│     └─ If in doubt → TAKE SCREENSHOT to verify actual state  │
+│     └─ Proceed from VERIFIED state, NOT from Step 1          │
+│                                                              │
+│  1. VERIFY browser state (screenshot/snapshot if uncertain)  │
+│     └─ Matches test-session.md? → Proceed                    │
+│     └─ Doesn't match? → Update test-session.md, adjust       │
+│     └─ Broken/error? → Recovery Protocol (NOT Step 1)        │
 │                                                              │
 │  2. EXPLORE all steps in group (live browser)                │
 │     └─ Find locators, test interactions                      │
@@ -825,6 +895,9 @@ description: Unified web automation workflow with step-by-step validation
 │                                                              │
 │  ⚠️  NEVER skip steps 3-5. NEVER proceed without updating.  │
 │  ⚠️  NEVER open a new browser if one is already OPEN.        │
+│  ⚠️  NEVER assume browser is closed — VERIFY first.          │
+│  ⚠️  NEVER restart from Step 1 — resume from last known good │
+│      state. Take a screenshot if unsure.                     │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -849,6 +922,9 @@ description: Unified web automation workflow with step-by-step validation
 5. **After validation run completes** → The validation browser closes automatically. Your EXPLORATION browser is still OPEN. **DO NOT change BROWSER_STATUS.**
 6. **If browser session is lost** → Follow the Browser Session Recovery Protocol in Phase 2.
 7. **🚫 NEVER close the exploration browser during Phase 2** unless ALL groups are COMPLETE or Level 3 Graceful Exit is triggered.
+8. **🚫 NEVER assume the browser is closed** — always verify by reading `test-session.md` first. If in doubt, take a screenshot to confirm the actual state.
+9. **🚫 NEVER restart from Step 1** unless you have visually confirmed (via screenshot) that the current state is irrecoverably broken. Always resume from `LAST_COMPLETED_STEP`.
+10. **📸 When in doubt, take a screenshot** — use `browser_take_screenshot` or `browser_snapshot` to see the actual browser state before making any decisions about restarting or replaying steps.
 
 ## Quick Reference: When to Update BROWSER_STATUS
 
