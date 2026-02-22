@@ -619,17 +619,27 @@ You MUST output the following message AND STOP. Do NOT proceed to the next group
 
 ```
 ✅ Group [N] complete — [X] steps passing.
-Config: [updated: actionTimeout Nms, navTimeout Nms | or: unchanged]
-Progress: [X] of [N] steps done | [G] groups remaining
 
-Condense context now? All progress saved in test-session.md and spec file.
-  (A) Yes — I will wait for you to condense and confirm
-  (B) No — continue
+We are following the `/web-automate` workflow (file: .postqode/workflows/web-automate.md).
+Group [N] ([label]) has been successfully completed — code written, config updated, validation passed.
+Next: Group [N+1] ([label]) — [G] groups remaining.
+
+All progress is saved in:
+  - test-session.md (session state + step observations)
+  - [spec file name] (test code)
+
+Would you like to condense the context before proceeding?
+  (A) Yes — condense now. After condensation, I will re-read test-session.md
+      and .postqode/workflows/web-automate.md to resume the workflow.
+  (B) No — continue to Group [N+1] immediately.
 ```
 
 **⛔ STOP HERE. Do not perform any further actions, STATE CHECKs, or browser calls until the user replies.**
 
-- User says **A** → wait for the user to condense and confirm, then re-read `test-session.md` and continue
+- User says **A** → wait for the user to condense. After condensation is confirmed:
+  1. Re-read `.postqode/workflows/web-automate.md` (the workflow may have been lost during condense)
+  2. Re-read `test-session.md` to restore session state
+  3. Resume from `NEXT_ACTION` in `test-session.md`
 - User says **B** → re-read `test-session.md` and continue immediately
 - If you proceed without the user's response, you are violating the workflow
 
