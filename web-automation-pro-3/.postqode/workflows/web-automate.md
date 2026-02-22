@@ -334,7 +334,8 @@ Each group follows this state sequence:
    - Output `BROWSER ACTION:` declaration
    - **Record `Action Timestamp`** — note the current time (`HH:MM:SS.sss`) immediately before performing the action
    - Perform the action
-   - Take screenshot — analyse what changed, identify the Stable Anchor (use selection priority below)
+   - Use `browser_snapshot` to see what changed and identify the Stable Anchor
+     (Only take a full screenshot if: first step of the group, visual layout matters, or DOM text is insufficient to identify the anchor)
    - **Record `Stable Timestamp`** — note the current time (`HH:MM:SS.sss`) when the stable anchor is confirmed visible
    - **Calculate `Measured Duration`** — `Stable Timestamp - Action Timestamp` in milliseconds
    - **Classify `Step Type`:**
