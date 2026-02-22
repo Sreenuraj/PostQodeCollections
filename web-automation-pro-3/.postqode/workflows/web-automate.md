@@ -636,8 +636,18 @@ Would you like to condense the context before proceeding?
 
 **⛔ STOP HERE. Do not perform any further actions, STATE CHECKs, or browser calls until the user replies.**
 
-- User says **A** → wait for the user to condense. After condensation is confirmed:
-  1. Re-read `.postqode/workflows/web-automate.md` (the workflow may have been lost during condense)
+- User says **A** → When the user triggers condensation, the agent will create a summary.
+  **The condensation summary MUST be minimal — use ONLY the following:**
+  ```
+  I am executing the /web-automate workflow.
+  Workflow file: .postqode/workflows/web-automate.md — re-read this file first.
+  Session state: test-session.md — re-read this file to know current progress and next action.
+  All context, observations, code, and config are saved in those files. Do not summarize them here.
+  ```
+  **Do NOT include:** step details, code snippets, timing data, technical concepts, file contents,
+  or any other information already saved in `test-session.md` or the spec file.
+  After condensation is confirmed:
+  1. Re-read `.postqode/workflows/web-automate.md` (the workflow rules may have been lost)
   2. Re-read `test-session.md` to restore session state
   3. Resume from `NEXT_ACTION` in `test-session.md`
 - User says **B** → re-read `test-session.md` and continue immediately
