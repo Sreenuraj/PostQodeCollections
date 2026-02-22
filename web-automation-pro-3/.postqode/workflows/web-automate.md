@@ -621,35 +621,30 @@ You MUST output the following message AND STOP. Do NOT proceed to the next group
 ✅ Group [N] complete — [X] steps passing.
 
 We are following the `/web-automate` workflow (file: .postqode/workflows/web-automate.md).
-Group [N] ([label]) has been successfully completed — code written, config updated, validation passed.
+Group [N] ([label]) has been successfully completed.
 Next: Group [N+1] ([label]) — [G] groups remaining.
 
-All progress is saved in:
-  - test-session.md (session state + step observations)
-  - [spec file name] (test code)
-
 Would you like to condense the context before proceeding?
-  (A) Yes — condense now. After condensation, I will re-read test-session.md
-      and .postqode/workflows/web-automate.md to resume the workflow.
+
+  (A) Yes — condense now, but ONLY remember these two things:
+      1. You are in the /web-automate workflow → re-read .postqode/workflows/web-automate.md
+      2. Your session state is in test-session.md → re-read it for current progress and next action
+      Do NOT summarize steps, code, timing, config, or any other details — they are already saved in those files.
+
   (B) No — continue to Group [N+1] immediately.
 ```
 
 **⛔ STOP HERE. Do not perform any further actions, STATE CHECKs, or browser calls until the user replies.**
 
-- User says **A** → When the user triggers condensation, the agent will create a summary.
-  **The condensation summary MUST be minimal — use ONLY the following:**
+- User says **A** → The user will trigger condensation. When creating the condensation summary,
+  output ONLY these 3 lines — nothing more:
   ```
-  I am executing the /web-automate workflow.
-  Workflow file: .postqode/workflows/web-automate.md — re-read this file first.
-  Session state: test-session.md — re-read this file to know current progress and next action.
-  All context, observations, code, and config are saved in those files. Do not summarize them here.
+  I am in the /web-automate workflow. Re-read .postqode/workflows/web-automate.md for all rules.
+  Session state is in test-session.md. Re-read it for progress, groups, and next action.
+  Do not summarize anything else — all context is in those files.
   ```
-  **Do NOT include:** step details, code snippets, timing data, technical concepts, file contents,
-  or any other information already saved in `test-session.md` or the spec file.
-  After condensation is confirmed:
-  1. Re-read `.postqode/workflows/web-automate.md` (the workflow rules may have been lost)
-  2. Re-read `test-session.md` to restore session state
-  3. Resume from `NEXT_ACTION` in `test-session.md`
+  **NEVER include** step details, code, timing, observations, config, file contents, or technical concepts.
+  After condensation, re-read both files and resume from `NEXT_ACTION`.
 - User says **B** → re-read `test-session.md` and continue immediately
 - If you proceed without the user's response, you are violating the workflow
 
