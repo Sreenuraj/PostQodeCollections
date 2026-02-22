@@ -613,7 +613,10 @@ TEST_COMMAND: [value]
 [full detail — every remaining group]
 ```
 
-**After writing session file, offer condense:**
+**After writing session file — MANDATORY STOP — offer condense:**
+
+You MUST output the following message AND STOP. Do NOT proceed to the next group until the user responds.
+
 ```
 ✅ Group [N] complete — [X] steps passing.
 Config: [updated: actionTimeout Nms, navTimeout Nms | or: unchanged]
@@ -623,8 +626,12 @@ Condense context now? All progress saved in test-session.md and spec file.
   (A) Yes — I will wait for you to condense and confirm
   (B) No — continue
 ```
-User says A → wait for confirmation, then re-read `test-session.md` and continue.
-User says B → continue immediately.
+
+**⛔ STOP HERE. Do not perform any further actions, STATE CHECKs, or browser calls until the user replies.**
+
+- User says **A** → wait for the user to condense and confirm, then re-read `test-session.md` and continue
+- User says **B** → re-read `test-session.md` and continue immediately
+- If you proceed without the user's response, you are violating the workflow
 
 ---
 
@@ -823,5 +830,5 @@ FOR EACH GROUP:
                  completed → one line only | next → promote from Pending | others → unchanged
                  LAST_COMPLETED_GROUP=1 and GROUPING_CONFIRMED=NO → Protocol C first
                  set CONTEXT_PRESSURE | add re-read instruction if MEDIUM/HIGH
-  7. CONDENSE → offer to user after every group | wait if they accept
+  7. CONDENSE → ⛔ MANDATORY STOP — offer condense to user | do NOT proceed until user replies (A) or (B)
 ```
