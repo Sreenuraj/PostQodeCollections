@@ -5,609 +5,823 @@ description: Unified web automation workflow with step-by-step validation
 # /web-automate
 
 > [!CAUTION]
-> ## CORE RULES — PROVE YOU HAVE READ STATE BEFORE EVERY ACTION
+> ## CORE RULES — APPLY TO EVERY ACTION WITHOUT EXCEPTION
 >
-> **Validate per GROUP, not all at once.** After exploring a group:
-> 1. Append code to flat test file → 2. Run headed → 3. Fix failures →
-> 4. Mark `[x]` in test.md → 5. Flush + update test-session.md → 6. Confirm pass → Next group
->
-> **Pre-Action Ritual (EVERY tool call — NO EXCEPTIONS):**
->
-> Before taking any action, output this block filled with real values read from `test-session.md`:
+> **Ritual 1 — Before every action, output STATE CHECK filled from `test-session.md`:**
 > ```
 > ## STATE CHECK
-> - BROWSER_STATUS (from test-session.md): [value]
-> - CURRENT_GROUP (from test-session.md): [value]
-> - NEXT_ACTION (from test-session.md): [value]
-> - LAST_COMPLETED_STEP (from test-session.md): [value]
+> - WORKFLOW: web-automate
+> - BROWSER_STATUS: [value]
+> - CURRENT_GROUP: [value]
+> - NEXT_ACTION: [value]
+> - LAST_COMPLETED_STEP: [value]
 > - ACTION I AM ABOUT TO TAKE: [one sentence]
 > - DOES THIS MATCH NEXT_ACTION?: [YES / NO — if NO, stop and explain]
+> - STEP I AM ACTING ON: Step [N] (Group [G])
+> - IS THIS STEP IN THE ACTIVE GROUP?: [YES / NO — if NO, STOP. Do not proceed.]
 > ```
-> If you cannot fill this block with real values → READ `test-session.md` first. Always.
 >
-> **Before every browser tool call, output a declaration:**
+> **Ritual 2 — Before every browser tool call:**
 > ```
 > BROWSER ACTION: I am about to [action] because [reason].
 > This is part of: [NEXT_ACTION value]
 > ```
 >
-> **Browser State Rules:**
-> - NEVER assume browser is open or closed — verify via `test-session.md` + screenshot
-> - If screenshot fails or is ambiguous → ASK THE USER if browser is open (see Protocol A)
-> - If browser needs fresh open → ASK USER for replay preference (see Protocol B)
-> - NEVER restart from Step 1 — always resume from `LAST_COMPLETED_STEP`
-> - NEVER close exploration browser during Phase 2 unless ALL groups complete or Level 3 exit
-> - Validation runs (eg: `npx playwright test`) use a SEPARATE browser — do NOT change `BROWSER_STATUS`
+> **NEVER:**
+> - Perform a browser action on a step that belongs to a Pending Group — only Active Group steps
+> - Skip the APPEND_CODE → UPDATE_CONFIG → RUN_AND_VALIDATE → UPDATE_SESSION sequence — every group must complete ALL phases before the next group begins
+> - Assume browser is open or closed — verify first (Protocol A)
+> - Auto-replay previously completed steps without asking the user (Protocol B)
+> - Restart from Step 1 — always resume from `LAST_COMPLETED_STEP`
+> - Close the exploration browser during Phase 2 except: all groups done, Level 3 exit, user stop
+> - Change `BROWSER_STATUS` after a validation run — it stays `OPEN`
+> - Proceed to the next step without saving the Step Observation to `test-session.md` first
+> - Write wait logic from memory — only from recorded Step Observations
+> - Write inline timeouts in test code — config file only
+> - Assert on anything listed in `Transient Elements Seen`
+> - Carry locators, timing, or page assumptions from one group into the next
+> - Exceed 3 Level 1 fix attempts — escalate to Level 2 immediately
 >
-> **Group Size Rules:**
-> - Maximum 3 steps per group (reduced from 5)
-> - Dynamic content, modals, file uploads, computed values → group of 1 step only
-> - Likely-to-fail steps → group of 1 step only
->
-> **ALL rules in `.postqode/rules/` MUST be followed in EVERY phase.**
+> **Always apply all rules in `.postqode/rules/` in every phase.**
 > (`coordinate-fallback.md`, `hover-handling.md`, `slider-handling.md`, `playwright-framework-best-practices.md`)
 
 ---
 
-## Protocol A: Browser State Verification
+## Protocol A: Verify Browser State
 
-**When uncertain about browser state, follow this sequence:**
+Use when: `BROWSER_STATUS` is uncertain or screenshot needed for confirmation.
 
-1. Read `test-session.md` — check `BROWSER_STATUS`, `CURRENT_URL`, `CURRENT_PAGE_STATE`
-2. Attempt screenshot (`browser_take_screenshot`) or `browser_snapshot`
-3. **If screenshot succeeds:**
-   - Matches `test-session.md`? → Proceed from current step
-   - Doesn't match but page is usable? → Update `test-session.md`, proceed from actual state
-   - Page is broken/error? → Follow Protocol B to recover
-4. **If screenshot fails or is ambiguous → ASK THE USER:**
+1. Read `BROWSER_STATUS`, `CURRENT_URL`, `CURRENT_PAGE_STATE` from `test-session.md`
+2. Take a screenshot or snapshot
+3. Screenshot succeeds and matches session → proceed
+4. Screenshot succeeds but page differs → update `test-session.md` to actual state, proceed
+5. Page broken or error → Protocol B
+6. Screenshot fails or ambiguous → ask:
    ```
-   ⚠️ I'm unable to determine if the browser is still open.
-   Is the browser still open?
-     (A) Yes, the browser is still open
-     (B) No, the browser is closed
+   ⚠️ Cannot determine browser state. Is the browser open?
+     (A) Yes  (B) No
    ```
-   - **User says YES** → Take fresh screenshot, update `test-session.md`, continue from verified position
-   - **User says NO** → Follow Protocol B
+   - A → fresh screenshot, update session, continue
+   - B → Protocol B
 
 ---
 
-## Protocol B: Cost-Saving Replay Choice
+## Protocol B: Replay Choice
 
-> [!CAUTION]
-> **MANDATORY whenever the browser needs to be opened fresh and there are previously completed steps.**
-> ALWAYS ask the user before replaying. NEVER auto-replay.
+Use when: browser needs a fresh open and prior completed steps exist.
 
-**Ask the user:**
+> Always ask. Never auto-replay.
+
 ```
-The browser needs to be opened fresh. There are [N] previously completed
-steps that need to be replayed to reach the current exploration point.
-
-To save cost and context, would you prefer:
-  (A) I replay all the steps automatically (uses more tokens/context)
-  (B) You perform the steps manually — I'll list them for you (saves cost and context)
+Browser needs to be opened fresh. [N] completed steps need replay.
+Prefer:
+  (A) I replay automatically
+  (B) You perform manually — I will list the steps
 ```
 
-### Option A — Agent Fast-Forward Replay
+**Option A:** Run validated spec file in headed mode (preferred). Fallback: open browser,
+execute all prior steps rapidly from spec file, no screenshots between steps,
+one screenshot at the end to verify. Update `BROWSER_STATUS: OPEN`.
 
-> **DO NOT verify each step individually.** The code is already written and validated.
-> Execute all steps rapidly. Only verify ONCE at the end.
+**Option B:** Agent opens browser, navigates to start URL, prints numbered steps for user.
+User confirms done. Agent screenshots to verify, updates `BROWSER_STATUS: OPEN`.
 
-- **Preferred:** Run validated code from `temp-flow.spec.ts` directly in the browser
-  (via headed Playwright run or JavaScript execution)
-- **Fallback — Rapid manual replay:**
-  1. Open new browser session
-  2. Execute ALL steps rapidly using `temp-flow.spec.ts` as reference
-  3. DO NOT take screenshots between steps
-  4. DO NOT verify or analyze after each step
-  5. Only add waits where code has explicit waits (`waitForSelector`, `waitForURL`)
-- After ALL steps → take ONE screenshot to verify final state
-- Update `test-session.md` to `BROWSER_STATUS: OPEN`
-
-### Option B — User Manual Replay
-
-1. **Agent MUST open the browser first** (using `browser_action` launch) — navigate to starting URL.
-   The user performs steps in THIS agent-opened browser so the agent retains session ownership.
-2. **Print steps clearly numbered** with exact actions:
-   ```
-   I've opened the browser at [URL]. Please perform these steps in the
-   browser I just opened, then let me know when done:
-   1. Enter "[username]" in the username field
-   2. Enter "[password]" in the password field
-   3. Click the "Login" button
-   ...
-   Once done, let me know and I'll take a screenshot to verify and continue.
-   ```
-3. Wait for user confirmation
-4. Take screenshot to verify state
-5. Update `test-session.md` to `BROWSER_STATUS: OPEN` with verified state
-6. Continue exploration from verified position
-
-> **⚠️ The agent MUST open the browser so it owns the session.** Without this, the agent
-> cannot take screenshots, interact with the page, or continue exploration.
+> Agent must open the browser so it owns the session.
 
 ---
 
-## Phase 0: Create Test Tracker + Session State + Step Groups
+## Protocol C: Post-Group-1 Grouping Review
 
-### Step 1: Parse and Create test.md
+Use when: `LAST_COMPLETED_GROUP = 1` and `GROUPING_CONFIRMED = NO`.
 
-1. Parse user's test steps into a numbered list.
+After Group 1 exploration, real app behaviour is known. Review Pending Groups and adjust if:
 
-2. **Create `test.md`** with FULL DETAIL for every step:
+| Observation | Action |
+|---|---|
+| App faster and more stable than expected | Merge adjacent single-step pending groups where same page |
+| Heavy async / slow transitions observed | Keep or split groups to 1 step each |
+| `NEEDS_DECOMPOSITION` step is next | Decompose into specific sub-steps now, before it becomes Active |
+| Initial grouping was every-step-is-a-group | Merge where steps share a page and flow naturally |
 
-> [!CAUTION]
-> Each step MUST include: exact action, target element/area, data to enter, expected result.
-> High-level summaries like "Add dataset" are NOT sufficient.
-
-   ```markdown
-   # Test Steps
-   ## Mode: [NEW_TEST | EXTEND_EXISTING]
-   ## Existing Test: [path or N/A]
-   ## Reused Steps: [list or none]
-   ## Target URL: [URL]
-   ## Test Credentials: [if applicable]
-
-   ## Step Groups
-   - Group 1 (Steps 1-3): [Login and Navigation]
-   - Group 2 (Steps 4-6): [Dashboard Setup]
-
-   ## Steps (DETAILED)
-   - [ ] Step 1: Navigate to login page
-     - Action: Open browser and go to [URL]
-     - Expected: Login form visible with username/password fields
-   - [ ] Step 2: Enter credentials and submit
-     - Action: Type "[username]" in username, "[password]" in password, click Login
-     - Expected: Redirected to dashboard, user logged in
-   ...
-   ```
-
-3. **🛑 Ask user to validate test.md BEFORE proceeding.** Present content, wait for confirmation.
-   If user suggests changes → update → ask again. Only proceed after approval.
-
-### Step 2: Create Session State File
-
-Create `test-session.md` — your PERSISTENT MEMORY. Read before EVERY action, update after EVERY action.
-
-The session file has three sections that are always present: **State**, **Completed Groups** (summary only),
-and **Active Group** (full detail for current group only). Keep the file compact — completed group detail
-is never retained beyond a single summary line.
-
-   ```markdown
-   # Session State
-
-   ## State
-   - BROWSER_STATUS: CLOSED
-   - CURRENT_URL: N/A
-   - CURRENT_PAGE_STATE: N/A
-   - SESSION_STARTED_AT: N/A
-   - CURRENT_GROUP: 1
-   - CURRENT_STEP: 1
-   - LAST_COMPLETED_STEP: 0
-   - LAST_COMPLETED_GROUP: 0
-   - NEXT_ACTION: START_EXPLORATION_GROUP_1
-   - NEXT_ACTION_DETAIL: Open browser and begin exploring Group 1 steps
-   - CONTEXT_PRESSURE: LOW
-   - TEMP_FILE_PATH: tests/temp-flow.spec.ts
-   - TEMP_FILE_LAST_STEP: 0
-
-   ## Completed Groups
-   (none yet)
-
-   ## Active Group — Group 1 (Steps 1–3)
-
-   ### Step 1
-   - Action: [exact action from test.md]
-   - Target: [element description]
-   - Expected Result: [what the page/UI should show after this step]
-
-   ### Step 2
-   - Action: [exact action from test.md]
-   - Target: [element description]
-   - Expected Result: [what the page/UI should show after this step]
-
-   ### Step 3
-   - Action: [exact action from test.md]
-   - Target: [element description]
-   - Expected Result: [what the page/UI should show after this step]
-
-   ### Group Success Criteria
-   ALL of the following must be true before marking this group complete:
-   - [ ] Each step above produced its expected result in the live browser
-   - [ ] Playwright code written and appended for all steps in this group
-   - [ ] npx playwright test tests/temp-flow.spec.ts ran and PASSED
-   ```
-
-### Step 3: Analyze and Group Steps
-
-**Grouping Rules:**
-- Maximum 3 steps per group — never more
-- Same page/screen → same group
-- Sequential UI actions (fill form → submit) → same group
-- Navigation to NEW page → start new group
-- Dynamic content, modals, file uploads, computed values → group of 1 step
-- Likely-to-fail steps → group of 1 step
-
-Record groups in test.md under `## Step Groups`.
-
-**Create Focus Chain:**
-- One entry per GROUP: "→ EXPLORE → PREDICT → CODE → RUN → FIX → FLUSH + UPDATE"
-- After every 2 groups: `⚠️ CHECKPOINT: Read test.md + test-session.md, verify all previous groups complete, run full temp file`
+If changes needed → update Pending Groups and Groups index, present to user, wait for confirmation.
+If grouping is appropriate → note confirmed and continue.
+Set `GROUPING_CONFIRMED: YES` in `test-session.md`. Runs once only.
 
 ---
 
-## Phase 1: Setup + Framework Analysis + Session Bootstrap
+## Phase 0: Parse → Group → Session File → Approve
 
-6. **Detect or determine test framework and language:**
+### 1. Parse and decompose
 
-   a. **If project already has a test framework** → detect it automatically (read config files,
-      package.json, requirements.txt, etc.) and use it.
+Parse every step in full detail: exact action, target element, data to enter, expected result.
 
-   b. **If user specified a framework** → use their choice.
+**Flag vague steps** — if a step cannot be acted on without seeing the UI ("fill all required fields",
+"complete the form"), mark it `NEEDS_DECOMPOSITION`. It will be decomposed in Protocol C
+after Group 1 exploration. Present this to the user so they know.
 
-   c. **If NO framework exists and user hasn't specified one → ASK the user:**
+### 2. Group
+
+Default: 2–3 related steps per group. Do not make every step its own group.
+
+**Group together when:** same page, sequential logical actions, simple predictable flow. Max 3.
+
+**Keep as 1 step when:** significant page navigation, modal or overlay, file upload, map widget,
+first entry into a major app section, or described as complex or unreliable.
+
+### 3. Build test-session.md and present for approval
+
+Construct the full `test-session.md` (template below) with all steps, groups, and Pending Groups
+written in full detail. Present it to the user:
+
+```
+Here is the session plan from your test case. Please review steps, groupings,
+and expected results before I proceed.
+
+[full test-session.md content]
+
+Does everything look correct?
+```
+
+Wait for explicit approval. Apply changes, re-present if needed. Write file only after approval.
+
+### test-session.md template
+
+```
+# web-automate Session
+# Read this file before every action. It is the single source of truth.
+
+---
+WORKFLOW: web-automate
+BROWSER_STATUS: CLOSED
+CURRENT_URL: N/A
+CURRENT_PAGE_STATE: N/A
+SESSION_STARTED_AT: N/A
+MODE: [NEW_TEST | EXTEND_EXISTING]
+TARGET_URL: [URL]
+CURRENT_GROUP: 1
+CURRENT_STEP: 1
+LAST_COMPLETED_STEP: 0
+LAST_COMPLETED_GROUP: 0
+TOTAL_GROUPS: [N]
+NEXT_ACTION: FRAMEWORK_SETUP
+NEXT_ACTION_DETAIL: Detect or configure the test framework
+CONTEXT_PRESSURE: LOW
+GROUPING_CONFIRMED: NO
+FRAMEWORK: TBD
+SPEC_FILE: TBD
+CONFIG_FILE: TBD
+CONFIG_ACTION_TIMEOUT: TBD
+CONFIG_NAVIGATION_TIMEOUT: TBD
+CONFIG_EXPECT_TIMEOUT: TBD
+TEST_COMMAND: TBD
+---
+
+## All Steps
+- [ ] Step 1 (G1): [summary]
+- [ ] Step 2 (G1): [summary]
+- [ ] Step 3 (G2): [summary]
+...
+
+## Groups
+- Group 1 (Steps 1–2): [label]
+- Group 2 (Step 3): [label]
+...
+
+## Completed Groups
+(none yet — each entry will be one line only: ✓ PASS | label | spec lines | max timeout)
+
+## Active Group — Group 1 (Steps 1–2): [label]
+
+### Step 1
+- Action: [exact action]
+- Target: [element description]
+- Data: [input values or N/A]
+- Expected Result: [what the UI shows after this step]
+- Step Observation:
+  - Trigger:
+  - Action Timestamp:
+  - Stable Timestamp:
+  - Measured Duration:
+  - Step Type: [NAVIGATION | IN_PAGE_ACTION]
+  - Transient Elements Seen:
+  - Stable Anchor:
+  - Anchor Type:
+  - Stable Anchor Locator:
+  - Stability Check:
+  - Additional Assertions:
+
+### Step 2
+[same structure]
+
+### Group Success Criteria
+- [ ] Each step produced expected result in live browser
+- [ ] Step Observations filled and saved
+- [ ] Config updated if any Recommended timeout exceeded current
+- [ ] Code written and appended — no inline timeouts
+- [ ] Validation run passed
+
+---
+
+## Pending Groups
+
+### Group 2 (Step 3): [label]
+
+#### Step 3
+- Action: [exact action]
+- Target: [element description]
+- Data: [input values or N/A]
+- Expected Result: [what the UI shows after this step]
+- Step Observation:
+  - Trigger:
+  - Action Timestamp:
+  - Stable Timestamp:
+  - Measured Duration:
+  - Step Type: [NAVIGATION | IN_PAGE_ACTION]
+  - Transient Elements Seen:
+  - Stable Anchor:
+  - Anchor Type:
+  - Stable Anchor Locator:
+  - Stability Check:
+  - Additional Assertions:
+
+... (every remaining group in full detail — this section survives a context condense)
+```
+
+---
+
+## Phase 1: Framework Setup (`NEXT_ACTION: FRAMEWORK_SETUP`)
+
+### Framework exists in project
+
+1. Read config files, `package.json`, `requirements.txt` — identify framework, language,
+   test command, spec pattern, config location
+2. Read config file — record current timeout values
+3. Read existing test files — note POM structure, naming, imports, base classes
+4. Check if any user steps are already implemented → if yes, ask:
+   ```
+   Steps [X, Y] appear to be implemented already. Prefer:
+     (A) Add to existing test file  (B) Create separate new test
+   ```
+5. Update `test-session.md` state block: `FRAMEWORK`, `SPEC_FILE`, `CONFIG_FILE`,
+   `TEST_COMMAND`, `CONFIG_ACTION_TIMEOUT`, `CONFIG_NAVIGATION_TIMEOUT`, `CONFIG_EXPECT_TIMEOUT`, `MODE`
+6. Create working spec file following project patterns
+7. If EXTEND_EXISTING: extract reused steps into spec, mark them `[x]` in All Steps,
+   position browser at start using Protocol B
+8. Set `NEXT_ACTION: EXPLORE_GROUP_1`
+
+### No framework in project
+
+1. Ask:
+   ```
+   No framework found. Specify framework and language:
+     UI/browser:  Playwright (JS/TS), Selenium (Python/Java), Cypress (JS/TS)
+     API:         Pytest+requests (Python), Jest+axios (JS/TS), REST Assured (Java)
+     Hybrid:      Playwright (JS/TS), Pytest (Python)
+   ```
+2. Install framework, generate baseline config with sensible default timeouts
+3. Update `test-session.md` state block with all values
+4. Create working spec file
+5. Set `NEXT_ACTION: EXPLORE_GROUP_1`
+
+> All subsequent references use `TEST_COMMAND`, `SPEC_FILE`, `CONFIG_FILE` from `test-session.md`.
+
+---
+
+## Phase 2: Group Execution Loop
+
+> Exploration browser stays open throughout Phase 2.
+> Close only when: all groups complete, Level 3 exit, or user asks to stop.
+
+Each group follows this state sequence:
+`EXPLORE → APPEND_CODE → UPDATE_CONFIG → RUN_AND_VALIDATE → (FIX_AND_RERUN if needed) → UPDATE_SESSION`
+
+---
+
+### EXPLORE_GROUP_N
+
+1. Output STATE CHECK — confirm `NEXT_ACTION` is `EXPLORE_GROUP_N`
+2. Read Active Group from `test-session.md` — steps, targets, data, expected results, blank observations
+3. Verify browser: `OPEN` → Protocol A | `CLOSED` → Protocol B | uncertain → Protocol A
+   After browser is confirmed open, update `test-session.md` state block:
+   `BROWSER_STATUS: OPEN`, `CURRENT_URL: [actual URL]`, `CURRENT_PAGE_STATE: [one-line description]`
+   Write the file before proceeding to step 4.
+4. Output prediction block:
+   ```
+   ## PREDICTED OUTCOMES — Group [N]
+   Step [X]: After [action] → expect [element / URL / state]
+   Step [Y]: After [action] → expect [element / URL / state]
+   ```
+5. For each step — one at a time:
+   - Output `BROWSER ACTION:` declaration
+   - **Record `Action Timestamp`** — note the current time (`HH:MM:SS.sss`) immediately before performing the action
+   - Perform the action
+   - Take screenshot — analyse what changed, identify the Stable Anchor (use selection priority below)
+   - **Record `Stable Timestamp`** — note the current time (`HH:MM:SS.sss`) when the stable anchor is confirmed visible
+   - **Calculate `Measured Duration`** — `Stable Timestamp - Action Timestamp` in milliseconds
+   - **Classify `Step Type`:**
+     `NAVIGATION` = page.goto(), URL change, login, first entry into a new app section, page reload
+     `IN_PAGE_ACTION` = click on same page, fill field, toggle, tab switch, modal open on same page
+   - **MANDATORY — Identify the Stable Anchor Locator:**
+     Take a `browser_snapshot` or use `page.evaluate()` to inspect the DOM around the Stable Anchor element.
+     Determine the best Playwright locator using this priority (first that uniquely identifies the element):
+     `data-testid` → `getByRole(role, { name })` → `getByText()` → `getByLabel()` → CSS selector
+     If Anchor Type is `URL_CHANGE`: record the URL pattern (e.g. `**/dashboard**`)
+     **`Stable Anchor Locator` must not be left blank** — if no locator can be determined, take a snapshot
+     and examine the DOM until one is found, or ask the user.
+   - **MANDATORY — Validate Locator Stability:**
+     Before recording the Stable Anchor Locator, ask: **"Would this locator return the same element
+     if the test ran at a different time, on a different day, or with different data?"**
+     Run the candidate locator text through these checks:
+
+     **Check 1 — Time/Date Sensitivity:**
+     Does the text contain content that changes based on when the test runs?
+     Greetings (Good Morning/Afternoon/Evening), timestamps, "today", relative dates ("2 hours ago"),
+     day names, session durations — all fail this check.
+
+     **Check 2 — Data/Count Sensitivity:**
+     Does the text contain counts, totals, or data values that change between runs?
+     "5 items", "Total: $42.00", record counts, notification badges — all fail this check.
+
+     **Check 3 — User/Session Sensitivity:**
+     Does the text contain user-specific session data that varies per login?
+     Session IDs, tokens, "Last login: ...", dynamic user status — fail this check.
+     Note: Static user identity (e.g. a username like "Manoj") is acceptable if it is test data you control.
+
+     **Check 4 — Uniqueness:**
+     Does the locator match exactly one element on the page? If `getByText('Submit')` matches 3 buttons,
+     it fails. Scope it: `page.locator('.form-section').getByText('Submit')`.
+
+     **If any check fails → find an alternative locator using this escalation:**
+     1. Look for a structural attribute on the same element: `data-testid`, `id`, `aria-label`, `role`
+     2. Look at the parent/container: find a stable parent with an attribute, then scope within it
+     3. Use a partial/regex match on the stable portion: `getByText(/Hi,.*Manoj/)` instead of `getByText('Hi, Good Afternoon')`
+     4. Use a CSS selector targeting element structure: `.dashboard-header`, `[class*="greeting"]`
+     5. If the element has no stable attributes at all → inspect siblings: find a nearby stable element
+        and locate relative to it
+
+     **Output the validation result as a one-line comment in the Step Observation:**
+     `Stability Check: PASS` or `Stability Check: FIXED — original "Hi, Good Afternoon" is time-sensitive → using getByText(/Hi,.*Manoj/)`
+   - Fill ALL Step Observation fields in `test-session.md` immediately (see Anchor Reference table)
+   - Update `CURRENT_URL` and `CURRENT_PAGE_STATE` in the state block if they changed
+   - Write file before moving to next step — do not proceed without saving
+6. **MANDATORY TRANSITION — DO NOT SKIP:**
+   After the LAST step of the Active Group has been explored and its observation saved:
+   a. Verify all Step Observation fields in the Active Group are filled (no blank Trigger/Anchor fields)
+   b. Update `NEXT_ACTION` to `APPEND_CODE_GROUP_N` in `test-session.md` — write the file
+   c. Output:
       ```
-      I don't see an existing test framework in this project. What would you like to use?
-
-      Based on your test type, here are my recommendations:
-        - UI/Browser testing: Playwright (JS/TS), Selenium (Python/Java), Cypress (JS/TS)
-        - API testing: Pytest + requests (Python), Jest + axios (JS/TS), REST Assured (Java)
-        - Hybrid (UI + API): Playwright (JS/TS), Pytest (Python)
-
-      Please choose:
-        1. Framework: [e.g., Playwright, Cypress, Selenium, Pytest, Jest, etc.]
-        2. Language: [e.g., TypeScript, JavaScript, Python, Java, etc.]
-
-      Or I can set up the recommended option for your test type.
+      ✅ EXPLORATION COMPLETE — Group [N]
+      Steps explored: [list]
+      All observations saved: YES
+      NEXT_ACTION updated to: APPEND_CODE_GROUP_N
+      Proceeding to write code from observations.
       ```
-      Wait for user response before proceeding.
+   d. Do NOT perform any browser actions after this point — the next phase is CODE, not more exploration
+   e. **BOUNDARY CHECK:** If the step you are about to explore is NOT listed in the Active Group section
+      of `test-session.md`, STOP — exploration for this group is already done
 
-   d. **Configure the chosen framework:**
-      - Ensure HTML reports don't auto-open during validation runs
-        (e.g., for Playwright: `reporter: [['html', { open: 'never' }]]` in config)
-      - Install dependencies if needed
-
-7. **If framework exists — Analyze BEFORE exploring:**
-   - Read existing test files, page objects, helpers
-   - Identify coding patterns (POM style, naming, folder structure)
-   - Check: Are any user steps ALREADY coded in existing tests?
-
-8. **If existing code covers some steps:**
-
-   a. Ask user: (A) ADD to existing test file, or (B) CREATE separate new test
-   b. Record choice in test.md (`Mode: EXTEND_EXISTING` or `Mode: NEW_TEST`)
-   c. Extract prerequisite code to temp test file (e.g., `tests/temp-flow.spec.ts` for Playwright):
-      ```typescript
-      // Example (Playwright/TypeScript):
-      import { test, expect } from '@playwright/test';
-      test('temp exploration flow', async ({ page }) => {
-        // === REUSED CODE (Steps 1-2) — DO NOT MODIFY ===
-        await page.goto('https://app.example.com/login');
-        await page.fill('#username', 'admin');
-        await page.fill('#password', 'password');
-        await page.click('#login-btn');
-        await expect(page).toHaveURL('/dashboard');
-        // === END REUSED CODE ===
-        // === NEW STEPS (exploration begins here) ===
-      });
-      ```
-      Adapt format to the chosen framework/language.
-
-   d. **Follow Protocol B** to open the browser and reach the starting state for new steps.
-      The reused code serves as the reference for which steps need to be replayed.
-   e. Update `test-session.md` (BROWSER_STATUS: OPEN, progress, next action)
-   f. Mark reused steps as `[x]` in test.md
-   g. Continue to Phase 2
-
-9. **If NO existing code matches** — Create temp test file from scratch
-   (e.g., `tests/temp-flow.spec.ts` for Playwright, `tests/test_flow.py` for Pytest).
-   Match existing framework's import style, config, or base class if present.
-
----
-
-## Phase 2: Execute + Validate Each Group
-
-> [!CAUTION]
-> The exploration browser MUST NOT be closed during Phase 2 except:
-> ALL groups COMPLETE, Level 3 Graceful Exit, or user explicitly asks to stop.
-
-### The Group Execution Loop
-
-For EACH GROUP: **EXPLORE → PREDICT → CODE → RUN → FIX → FLUSH + UPDATE → NEXT GROUP**
-
----
-
-#### Step A: EXPLORE the Group
-
-a. Output the STATE CHECK block (filled from `test-session.md`) — confirm `NEXT_ACTION` says `EXPLORE_GROUP_N`
-
-b. Read the **Active Group** section of `test-session.md` — this tells you exactly what steps
-   you are exploring and what each expected result is. Do not rely on memory.
-
-c. **Verify browser state:**
-   - If `OPEN`: Follow **Protocol A** to verify actual state matches `test-session.md`
-   - If `CLOSED`: Follow **Protocol B** (Cost-Saving Replay Choice)
-   - If uncertain: Follow **Protocol A** (which may lead to Protocol B)
-
-d. Before starting exploration, output a prediction block:
-   ```
-   ## EXPECTED OUTCOMES — Group [N]
-   Step [X]: After [action], I expect to see [specific UI state / URL / element]
-   Step [Y]: After [action], I expect to see [specific UI state / URL / element]
-   Step [Z]: After [action], I expect to see [specific UI state / URL / element]
-   ```
-
-e. Explore ALL steps in the current group in the live browser:
-   - Output `BROWSER ACTION:` declaration before every browser tool call
-   - Interact with page, find locators, note what works
-   - After each step, compare actual result against the expected result from your prediction
-   - DO NOT close browser between steps
-   - DO NOT write code yet — just explore and validate interactions
-
-f. Update `test-session.md`: set `NEXT_ACTION: APPEND_CODE_GROUP_N`
-
----
-
-#### Step B: APPEND CODE for the Group
-
-g. Output the STATE CHECK block — confirm `NEXT_ACTION` says `APPEND_CODE_GROUP_N`
-
-h. Append code for ALL steps in the group to `temp-flow.spec.ts`:
-   ```typescript
-   // === GROUP 2: Dashboard Creation (Steps 4-6) ===
-   // Step 4: Click Create Dashboard
-   await page.getByText('Create Dashboard').click();
-   // Step 5: Name the dashboard
-   await page.getByPlaceholder('Dashboard name').fill('Test Dashboard');
-   // Step 6: Select template
-   await page.getByText('Blank Template').click();
-   // === END GROUP 2 ===
-   ```
-
-i. Update `test-session.md`: set `NEXT_ACTION: RUN_AND_VALIDATE_GROUP_N`, update `TEMP_FILE_LAST_STEP`
-
----
-
-#### Step C: RUN AND VALIDATE
-
-> Validation run opens its OWN separate browser. Your exploration browser stays OPEN.
-> **DO NOT change BROWSER_STATUS after validation runs.**
-
-j. Output the STATE CHECK block — confirm `NEXT_ACTION` says `RUN_AND_VALIDATE_GROUP_N`
-
-k. Run in SEPARATE terminal (e.g., `npx playwright test tests/temp-flow.spec.ts --headed`)
-
-l. If PASSES → go to Step D
-
-m. If FAILS → fix code, re-run, repeat until passes.
-   Update `test-session.md`: `NEXT_ACTION: FIX_AND_RERUN_GROUP_N`
-
-   > **Level 1 recovery applies here — see Failure Escalation Protocol below.**
-   > Maximum 3 Level 1 attempts. If all 3 fail → Level 2 immediately.
-
----
-
-#### Step D: FLUSH AND UPDATE TRACKING (MANDATORY — DO NOT SKIP)
-
-> [!CAUTION]
-> This step closes out the group. BROWSER_STATUS stays `OPEN`.
-> The Active Group detail in `test-session.md` is replaced — not appended.
-> Completed group history is compressed to a single summary line.
-
-n. Update `test.md` — mark ALL steps in group as `[x]`
-
-o. **Rewrite `test-session.md`** following this structure exactly:
-
-   ```markdown
-   # Session State
-
-   ## State
-   - BROWSER_STATUS: OPEN
-   - CURRENT_URL: [actual current URL]
-   - CURRENT_PAGE_STATE: [one-line description of current page]
-   - SESSION_STARTED_AT: [time]
-   - CURRENT_GROUP: [N+1]
-   - CURRENT_STEP: [first step of next group]
-   - LAST_COMPLETED_STEP: [last step of group just completed]
-   - LAST_COMPLETED_GROUP: [N]
-   - NEXT_ACTION: EXPLORE_GROUP_[N+1]
-   - NEXT_ACTION_DETAIL: [what to do next]
-   - CONTEXT_PRESSURE: [LOW if groups 1-3 complete / MEDIUM if 4-6 / HIGH if 7+]
-   - TEMP_FILE_PATH: tests/temp-flow.spec.ts
-   - TEMP_FILE_LAST_STEP: [step number]
-
-   ## Completed Groups
-   - Group 1 (Steps 1–3): ✓ PASS | code lines [X–Y] in temp-flow.spec.ts
-   - Group 2 (Steps 4–6): ✓ PASS | code lines [X–Y] in temp-flow.spec.ts
-   ... (one line per completed group — no other detail)
-
-   ## MEMORY FLUSH — Group [N] Complete
-   All exploration context for Group [N] is now closed.
-   Do NOT reference Group [N] exploration details going forward.
-   Source of truth for completed work: temp-flow.spec.ts
-   Source of truth for current position: this file (test-session.md)
-   Source of truth for remaining steps: test.md
-   Do not carry forward locator strategies, timing observations, or page behaviour
-   assumptions from Group [N] into Group [N+1]. Each group is a fresh exploration.
-
-   ## Active Group — Group [N+1] (Steps [X]–[Y])
-
-   ### Step [X]
-   - Action: [exact action from test.md]
-   - Target: [element description]
-   - Expected Result: [what the page/UI should show after this step]
-
-   ### Step [X+1]
-   - Action: [exact action from test.md]
-   - Target: [element description]
-   - Expected Result: [what the page/UI should show after this step]
-
-   ### Step [Y]
-   - Action: [exact action from test.md]
-   - Target: [element description]
-   - Expected Result: [what the page/UI should show after this step]
-
-   ### Group Success Criteria
-   ALL of the following must be true before marking this group complete:
-   - [ ] Each step above produced its expected result in the live browser
-   - [ ] Playwright code written and appended for all steps in this group
-   - [ ] npx playwright test tests/temp-flow.spec.ts ran and PASSED
-   ```
-
-p. If `CONTEXT_PRESSURE` is `MEDIUM` or `HIGH`, add this to `NEXT_ACTION_DETAIL`:
-   ```
-   ⚠️ CONTEXT PRESSURE [MEDIUM/HIGH]: Before exploring Group [N+1],
-   re-read the CORE RULES section at the top of web-automate.md.
-   Confirm you are following EXPLORE phase only — do not write code yet.
-   ```
-
-q. Continue to next group → back to Step A
-
----
-
-### Checkpoint Protocol (Every 2 Groups)
-
-After every 2 completed groups:
-1. Output STATE CHECK block
-2. Read `test.md` — confirm all previous steps are `[x]`
-3. Read `test-session.md` — confirm state is consistent with test.md
-4. If any steps skipped → go back and complete them
-5. Run full temp file (e.g., `npx playwright test tests/temp-flow.spec.ts --headed`)
-6. If fails → fix before proceeding
-
----
-
-### Step Failure Escalation Protocol
-
-Follow levels IN ORDER. Do NOT skip levels.
-
-**Level 1 — Self-Fix (maximum 3 attempts, then stop):**
-
-Execute in order. Stop and go to Level 2 after 3 failed attempts — do not continue inventing variations.
-
-1. **Check `.postqode/rules/` FIRST** — read all rule files for solutions to the specific problem
-   (`coordinate-fallback.md`, `hover-handling.md`, `slider-handling.md`, and any other rules)
-2. Try `getByRole()` with accessible name, then `getByLabel()`, then `getByTestId()`
-3. Add explicit wait (`waitForSelector` or equivalent) + take `browser_snapshot` to re-read DOM
-
-> After attempt 3: if still failing → go to Level 2 immediately. Do not attempt further variations.
-
-**Level 2 — Ask User (MANDATORY after 3 failed Level 1 attempts):**
-
-Do NOT silently skip or give up. Pause and ask with specific instructions:
+**Filling the Step Observation — example of a correctly filled record (single anchor):**
 ```
-⚠️ I'm stuck on Step [N]: "[description]"
-
-What I've tried (3 attempts):
-1. [attempt 1]
-2. [attempt 2]
-3. [attempt 3]
-
-Please do ONE of:
-  A: DevTools (F12) → right-click element → Inspect → Copy outerHTML → paste here
-  B: Console: document.querySelectorAll('button, [role="button"], a') → tell me results
-  C: Screenshot showing where the element is + describe location
-```
-After receiving input → analyze, extract locator, generate code, test in browser.
-
-**Level 3 — Graceful Exit (ONLY if Level 2 also fails):**
-
-a. Check if remaining steps DEPEND on failed step
-b. **If dependent** → mark failed step `[❌]`, mark dependent steps `⏭️ SKIPPED`,
-   update `test-session.md` to `NEXT_ACTION: STOPPED`, save progress, close browser, report to user. STOP.
-c. **If independent** → mark failed step `[❌]`, comment out code, continue with next step
-
----
-
-## Phase 3: Convert to Final Test
-
-After ALL groups completed (all steps `[x]` or `[❌]`):
-
-### Path A: EXTEND_EXISTING
-- Read existing test file, find insertion point
-- Integrate new steps (add POM methods, imports, fixtures as needed)
-- DO NOT break existing functionality
-- Run the updated test headed (e.g., `npx playwright test tests/existing-test.spec.ts --headed`)
-- Delete temp test file after success
-
-### Path B: NEW_TEST
-- Follow existing framework patterns (or create new POM structure)
-- Refactor flat test to use Page Objects
-- Extract test data to `TEST_DATA` object or fixture
-- Rename from `temp-flow.spec.ts` to meaningful name
-
----
-
-## Phase 4: Final Validation
-
-Run final test headed. If passes → report success, delete temp files.
-
-If fails:
-1. Read test report/log, view failure screenshot
-2. Fix: imports, typos, waits/retries, `playwright.config.ts` retries
-3. If still failing → follow Step Failure Escalation Protocol
-
----
-
-## Cleanup
-
-- ✅ Keep: POM files, test spec, fixtures
-- ❌ Delete: screenshots, temp-flow.spec.ts, test.md, test-session.md
-
----
-
-## Quick Reference
-
-### Group Execution Loop
-```
-FOR EACH GROUP:
-  0. OUTPUT STATE CHECK block (filled from test-session.md — always first)
-     → If uncertain about browser → Protocol A (verify/ask user)
-     → If browser needs fresh open → Protocol B (ask user: agent or manual replay)
-  1. READ Active Group section of test-session.md — know your steps and expected results
-  2. OUTPUT prediction block (expected outcomes before exploring)
-  3. EXPLORE group steps in live browser (BROWSER ACTION: declaration before every tool call)
-  4. APPEND CODE to temp file
-  5. RUN validation (separate browser — do not change BROWSER_STATUS)
-  6. FIX failures if any → re-run (max 3 Level 1 attempts, then escalate)
-  7. FLUSH + UPDATE: rewrite test-session.md with compressed history + fresh Active Group
-
-  ⚠️ NEVER skip steps 4-7. NEVER proceed without flushing and updating.
-  ⚠️ NEVER assume browser state — verify or ASK USER.
-  ⚠️ NEVER auto-replay — ASK USER for preference.
-  ⚠️ NEVER restart from Step 1 — resume from LAST_COMPLETED_STEP.
-  ⚠️ NEVER exceed 3 Level 1 recovery attempts — escalate to Level 2.
-  ⚠️ NEVER carry locator strategies or timing assumptions across groups.
+- Step Observation:
+  - Trigger: Clicked "Login" button (getByRole 'button' name 'Login')
+  - Action Timestamp: 13:14:02.100
+  - Stable Timestamp: 13:14:04.200
+  - Measured Duration: 2100ms
+  - Step Type: NAVIGATION
+  - Transient Elements Seen: Loading spinner (do NOT assert on this)
+  - Stable Anchor: Dashboard header element visible and stable
+  - Anchor Type: ELEMENT_VISIBLE
+  - Stable Anchor Locator: [data-testid="dashboard-header"]
+  - Stability Check: PASS
+  - Additional Assertions: (none)
 ```
 
-### NEXT_ACTION Values
+**Example with multiple verifications (login step with URL + heading + user name):**
+```
+- Step Observation:
+  - Trigger: Clicked "Log in" button (getByRole 'button' name 'Log in')
+  - Action Timestamp: 13:14:02.100
+  - Stable Timestamp: 13:14:05.600
+  - Measured Duration: 3500ms
+  - Step Type: NAVIGATION
+  - Transient Elements Seen: "Loading... Please wait!" (do NOT assert on this)
+  - Stable Anchor: URL changed to dashboard (primary wait target)
+  - Anchor Type: URL_CHANGE
+  - Stable Anchor Locator: **/home**
+  - Stability Check: PASS
+  - Additional Assertions:
+    - ELEMENT_VISIBLE | getByRole('heading', { name: 'Projects' }) | Projects heading visible
+    - ELEMENT_VISIBLE | getByText(/Hi,.*Manoj/) | User greeting visible (regex — time-sensitive text)
+```
 
-| Value | Do | Don't |
-|---|---|---|
-| `EXPLORE_GROUP_N` | Read Active Group, output prediction, explore in browser | Write code, run tests |
-| `APPEND_CODE_GROUP_N` | Write code, append to temp file | Explore more, run tests |
-| `RUN_AND_VALIDATE_GROUP_N` | Run test (e.g., `npx playwright test`) | Explore, write code |
-| `FIX_AND_RERUN_GROUP_N` | Fix code (max 3 attempts), re-run | Move to next group without passing |
-| `FLUSH_AND_UPDATE_GROUP_N` | Rewrite test-session.md, populate next Active Group | Skip the flush, partial updates |
-| `CHECKPOINT` | Verify progress, run full test | Skip |
-| `STOPPED` | Halted — wait for user | Continue |
+**When to use Additional Assertions:**
+- The step's Expected Result describes multiple visible outcomes (e.g. "dashboard loads with user name and projects")
+- A verification step explicitly checks several elements (e.g. "Verify login succeeded")
+- The action causes both a URL change AND new elements to appear
+- The primary anchor alone is not sufficient to confirm the step fully succeeded
+
+**Format:** Each additional assertion is one line: `Anchor Type | Locator | Description`
+Run each additional locator through the same Stability Check (Checks 1–4). If none needed, write `(none)`.
+
+**Example of a FIXED stability check (time-sensitive greeting):**
+```
+- Step Observation:
+  - Trigger: Clicked "Log in" button (getByRole 'button' name 'Log in')
+  - Action Timestamp: 13:14:02.100
+  - Stable Timestamp: 13:14:05.600
+  - Measured Duration: 3500ms
+  - Step Type: NAVIGATION
+  - Transient Elements Seen: "Loading... Please wait!" (do NOT assert on this)
+  - Stable Anchor: User greeting element on dashboard
+  - Anchor Type: ELEMENT_VISIBLE
+  - Stable Anchor Locator: getByText(/Hi,.*Manoj/)
+  - Stability Check: FIXED — original "Hi, Good Afternoon" is time-sensitive → using regex getByText(/Hi,.*Manoj/)
+  - Additional Assertions: (none)
+```
+
+**Stable Anchor Selection (apply in order — use first that applies):**
+`URL_CHANGE → ELEMENT_TEXT → ELEMENT_VISIBLE → ELEMENT_ENABLED → ELEMENT_COUNT → NETWORK_IDLE`
+
+- Anchor must appear ONLY after the action fully completes — not before
+- Reject: anything with "Loading" / "Saving" / "Please wait", spinners, skeletons,
+  or anything disappearing within 3 seconds
+- Record transients explicitly — then find what appeared after them
+- No stable anchor found → take `browser_snapshot`, examine DOM for stable attributes
+- Still none → ask: "After [action], what is the most reliable sign of success?"
+
+---
+
+> [!IMPORTANT]
+> ## PHASE BOUNDARY — EXPLORE → CODE
+> After EXPLORE_GROUP_N completes, you MUST proceed to APPEND_CODE_GROUP_N.
+> You must NOT explore any more steps, open any more pages, or click anything in the browser.
+> The browser stays open but idle until after RUN_AND_VALIDATE completes.
+> If `NEXT_ACTION` in `test-session.md` does not say `APPEND_CODE_GROUP_N`, exploration is NOT done — go back and finish it.
+
+### APPEND_CODE_GROUP_N
+
+1. Output STATE CHECK — confirm `NEXT_ACTION` is `APPEND_CODE_GROUP_N`
+2. Read each step's filled Step Observation from Active Group in `test-session.md`
+3. Write code for each step using this pattern:
+   ```
+   // Step [N]: [description]
+   // Measured: [Measured Duration]ms | Type: [Step Type]
+   [action]
+   [wait — from Anchor Reference table, using Stable Anchor Locator, no inline timeout]
+   [assertion — targets Stable Anchor Locator, not the trigger]
+   // Additional assertions (if any from Step Observation)
+   [assertion per Additional Assertion line — use Anchor Reference table for wait/assert code per type]
+   ```
+   If `Additional Assertions` is `(none)`, write only the primary wait + assertion.
+   If it has entries, write one assertion per line after the primary, using the locator and type from each entry.
+4. Append code to working spec file
+5. Set `NEXT_ACTION: UPDATE_CONFIG_GROUP_N`, update `SPEC_FILE_LAST_STEP`
+
+See **Anchor Reference** table for wait code per Anchor Type. No inline timeouts — ever.
+
+---
+
+### UPDATE_CONFIG_GROUP_N
+
+1. Output STATE CHECK — confirm `NEXT_ACTION` is `UPDATE_CONFIG_GROUP_N`
+2. For each step in the completed group, read `Measured Duration` and `Step Type` from Step Observations
+3. Calculate Recommended Config Timeout per step:
+   - `NAVIGATION` steps: Recommended = Measured Duration × 4, minimum 15000ms
+   - `IN_PAGE_ACTION` steps: Recommended = Measured Duration × 3, minimum 5000ms
+4. Map each step's Recommended to the correct config key using the Anchor Reference table:
+   - `URL_CHANGE` / `NETWORK_IDLE` → `navigationTimeout`
+   - All other Anchor Types → `actionTimeout` + `expectTimeout`
+5. Take the maximum Recommended value per config key
+6. Read current config values from `test-session.md` state block
+7. If any maximum exceeds current config → update config file, update values in `test-session.md` state block
+8. If none exceeded → note unchanged, proceed
+9. Set `NEXT_ACTION: RUN_AND_VALIDATE_GROUP_N`
+
+---
+
+### RUN_AND_VALIDATE_GROUP_N
+
+> Validation opens its own browser. Exploration browser stays open. Do NOT update `BROWSER_STATUS`.
+
+1. Output STATE CHECK — confirm `NEXT_ACTION` is `RUN_AND_VALIDATE_GROUP_N`
+2. Run: `[TEST_COMMAND] [SPEC_FILE] --headed`
+3. Passes → set `NEXT_ACTION: UPDATE_SESSION_GROUP_N`
+4. Fails → set `NEXT_ACTION: FIX_AND_RERUN_GROUP_N`
+
+---
+
+### FIX_AND_RERUN_GROUP_N
+
+Apply Failure Escalation Protocol. Max 3 Level 1 attempts.
+After passing → set `NEXT_ACTION: UPDATE_SESSION_GROUP_N`.
+
+---
+
+### UPDATE_SESSION_GROUP_N + Offer Condense
+
+> BROWSER_STATUS stays OPEN. Rewrite `test-session.md` completely — never append.
+
+**Rewrite rules:**
+- Completed group → **one line only**: `✓ PASS | [label] | spec lines [X–Y] | max timeout: [N]ms`
+  All step detail, observations, locators, timing, success criteria — deleted. They are in the spec file.
+- Next group → move from Pending Groups into Active Group (remove from Pending)
+- All other pending groups → unchanged
+- `GROUPING_CONFIRMED = NO` and `LAST_COMPLETED_GROUP = 1` → run Protocol C before writing Active Group
+
+**Set CONTEXT_PRESSURE** based on groups completed:
+- 1–3 complete → `LOW`
+- 4–6 complete → `MEDIUM` — add to `NEXT_ACTION_DETAIL`: re-read CORE RULES before exploring
+- 7+ complete → `HIGH` — add to `NEXT_ACTION_DETAIL`: re-read CORE RULES, recommend condense first
+
+**Session file structure after rewrite:**
+```
+# web-automate Session
+# Read this file before every action. It is the single source of truth.
+
+---
+WORKFLOW: web-automate
+BROWSER_STATUS: OPEN
+CURRENT_URL: [actual]
+CURRENT_PAGE_STATE: [one-line]
+SESSION_STARTED_AT: [time]
+MODE: [value]
+TARGET_URL: [value]
+CURRENT_GROUP: [N+1]
+CURRENT_STEP: [first step of next group]
+LAST_COMPLETED_STEP: [value]
+LAST_COMPLETED_GROUP: [N]
+TOTAL_GROUPS: [value]
+NEXT_ACTION: EXPLORE_GROUP_[N+1]
+NEXT_ACTION_DETAIL: [detail + context pressure instruction if MEDIUM/HIGH]
+CONTEXT_PRESSURE: [LOW / MEDIUM / HIGH]
+GROUPING_CONFIRMED: YES
+FRAMEWORK: [value]
+SPEC_FILE: [value]
+CONFIG_FILE: [value]
+CONFIG_ACTION_TIMEOUT: [ms]
+CONFIG_NAVIGATION_TIMEOUT: [ms]
+CONFIG_EXPECT_TIMEOUT: [ms]
+TEST_COMMAND: [value]
+---
+
+## All Steps
+- [x] Step 1 (G1): [summary]
+- [x] Step 2 (G1): [summary]
+- [ ] Step 3 (G2): [summary]
+...
+
+## Groups
+- Group 1 (Steps 1–2): [label] ✓
+- Group 2 (Step 3): [label]  ← current
+...
+
+## Completed Groups
+- Group 1 (Steps 1–2): ✓ PASS | [label] | spec lines 1–42 | max timeout: 6000ms
+
+## Active Group — Group [N+1] (Steps [X]–[Y]): [label]
+
+### Step [X]
+- Action: [from Pending Groups]
+- Target: [from Pending Groups]
+- Data: [from Pending Groups]
+- Expected Result: [from Pending Groups]
+- Step Observation:
+  - Trigger:
+  - Action Timestamp:
+  - Stable Timestamp:
+  - Measured Duration:
+  - Step Type: [NAVIGATION | IN_PAGE_ACTION]
+  - Transient Elements Seen:
+  - Stable Anchor:
+  - Anchor Type:
+  - Stable Anchor Locator:
+  - Stability Check:
+  - Additional Assertions:
+
+### Group Success Criteria
+- [ ] Each step produced expected result in live browser
+- [ ] Step Observations filled and saved
+- [ ] Config updated if any Recommended timeout exceeded current
+- [ ] Code written and appended — no inline timeouts
+- [ ] Validation run passed
+
+---
+
+## Pending Groups
+
+### Group [N+2] ...
+[full detail — every remaining group]
+```
+
+**After writing session file, offer condense:**
+```
+✅ Group [N] complete — [X] steps passing.
+Config: [updated: actionTimeout Nms, navTimeout Nms | or: unchanged]
+Progress: [X] of [N] steps done | [G] groups remaining
+
+Condense context now? All progress saved in test-session.md and spec file.
+  (A) Yes — I will wait for you to condense and confirm
+  (B) No — continue
+```
+User says A → wait for confirmation, then re-read `test-session.md` and continue.
+User says B → continue immediately.
+
+---
+
+### Checkpoint Protocol (every 2 completed groups)
+
+1. Output STATE CHECK
+2. Read All Steps index — confirm all prior steps are `[x]`
+3. Confirm state block values match the index — fix any discrepancy before continuing
+4. Run full spec file in headed mode
+5. Fails → fix before proceeding
+
+---
+
+### Failure Escalation Protocol
+
+**Level 1 — Self-fix (3 attempts max, then stop):**
+1. Read all `.postqode/rules/` files relevant to the problem before trying anything
+2. Try: `getByRole()` with name → `getByLabel()` → `getByTestId()`
+3. Add `waitFor({state:'visible'})` before action + take snapshot to re-examine DOM
+
+→ After 3 attempts: Level 2. No more variations.
+
+**Level 2 — Ask user:**
+```
+⚠️ Stuck on Step [N]: "[description]"
+Tried 3 times: [attempt 1] | [attempt 2] | [attempt 3]
+
+Please provide:
+  A: DevTools → right-click element → Copy outerHTML → paste here
+  B: Console: document.querySelectorAll('button,[role="button"],a') → paste output
+  C: Screenshot of element + describe its location
+```
+Receive input → extract locator → test in browser → write code.
+
+**Level 3 — Graceful exit (only if Level 2 fails):**
+- Remaining steps depend on failed step → mark `[❌]`, mark dependents `⏭️ SKIPPED`,
+  set `NEXT_ACTION: STOPPED`, save session file, close browser, report. Stop.
+- Remaining steps independent → mark `[❌]`, comment out code, continue to next step
+
+---
+
+## Phase 3: Finalise Test
+
+All steps `[x]` or `[❌]`.
+
+### EXTEND_EXISTING mode
+
+1. Read the existing test file and the working spec file side by side
+2. Identify the insertion point — after the last existing step, before any cleanup/teardown
+3. Check for reusable Page Object methods — if the existing file uses POM, write new steps
+   using the same page objects. Create new POM methods only if no existing method covers the action.
+4. Match the existing file's patterns exactly: imports, fixtures, assertion style, step naming
+5. Copy new steps into the existing file at the insertion point
+6. Remove any duplicate imports or setup code that the existing file already handles
+7. Run the full combined test in headed mode: `[TEST_COMMAND] [existing file] --headed`
+8. Passes → delete the working spec file
+9. Fails → Failure Escalation Protocol (the issue is likely import/fixture mismatch — check those first)
+
+### NEW_TEST mode
+
+1. Read the working spec file — identify repeated patterns (locators, actions, waits)
+2. Extract Page Object classes:
+   - One class per major page/screen encountered during the test
+   - Move locators into `readonly` properties on the class
+   - Move action sequences into descriptive methods (e.g. `login()`, `selectDataset()`)
+   - Include wait logic inside POM methods, not in the test
+3. Extract test data:
+   - Credentials, URLs, dataset names, input values → move to a data object, config, or fixture
+   - Do not hardcode test data in the spec file
+4. Create fixture file if the framework supports it (e.g. Playwright fixtures):
+   - Provide pre-authenticated page states where applicable
+   - Provide page object instances via destructuring
+5. Rename the spec file to match project naming conventions (e.g. `login-flow.spec.ts`, not `working-spec.ts`)
+6. Place all files in the correct project directories (`pages/`, `fixtures/`, `tests/`, etc.)
+7. Update any index/barrel files if the project uses them (e.g. `pages/index.ts`)
+8. Run the refactored test in headed mode: `[TEST_COMMAND] [final spec] --headed`
+9. Passes → proceed to Phase 4
+10. Fails → compare against working spec to find what broke during refactoring. Common issues:
+    - Import paths wrong after moving files
+    - POM method missing a wait that was inline in the working spec
+    - Fixture not providing the expected page state
+    Fix and re-run. If still failing → Failure Escalation Protocol.
+
+---
+
+## Phase 4: Validate and Clean Up
+
+### 1. Final validation run
+
+Run the final test file (refactored spec, not the working spec) in headed mode:
+`[TEST_COMMAND] [final spec file] --headed`
+
+### 2. If passes
+
+1. Verify all steps marked `[x]` in `test-session.md` — confirm count matches spec
+2. Report completion to user:
+   ```
+   ✅ Test complete — [X] steps passing across [G] groups.
+   Final spec: [path]
+   Page objects: [list of POM files created/updated]
+   Config: [path] (actionTimeout: Nms, navTimeout: Nms, expectTimeout: Nms)
+   ```
+3. Clean up — delete these files:
+   - Working spec file (the flat exploration spec)
+   - `test-session.md`
+   - Any exploration screenshots saved during Phase 2
+4. Do NOT delete:
+   - Final spec file
+   - Page object files
+   - Fixture files
+   - Updated config file
+   - Any utility files created or modified
+
+### 3. If fails
+
+1. Read the test report and failure screenshot
+2. Identify the failure category:
+   - **Import/path error** → fix import paths, re-run
+   - **Timing/flaky failure** → check if a POM method lost a wait during refactoring,
+     compare against the working spec's Step Observations for the correct wait
+   - **Locator not found** → verify the Stable Anchor Locator from the Step Observation
+     is correctly used in the POM method, not accidentally changed during refactoring
+   - **Config mismatch** → verify config timeout values match what was recorded in `test-session.md`
+3. Fix and re-run: `[TEST_COMMAND] [final spec file] --headed`
+4. Still failing after 2 fix attempts → Failure Escalation Protocol
+5. After passing → proceed to cleanup (step 2 above)
+
+---
+
+## Reference
+
+### Anchor Type Reference (unified — observation, wait code, config setting)
+
+| Anchor Type | When to use | Wait code (no inline timeout) | Config setting |
+|---|---|---|---|
+| `URL_CHANGE` | Page navigated to new URL | `waitForURL('**/path**')` | `navigationTimeout` |
+| `ELEMENT_TEXT` | Element shows specific stable text | `expect(locator()).toHaveText('text')` | `actionTimeout` + `expect` |
+| `ELEMENT_VISIBLE` | Element appeared and stayed visible | `locator().waitFor({state:'visible'})` | `actionTimeout` + `expect` |
+| `ELEMENT_ENABLED` | Button or input became active | `expect(locator()).toBeEnabled()` | `actionTimeout` + `expect` |
+| `ELEMENT_COUNT` | List has specific stable item count | `expect(locator()).toHaveCount(N)` | `actionTimeout` + `expect` |
+| `NETWORK_IDLE` | No requests for 500ms+ (last resort) | `waitForLoadState('networkidle')` | `navigationTimeout` |
+
+Preferred selection order (top = most stable): `URL_CHANGE → ELEMENT_TEXT → ELEMENT_VISIBLE → ELEMENT_ENABLED → ELEMENT_COUNT → NETWORK_IDLE`
+
+Recommended Config Timeout calculation (done during UPDATE_CONFIG, not during EXPLORE):
+- NAVIGATION steps (page.goto, URL change, login): Measured Duration × 4, minimum 15000ms
+- IN_PAGE_ACTION steps (click, fill, tab switch): Measured Duration × 3, minimum 5000ms
+
+---
+
+### NEXT_ACTION State Machine
+
+| NEXT_ACTION | What to do |
+|---|---|
+| `FRAMEWORK_SETUP` | Phase 1: detect or install framework, fill session state block |
+| `EXPLORE_GROUP_N` | Read Active Group, predict, explore step by step, record observations |
+| `APPEND_CODE_GROUP_N` | Write code from Step Observations — no inline timeouts |
+| `UPDATE_CONFIG_GROUP_N` | Compare Recommended timeouts vs config, update file if exceeded |
+| `RUN_AND_VALIDATE_GROUP_N` | Run spec in headed mode using TEST_COMMAND |
+| `FIX_AND_RERUN_GROUP_N` | Fix code (max 3 Level 1 attempts), re-run |
+| `UPDATE_SESSION_GROUP_N` | Rewrite session file, offer condense |
+| `CHECKPOINT` | Verify All Steps index, run full spec |
+| `STOPPED` | Halted — wait for user |
+
+---
 
 ### BROWSER_STATUS Update Rules
 
 | Event | Update? | Value |
 |---|---|---|
 | Open exploration browser | ✅ | `OPEN` |
-| Validation run finishes | ❌ | stays `OPEN` |
-| Fixing code after validation fail | ❌ | stays `OPEN` |
-| Flush and update tracking | ❌ | stays `OPEN` |
-| ALL groups complete → Phase 3 | ✅ | `CLOSED` |
-| Level 3 Graceful Exit | ✅ | `CLOSED` |
-| User asks to stop | ✅ | `CLOSED` |
-| Browser lost unexpectedly | ✅ | `CLOSED` (then recover via Protocol A→B) |
+| Validation run | ❌ | stays `OPEN` |
+| Code fix, config update, session rewrite | ❌ | stays `OPEN` |
+| All groups complete / Level 3 exit / user stop | ✅ | `CLOSED` |
+| Browser lost unexpectedly | ✅ | `CLOSED` then Protocol A → B |
 
-### CONTEXT_PRESSURE Guide
+---
 
-| Groups Completed | CONTEXT_PRESSURE | Action |
-|---|---|---|
-| 1–3 | `LOW` | Proceed normally |
-| 4–6 | `MEDIUM` | Re-read CORE RULES before next group exploration |
-| 7+ | `HIGH` | Re-read CORE RULES before next group exploration. Consider asking user if session should be saved and resumed fresh. |
+### Quick Reference Loop
+
+```
+FOR EACH GROUP:
+  0. STATE CHECK from test-session.md — verify NEXT_ACTION before anything
+     BOUNDARY: confirm the step you will act on is in the Active Group — not a Pending Group
+  1. EXPLORE  → read Active Group | predict | explore one step at a time
+                 BROWSER ACTION: before every call
+                 fill + save Step Observation before next step (Anchor Reference table)
+                 update BROWSER_STATUS/CURRENT_URL/CURRENT_PAGE_STATE in state block
+                 AFTER LAST STEP: update NEXT_ACTION to APPEND_CODE_GROUP_N — do not explore further
+  2. CODE     → read observations from session file | write wait + assert per Anchor Type
+                 timing comment above each step | no inline timeouts
+  3. CONFIG   → compare Recommended timeouts vs config | update file if exceeded
+  4. RUN      → separate browser | BROWSER_STATUS unchanged
+  5. FIX      → max 3 Level 1 attempts | then Level 2
+  6. UPDATE   → rewrite session file:
+                 completed → one line only | next → promote from Pending | others → unchanged
+                 LAST_COMPLETED_GROUP=1 and GROUPING_CONFIRMED=NO → Protocol C first
+                 set CONTEXT_PRESSURE | add re-read instruction if MEDIUM/HIGH
+  7. CONDENSE → offer to user after every group | wait if they accept
+```
