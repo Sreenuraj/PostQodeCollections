@@ -61,6 +61,7 @@ Use when: `BROWSER_STATUS` is uncertain or screenshot needed for confirmation.
    ⚠️ Cannot determine browser state. Is the browser open?
      (A) Yes  (B) No
    ```
+   **⛔ STOP — wait for user to reply (A) or (B) before taking any action.**
    - A → fresh screenshot, update session, continue
    - B → Protocol B
 
@@ -112,7 +113,14 @@ After Group 1 exploration, real app behaviour is known. Review Pending Groups an
 | `NEEDS_DECOMPOSITION` step is next | Decompose into specific sub-steps now, before it becomes Active |
 | Initial grouping was every-step-is-a-group | Merge where steps share a page and flow naturally |
 
-If changes needed → update Pending Groups and Groups index, present to user, wait for confirmation.
+If changes needed → update Pending Groups and Groups index, present to user:
+```
+Grouping changes proposed — please review:
+[show changes]
+Approve? (A) Yes  (B) No — suggest changes
+```
+**⛔ STOP — wait for user to approve before continuing. Do not write changes until approved.**
+
 If grouping is appropriate → note confirmed and continue.
 Set `GROUPING_CONFIRMED: YES` in `test-session.md`. Runs once only.
 
@@ -151,7 +159,8 @@ and expected results before I proceed.
 Does everything look correct?
 ```
 
-Wait for explicit approval. Apply changes, re-present if needed. Write file only after approval.
+**⛔ STOP — wait for explicit user approval. Do not write `test-session.md` until the user confirms.**
+Apply changes if requested, re-present, and wait again. Write file only after approval.
 
 ### test-session.md template
 
@@ -271,6 +280,7 @@ TEST_COMMAND: TBD
    Steps [X, Y] appear to be implemented already. Prefer:
      (A) Add to existing test file  (B) Create separate new test
    ```
+   **⛔ STOP — wait for user to reply (A) or (B) before proceeding.**
 5. Update `test-session.md` state block: `FRAMEWORK`, `SPEC_FILE`, `CONFIG_FILE`,
    `TEST_COMMAND`, `CONFIG_ACTION_TIMEOUT`, `CONFIG_NAVIGATION_TIMEOUT`, `CONFIG_EXPECT_TIMEOUT`, `MODE`
 6. Create working spec file following project patterns
@@ -688,6 +698,7 @@ Please provide:
   B: Console: document.querySelectorAll('button,[role="button"],a') → paste output
   C: Screenshot of element + describe its location
 ```
+**⛔ STOP — wait for user to provide the requested information. Do not attempt further fixes until user responds.**
 Receive input → extract locator → test in browser → write code.
 
 **Level 3 — Graceful exit (only if Level 2 fails):**
