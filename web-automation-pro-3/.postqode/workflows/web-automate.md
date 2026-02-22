@@ -83,10 +83,19 @@ Prefer:
 execute all prior steps rapidly from spec file, no screenshots between steps,
 one screenshot at the end to verify. Update `BROWSER_STATUS: OPEN`.
 
-**Option B:** Agent opens browser, navigates to start URL, prints numbered steps for user.
-User confirms done. Agent screenshots to verify, updates `BROWSER_STATUS: OPEN`.
+**Option B:** Print numbered steps for the user to perform manually.
+Output the steps, then output:
+```
+⛔ Waiting for you to complete the steps above.
+Reply "Done" when you have finished and I will verify with a screenshot.
+```
+**⛔ STOP — do NOT open a browser, navigate, click, fill, or take any browser action.**
+Wait for the user to reply "Done". After they confirm:
+1. Take a screenshot to verify the browser is at the expected state
+2. Update `BROWSER_STATUS: OPEN`
+3. Resume from `NEXT_ACTION`
 
-> Agent must open the browser so it owns the session.
+> Agent must NOT interact with the browser during Option B. The user owns the session until they say "Done".
 
 ---
 
