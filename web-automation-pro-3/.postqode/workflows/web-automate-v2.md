@@ -165,9 +165,10 @@ Set `GROUPING_CONFIRMED: YES` in `test-session.md`. If groups changed, update `p
 ### 1. Parse and decompose
 
 Parse every step in full detail: exact action, target element, data to enter, expected result.
+**Do NOT just repeat the user's input.** Break it down into discrete UI interactions. You MUST infer expected results if not provided (e.g., clicking a link -> a new page loads).
 
-**Flag vague steps** — if a step cannot be acted on without seeing the UI ("fill all required fields",
-"complete the form"), mark it `NEEDS_DECOMPOSITION`. It will be decomposed in Protocol C
+**Flag vague steps** — if a step lacks specific data or cannot be acted on without seeing the UI ("fill all required fields",
+"complete the form"), mark it `⚠️ NEEDS_DECOMPOSITION`. It will be decomposed in Protocol C
 after Group 1 exploration. Present this to the user so they know.
 
 ### 2. Group
@@ -181,14 +182,19 @@ first entry into a major app section, or described as complex or unreliable.
 
 ### 3. Present plan and write session files
 
-Present the full plan to the user **in chat** (all steps, groupings, expected results).
-This is conversational output, NOT from a file. User sees everything in one unified view.
+Present the full plan to the user **in chat** using a detailed Markdown table.
+This is conversational output, NOT from a file.
+**CRITICAL**: Do NOT just repeat the user's input as a flat list. You MUST parse each step into its exact Action, Target, Data, and Expected Result.
 
 ```
 Here is the session plan from your test case. Please review steps, groupings,
 and expected results before I proceed.
 
-[full plan content: all steps, groups, expected results]
+| Group | Step | Action | Target | Data | Expected Result | Flag |
+|---|---|---|---|---|---|---|
+| 1 | 1 | Navigate + Login | Login page | User: x, Pass: y | Dashboard loads | — |
+| 1 | 2 | Click module | Work Order link | N/A | Work Order page loads | — |
+| 2 | 3 | Fill form fields | Info tab | ⚠️ UNSPECIFIED | Form populated | ⚠️ NEEDS_DECOMPOSITION |
 
 Does everything look correct?
 ```
