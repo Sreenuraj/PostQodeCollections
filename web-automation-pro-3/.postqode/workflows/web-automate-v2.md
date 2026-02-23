@@ -401,7 +401,7 @@ and gives a clean context for exploration.
 
 **⛔ STOP — wait for user response.**
 
-- User says **A** → condensation with same 3-line summary referencing v2 workflow + session files.
+- User says **A** → **MANDATORY**: Trigger your internal condensation tool now using the same 3-line summary referencing v2 workflow + session files. Wait for it to complete.
   After re-read, proceed from `NEXT_ACTION` in `test-session.md`.
 - User says **B** → proceed immediately from `NEXT_ACTION`.
 
