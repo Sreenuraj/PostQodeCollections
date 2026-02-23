@@ -749,7 +749,9 @@ TEST_COMMAND: [value]
 [full detail — every remaining group]
 ```
 
-**After writing session file — MANDATORY STOP — offer condense:**
+**After writing session file — check if this was the LAST group:**
+
+**If more groups remain** — offer condense with next group:
 
 You MUST output the following message AND STOP. Do NOT proceed to the next group until the user responds.
 
@@ -785,6 +787,27 @@ Would you like to condense the context before proceeding?
 - User says **B** → update `NEXT_ACTION: EXPLORE_GROUP_[N+1]` and `NEXT_ACTION_DETAIL` in `test-session.md`,
   write the file, then continue immediately.
 - If you proceed without the user's response, you are violating the workflow
+
+**If this was the LAST group (no Pending Groups remain)** — transition to Phase 3:
+
+You MUST output the following message AND STOP:
+
+```
+✅ All [G] groups complete — [X] steps passing.
+
+All groups have been explored, coded, and validated.
+Next: Phase 3 — Finalise Test (POM refactoring, test data extraction, final validation).
+
+Would you like to condense the context before finalising?
+
+  (A) Yes — condense now (same rules as above)
+  (B) No — proceed to Phase 3 immediately.
+```
+
+**⛔ STOP HERE. Wait for user response.**
+
+- User says **A** → condensation with same 3-line summary. After re-read, set `NEXT_ACTION: FINALISE_TEST`.
+- User says **B** → set `NEXT_ACTION: FINALISE_TEST` in `test-session.md`, write the file, proceed.
 
 ---
 
@@ -827,7 +850,10 @@ Receive input → extract locator → test in browser → write code.
 
 ---
 
-## Phase 3: Finalise Test
+## Phase 3: Finalise Test (`NEXT_ACTION: FINALISE_TEST`)
+
+1. Output STATE CHECK — confirm `NEXT_ACTION` is `FINALISE_TEST`
+2. Close the exploration browser. Update `BROWSER_STATUS: CLOSED` in `test-session.md`.
 
 All steps `[x]` or `[❌]`.
 
@@ -990,6 +1016,7 @@ Recommended Config Timeout calculation (done during UPDATE_CONFIG, not during EX
 | `FIX_AND_RERUN_GROUP_N` | Fix code (max 3 Level 1 attempts), re-run |
 | `UPDATE_SESSION_GROUP_N` | Rewrite session file, offer condense |
 | `CHECKPOINT` | Verify All Steps index, run full spec |
+| `FINALISE_TEST` | Phase 3: POM refactoring + Phase 4: final validation and cleanup |
 | `STOPPED` | Halted — wait for user |
 
 ---
@@ -1018,15 +1045,19 @@ FOR EACH GROUP:
                  BROWSER ACTION: before every call
                  fill + save Step Observation before next step (Anchor Reference table)
                  update BROWSER_STATUS/CURRENT_URL/CURRENT_PAGE_STATE in state block
-                 AFTER LAST STEP: update NEXT_ACTION to APPEND_CODE_GROUP_N
+                 AFTER LAST STEP: step 5b page map capture, then NEXT_ACTION to APPEND_CODE_GROUP_N
   2. CODE     → read observations + page map fallback for missing locators
                  timing comment above each step | no inline timeouts
   3. CONFIG   → compare Recommended timeouts vs config | update file if exceeded
   4. RUN      → separate browser | BROWSER_STATUS unchanged
   5. FIX      → max 3 Level 1 attempts | then Level 2
-  6. UPDATE   → rewrite session file:
-                 completed → one line only | next → promote from Pending | others → unchanged
+  6. UPDATE   → rewrite session file with NEXT_ACTION: STOPPED
                  LAST_COMPLETED_GROUP=1 and GROUPING_CONFIRMED=NO → Protocol C first
                  set CONTEXT_PRESSURE | add re-read instruction if MEDIUM/HIGH
-  7. CONDENSE → ⛔ MANDATORY STOP — offer condense to user | do NOT proceed until user replies (A) or (B)
+  7. CONDENSE → ⛔ MANDATORY STOP — offer condense to user
+                 More groups remain → user picks (A/B) → set NEXT_ACTION: EXPLORE_GROUP_[N+1]
+                 LAST group done → user picks (A/B) → set NEXT_ACTION: FINALISE_TEST
+
+AFTER ALL GROUPS:
+  8. FINALISE → Phase 3: POM refactoring (use page-maps/) + Phase 4: final validation + cleanup
 ```
