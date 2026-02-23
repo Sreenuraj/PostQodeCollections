@@ -67,7 +67,11 @@ Use when: user starts a new chat or session and says "Continue", "Proceed", "Res
    - `OPEN` → run Protocol A to verify actual browser state
    - `CLOSED` → if `LAST_COMPLETED_STEP > 0`, run Protocol B (replay completed steps)
      If `LAST_COMPLETED_STEP = 0`, just open the browser fresh — no replay needed
-4. After browser is ready, resume from `NEXT_ACTION` in `test-session.md`
+4. After browser is ready, check `NEXT_ACTION` in `test-session.md`:
+   - If `STOPPED` with `NEXT_ACTION_DETAIL` mentioning condense → user already chose to continue
+     by starting this session. Update `NEXT_ACTION: EXPLORE_GROUP_[N+1]` (using `LAST_COMPLETED_GROUP` + 1),
+     write `test-session.md`, then proceed.
+   - Otherwise → resume from `NEXT_ACTION` as written.
 
 > **Key principle:** In a fresh session, assume the browser is NOT accessible — always verify.
 > Never assume you have context from a previous session. Everything you need is in `test-session.md`.
@@ -465,14 +469,19 @@ Each group follows this state sequence:
      `Stability Check: PASS` or `Stability Check: FIXED — original "Hi, Good Afternoon" is time-sensitive → using getByText(/Hi,.*Manoj/)`
    - Fill ALL Step Observation fields in `test-session.md` immediately (see Anchor Reference table)
    - Update `CURRENT_URL` and `CURRENT_PAGE_STATE` in the state block if they changed
-   - **Page Map Capture** — after filling Step Observation, if this page has no page map or map is stale:
-     1. Take a `browser_snapshot` of the full page
-     2. Extract all interactive elements: buttons, links, inputs, headings, navigation items
-     3. Group by page section (header, sidebar, content, footer, modal)
-     4. Run each through Stability Checks 1–4
-     5. Write/update `page-maps/<page-name>.json` with all elements
-     6. Update step's `MAP:` field to `<filename> (MAP_VALIDATED)`
    - Write file before moving to next step — do not proceed without saving
+
+5b. **MANDATORY — Page Map Capture (after ALL steps in the group are explored):**
+   Before proceeding to APPEND_CODE, capture/update page maps for every page visited in this group:
+   1. For each distinct page visited during this group's exploration:
+      - If `page-maps/<page-name>.json` already exists and is current → skip
+      - Otherwise: take a `browser_snapshot`, extract ALL interactive elements
+        (buttons, links, inputs, headings, navigation items)
+      - Group by page section (header, sidebar, content, footer, modal)
+      - Run each through Stability Checks 1–4
+      - Write/update `page-maps/<page-name>.json`
+   2. Update each step's `MAP:` field in `test-session.md` to `<filename> (MAP_VALIDATED)`
+   3. Write the file
 6. **MANDATORY TRANSITION — DO NOT SKIP:**
    After the LAST step of the Active Group has been explored and its observation saved:
    a. Verify all Step Observation fields in the Active Group are filled (no blank Trigger/Anchor fields)
@@ -664,8 +673,8 @@ CURRENT_STEP: [first step of next group]
 LAST_COMPLETED_STEP: [value]
 LAST_COMPLETED_GROUP: [N]
 TOTAL_GROUPS: [value]
-NEXT_ACTION: EXPLORE_GROUP_[N+1]
-NEXT_ACTION_DETAIL: [detail + context pressure instruction if MEDIUM/HIGH]
+NEXT_ACTION: STOPPED
+NEXT_ACTION_DETAIL: Offer condense — do NOT proceed until user replies
 CONTEXT_PRESSURE: [LOW / MEDIUM / HIGH]
 GROUPING_CONFIRMED: YES
 FRAMEWORK: [value]
@@ -758,8 +767,10 @@ Would you like to condense the context before proceeding?
   Do not summarize anything else — all context is in those files.
   ```
   **NEVER include** step details, code, timing, observations, config, file contents, or technical concepts.
-  After condensation, re-read both files and resume from `NEXT_ACTION`.
-- User says **B** → re-read `test-session.md` and continue immediately
+  After condensation, re-read both files. Then update `NEXT_ACTION: EXPLORE_GROUP_[N+1]`
+  (use `LAST_COMPLETED_GROUP` + 1) and `NEXT_ACTION_DETAIL` in `test-session.md`. Write the file, then resume.
+- User says **B** → update `NEXT_ACTION: EXPLORE_GROUP_[N+1]` and `NEXT_ACTION_DETAIL` in `test-session.md`,
+  write the file, then continue immediately.
 - If you proceed without the user's response, you are violating the workflow
 
 ---
