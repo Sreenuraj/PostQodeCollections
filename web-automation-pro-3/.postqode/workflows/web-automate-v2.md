@@ -716,6 +716,8 @@ Would you like to condense the context before finalising?
 → After 3 attempts: Level 2. No more variations.
 
 **Level 2 — Ask user:**
+1. Set `NEXT_ACTION: STOPPED` and `NEXT_ACTION_DETAIL: Waiting for user locator for step [N]` in `test-session.md`.
+2. Output:
 ```
 ⚠️ Stuck on Step [N]: "[description]"
 Tried 3 times: [attempt 1] | [attempt 2] | [attempt 3]
@@ -726,7 +728,7 @@ Please provide:
   C: Screenshot of element + describe its location
 ```
 **⛔ STOP — wait for user to provide the requested information. Do not attempt further fixes until user responds.**
-Receive input → extract locator → test in browser → write code.
+3. Receive input → edit `NEXT_ACTION: FIX_AND_RERUN_GROUP_N` → extract locator → test in browser → write code.
 
 **Level 3 — Graceful exit (only if Level 2 fails):**
 - Remaining steps depend on failed step → mark `[❌]`, mark dependents `⏭️ SKIPPED`,
