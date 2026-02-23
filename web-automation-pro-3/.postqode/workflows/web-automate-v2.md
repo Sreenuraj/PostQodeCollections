@@ -205,13 +205,17 @@ Apply changes if requested, re-present, and wait again.
 **After approval → setup workspace and write session files:**
 
 #### `Context Optimization` (CRITICAL)
-Append these lines to `.postqodeignore` in the project root (create the file if it doesn't exist):
+PostQode blocks agents from editing `.postqodeignore`. You MUST ask the user to add these lines manually before you proceed:
 ```
+Please add these exactly to your `.postqodeignore` file in the project root:
 completed-groups/
 pending-groups/
 page-maps/
+
+(This ensures your context remains perfectly flat and efficient throughout the session. The `active-group.md` file is intentionally NOT ignored).
+Reply "done" when you have added them.
 ```
-*(This ensures your context remains perfectly flat and efficient throughout the session. The `active-group.md` file is intentionally NOT ignored).*
+**⛔ STOP — wait for user to confirm they added the lines.**
 
 #### `test-session.md` (state block only — ~24 lines, always small)
 ```
@@ -810,8 +814,8 @@ Run the final test file (refactored spec, not the working spec) in headed mode:
    - Fixture files
    - Updated config file
    - `page-maps/` directory and all `.json` files (reused by future tests)
+   - `page-maps/` directory and all `.json` files (reused by future tests)
    - Any utility files created or modified
-5. Remove the 3 entries (`completed-groups/`, `pending-groups/`, `page-maps/`) from `.postqodeignore`
 
 ### 3. If fails
 
