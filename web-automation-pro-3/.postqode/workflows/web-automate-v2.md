@@ -482,18 +482,13 @@ Each group follows this state sequence:
      Example: `- Trigger:` → `- Trigger: Clicked "Login" button (getByRole 'button' name 'Login')`
      Do NOT rewrite the entire `active-group.md` — edit only the blank observation fields.
    - **Edit** `CURRENT_URL` and `CURRENT_PAGE_STATE` in `test-session.md` if they changed
-
-5b. **MANDATORY — Page Map Capture (after ALL steps in the group are explored):**
-   Before proceeding to APPEND_CODE, capture/update page maps for every page visited in this group:
-   1. For each distinct page visited during this group's exploration:
-      - If `page-maps/<page-name>.json` already exists and is current → skip
-      - Otherwise: take a `browser_snapshot`, extract ALL interactive elements
-        (buttons, links, inputs, headings, navigation items)
-      - Group by page section (header, sidebar, content, footer, modal)
-      - Run each through Stability Checks 1–4
-      - Write/update `page-maps/<page-name>.json`
-   2. Update each step's `MAP:` field in `active-group.md` to `<filename> (MAP_VALIDATED)`
-   3. Save the file
+   - **MANDATORY — Page Map Capture (do this NOW, before moving to the next step):**
+     If the current page does not have a map in `page-maps/`:
+     1. Take a `browser_snapshot`, extract ALL interactive elements (buttons, links, inputs, headings, nav)
+     2. Group by page section (header, sidebar, content, footer, modal)
+     3. Run each through Stability Checks 1–4
+     4. Write/update `page-maps/<page-name>.json`
+     5. Update this step's `MAP:` field in `active-group.md` to `<filename> (MAP_VALIDATED)`
 6. **MANDATORY TRANSITION — DO NOT SKIP:**
    After the LAST step of the Active Group has been explored and its observation saved:
     a. Verify all Step Observation fields in `active-group.md` are filled (no blank Trigger/Anchor fields)
@@ -944,7 +939,7 @@ FOR EACH GROUP:
                  BROWSER ACTION: before every call
                  fill blank fields in active-group.md (targeted edits, not full rewrite)
                  edit CURRENT_URL/CURRENT_PAGE_STATE in test-session.md
-                 AFTER LAST STEP: step 5b page map capture, then edit NEXT_ACTION in test-session.md
+                 AFTER LAST STEP: edit NEXT_ACTION in test-session.md
   2. CODE     → read active-group.md observations + page map fallback for missing locators
                  timing comment above each step | no inline timeouts
   3. CONFIG   → compare Recommended timeouts vs config | update file if exceeded
