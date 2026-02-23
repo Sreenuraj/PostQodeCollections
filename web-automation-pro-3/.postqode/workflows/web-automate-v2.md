@@ -413,8 +413,9 @@ and gives a clean context for exploration.
 
 **⛔ STOP — wait for user response.**
 
-- User says **A** → **MANDATORY**: Trigger your internal condensation tool now. When providing the summary for the condensation, output ONLY these 3 lines — nothing more:
+- User says **A** → **MANDATORY**: You MUST trigger context condensation using the slash command. Output ONLY this exact block — nothing more:
   ```
+  /condense
   I am in the /web-automate-v2 workflow. Re-read .postqode/workflows/web-automate-v2.md for all rules.
   Session state: test-session.md (state), active-group.md (current group). Re-read them.
   Do not summarize anything else — all context is in those files.
@@ -652,9 +653,9 @@ Condense context? (A) Yes (recommended)  (B) No — continue
 
 **⛔ STOP — wait for user response.**
 
-- User says **A** → **MANDATORY**: You MUST trigger your internal context condensation tool/capability now.
-  When providing the summary for the condensation, output ONLY these 3 lines — nothing more:
+- User says **A** → **MANDATORY**: You MUST trigger context condensation using the slash command. Output ONLY this exact block — nothing more:
   ```
+  /condense
   I am in the /web-automate-v2 workflow. Re-read .postqode/workflows/web-automate-v2.md for all rules.
   Session state: test-session.md (state), active-group.md (current group). Re-read them.
   Do not summarize anything else — all context is in those files.
@@ -685,8 +686,9 @@ Would you like to condense the context before finalising?
 
 **⛔ STOP HERE. Wait for user response.**
 
-- User says **A** → **MANDATORY**: Trigger your internal condensation tool now. When providing the summary for the condensation, output ONLY these 3 lines — nothing more:
+- User says **A** → **MANDATORY**: You MUST trigger context condensation using the slash command. Output ONLY this exact block — nothing more:
   ```
+  /condense
   I am in the /web-automate-v2 workflow. Re-read .postqode/workflows/web-automate-v2.md for all rules.
   Session state: test-session.md (state), active-group.md (current group). Re-read them.
   Do not summarize anything else — all context is in those files.
