@@ -115,12 +115,21 @@ Prefer:
 execute all prior steps rapidly from spec file, no screenshots between steps,
 one screenshot at the end to verify. Update `BROWSER_STATUS: OPEN`.
 
-**Option B:** Print numbered steps for the user to perform manually.
-Output the steps, then output:
+**Option B:** Read the completed test steps from `test-session.md` (Completed Groups + steps already `[x]`).
+List them as numbered user-facing actions:
 ```
+Please perform these steps in your browser:
+1. Navigate to [TARGET_URL]
+2. [Action from Step 1: e.g. Enter "username" in the Username field]
+3. [Action from Step 2: e.g. Click the "Login" button]
+...
+
 ⛔ Waiting for you to complete the steps above.
 Reply "Done" when you have finished and I will verify with a screenshot.
 ```
+List only the USER ACTIONS (navigate, click, fill, select) — NOT internal workflow phases,
+state checks, or agent decisions. Each line should be something the user can physically do in the browser.
+
 **⛔ STOP — do NOT open a browser, navigate, click, fill, or take any browser action.**
 Wait for the user to reply "Done". After they confirm:
 1. Take a screenshot to verify the browser is at the expected state
@@ -406,17 +415,18 @@ Each group follows this state sequence:
    Step [Y]: After [action] → expect [element / URL / state]
    ```
 5. For each step — one at a time:
-   - Check `MAP:` field in `test-session.md` for this step
+   - Check `MAP:` field in `test-session.md` for this step.
+     Also check: does `page-maps/` contain a map matching the current page URL — even if `MAP:` is `(none)`?
 
-   **If `MAP_VALIDATED`** — fast path:
+   **If page map exists for this page (MAP_VALIDATED, MAP_AVAILABLE, or URL match)** — page-map-first:
    - Output `BROWSER ACTION:` declaration
    - Record `Action Timestamp`, perform the action, record `Stable Timestamp`
    - Read locators from the page map file — use them for Stable Anchor Locator
-   - Use `browser_snapshot` only to verify the expected result appeared (not for locator hunting)
+   - Use `browser_snapshot` ONLY to verify the expected result appeared (not for locator hunting)
    - If page map locator doesn't match what you see → mark `MAP_STALE`, fall back to full exploration below
    - Fill Step Observation using page map locators + fresh timestamps
 
-   **If no MAP or `MAP_STALE`** — full exploration:
+   **If NO page map exists for this page** — full exploration:
    - Output `BROWSER ACTION:` declaration
    - **Record `Action Timestamp`** — note the current time (`HH:MM:SS.sss`) immediately before performing the action
    - Perform the action
