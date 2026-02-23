@@ -451,7 +451,8 @@ Each group follows this state sequence:
        `IN_PAGE_ACTION` = Fill field, check box, select dropdown, or minor UI toggle on the same page.
        
      - **If `NAVIGATION` or major state change:**
-       - Take a `browser_snapshot` to see what changed.
+       - Take ONE `browser_snapshot` to see what changed.
+       - **IMMEDIATELY create or update the page map:** Extract all interactive elements from this snapshot. If `page-maps/<new-page-name>.json` doesn't exist, create it. If it does exist, update it with any new locators found BEFORE moving on.
        - Identify the **Stable Anchor Locator** (the new element/heading that proves the transition finished).
        - **Record `Stable Timestamp`** when this anchor is confirmed visible.
        - Run Stability Checks (Table below) on the anchor.
