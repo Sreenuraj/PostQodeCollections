@@ -432,7 +432,12 @@ Each group follows this state sequence:
 5. For each step — one at a time:
    - **Step 1: Get the Locator (Pre-Action)**
      - Check `page-maps/` for the current page.
-     - **If NO map exists:** Take ONE `browser_snapshot`. Extract all interactive elements and write `page-maps/<page-name>.json`. Update `MAP:` in `active-group.md` to `<filename> (MAP_VALIDATED)`. Find your target locator from this new map.
+     - **If NO map exists:** You MUST create the map RIGHT NOW. Do not proceed to Step 2 until the file is written to disk.
+       1. Take ONE `browser_snapshot`.
+       2. Look at the snapshot output. Extract ALL interactive elements (buttons, links, inputs).
+       3. Write `page-maps/<page-name>.json`. (Do NOT defer this to the end of the group).
+       4. Update `MAP:` in `active-group.md` to `<filename> (MAP_VALIDATED)`.
+       5. Find your target locator from the map you just created.
      - **If map EXISTS:** Do NOT take a snapshot. Read the locator directly from the JSON file.
 
    - **Step 2: Execute Action**
