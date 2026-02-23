@@ -640,15 +640,16 @@ Condense context? (A) Yes (recommended)  (B) No — continue
 
 **⛔ STOP — wait for user response.**
 
-- User says **A** → The user will trigger condensation. When creating the condensation summary,
-  output ONLY these 3 lines — nothing more:
+- User says **A** → **MANDATORY**: You MUST trigger your internal context condensation tool/capability now.
+  When providing the summary for the condensation, output ONLY these 3 lines — nothing more:
   ```
   I am in the /web-automate-v2 workflow. Re-read .postqode/workflows/web-automate-v2.md for all rules.
   Session state: test-session.md (state), active-group.md (current group). Re-read them.
   Do not summarize anything else — all context is in those files.
   ```
   **NEVER include** step details, code, timing, observations, config, file contents, or technical concepts.
-  After condensation, re-read both files. Then update `NEXT_ACTION: EXPLORE_GROUP_[N+1]`
+  **Wait for the condensation to complete.** After condensation, you will have a fresh context.
+  Re-read `test-session.md` and `active-group.md`. Then update `NEXT_ACTION: EXPLORE_GROUP_[N+1]`
   (use `LAST_COMPLETED_GROUP` + 1) and `NEXT_ACTION_DETAIL` in `test-session.md`. Write the file, then resume.
 - User says **B** → update `NEXT_ACTION: EXPLORE_GROUP_[N+1]` and `NEXT_ACTION_DETAIL` in `test-session.md`,
   write the file, then continue immediately.
@@ -672,7 +673,7 @@ Would you like to condense the context before finalising?
 
 **⛔ STOP HERE. Wait for user response.**
 
-- User says **A** → condensation with same 3-line summary. After re-read, edit `NEXT_ACTION: FINALISE_TEST` in `test-session.md`.
+- User says **A** → **MANDATORY**: Trigger your internal condensation tool now using the same 3-line summary. Wait for it to complete. After re-read, edit `NEXT_ACTION: FINALISE_TEST` in `test-session.md`.
 - User says **B** → edit `NEXT_ACTION: FINALISE_TEST` in `test-session.md`, then proceed.
 
 ---
