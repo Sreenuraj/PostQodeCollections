@@ -115,7 +115,8 @@ Prefer:
 execute all prior steps rapidly from spec file, no screenshots between steps,
 one screenshot at the end to verify. Update `BROWSER_STATUS: OPEN`.
 
-**Option B:** Read the completed test steps from `steps-and-groups.md` (steps already `[x]`).
+**Option B:** Read the completed test steps from `completed-groups/group-*.md` files.
+Each file has the step actions and targets from when they were the active group.
 List them as numbered user-facing actions:
 ```
 Please perform these steps in your browser:
@@ -233,22 +234,9 @@ PAGE_MAPS_DIR: page-maps
 PAGE_MAPS_FOUND: 0
 ```
 
-#### `steps-and-groups.md` (checklist + index + completed — grows slowly)
-```
-## All Steps
-- [ ] Step 1 (G1): [summary]
-- [ ] Step 2 (G1): [summary]
-- [ ] Step 3 (G2): [summary]
-...
-
-## Groups
-- Group 1 (Steps 1–2): [label]
-- Group 2 (Step 3): [label]
-...
-
-## Completed Groups
-(none yet)
-```
+#### `completed-groups/` (empty directory — groups are moved here when done)
+Create the directory. It starts empty. As each group completes,
+`active-group.md` is renamed into this directory.
 
 #### `active-group.md` (current group — replaced each group promotion)
 ```
@@ -328,8 +316,8 @@ One file per group: `pending-groups/group-2.md`, `pending-groups/group-3.md`, et
 5. Update `test-session.md` state block: `FRAMEWORK`, `SPEC_FILE`, `CONFIG_FILE`,
    `TEST_COMMAND`, `CONFIG_ACTION_TIMEOUT`, `CONFIG_NAVIGATION_TIMEOUT`, `CONFIG_EXPECT_TIMEOUT`, `MODE`
 6. Create working spec file following project patterns
-7. If EXTEND_EXISTING: extract reused steps into spec, mark them `[x]` in All Steps,
-   position browser at start using Protocol B
+7. If EXTEND_EXISTING: extract reused steps into spec, mark completed groups by moving
+   their files to `completed-groups/`, position browser at start using Protocol B
 8. Set `NEXT_ACTION: EXPLORE_GROUP_1` (or `VALIDATE_MAPS` if page maps found)
 
 ### No framework in project
@@ -683,23 +671,17 @@ After passing → set `NEXT_ACTION: UPDATE_SESSION_GROUP_N`.
 
 > BROWSER_STATUS stays OPEN. Use targeted edits — no full file rewrites.
 
-**File rotation steps:**
+**File rotation steps (no file reads — renames only):**
 
-1. **`steps-and-groups.md`** — toggle + append:
-   - Toggle completed steps: `[ ]` → `[x]` for each step in the completed group
-   - Update Groups index: add `✓` marker to the completed group line
-   - Append one summary line to Completed Groups section:
-     `- Group N (Steps X–Y): ✓ PASS | [label] | spec lines [X–Y] | max timeout: [N]ms`
+1. **`active-group.md`** → **rename** to `completed-groups/group-N.md`
+   (Observations and step detail are preserved in the completed file for debugging/Protocol B.)
 
-2. **`active-group.md`** — replace with next group:
-   - If more groups remain: read `pending-groups/group-[N+1].md` → write it as the new `active-group.md`
-   - If last group: delete `active-group.md` (no more active groups)
-   - `GROUPING_CONFIRMED = NO` and `LAST_COMPLETED_GROUP = 1` → run Protocol C on the pending group
-     content BEFORE writing it as `active-group.md`
+2. **`pending-groups/group-[N+1].md`** → **rename** to `active-group.md`
+   - If last group: skip (no more groups to promote). Delete `active-group.md` if it was moved.
+   - `GROUPING_CONFIRMED = NO` and `LAST_COMPLETED_GROUP = 1` → run Protocol C
+     on the pending group content BEFORE renaming it to `active-group.md`
 
-3. **`pending-groups/group-[N+1].md`** — delete (promoted to active)
-
-4. **`test-session.md`** — edit specific fields only:
+3. **`test-session.md`** — edit specific fields only:
    - `CURRENT_GROUP: [N+1]`
    - `CURRENT_STEP: [first step of next group]`
    - `LAST_COMPLETED_STEP: [last step of completed group]`
@@ -778,8 +760,8 @@ Would you like to condense the context before finalising?
 ### Checkpoint Protocol (every 2 completed groups)
 
 1. Output STATE CHECK
-2. Read All Steps index — confirm all prior steps are `[x]`
-3. Confirm state block values match the index — fix any discrepancy before continuing
+2. Verify progress: count files in `completed-groups/` — confirm count matches expected completed groups
+3. Confirm `test-session.md` state block values match directory state
 4. Run full spec file in headed mode
 5. Fails → fix before proceeding
 
@@ -874,7 +856,7 @@ Run the final test file (refactored spec, not the working spec) in headed mode:
 
 ### 2. If passes
 
-1. Verify all steps marked `[x]` in `steps-and-groups.md` — confirm count matches spec
+1. Verify progress: count files in `completed-groups/` equals `TOTAL_GROUPS` in `test-session.md`
 2. Report completion to user:
    ```
    ✅ Test complete — [X] steps passing across [G] groups.
@@ -884,7 +866,7 @@ Run the final test file (refactored spec, not the working spec) in headed mode:
    ```
 3. Clean up — delete these files:
    - Working spec file (the flat exploration spec)
-   - `test-session.md`, `steps-and-groups.md`, `active-group.md`, `pending-groups/` directory
+   - `test-session.md`, `active-group.md`, `completed-groups/` directory, `pending-groups/` directory
    - Any exploration screenshots saved during Phase 2
 4. Do NOT delete:
    - Final spec file
@@ -954,19 +936,19 @@ Read ONLY the files needed for the current `NEXT_ACTION`. Do NOT read all files 
 
 | NEXT_ACTION | Read | Do NOT read |
 |---|---|---|
-| `EXPLORE_GROUP_N` | `test-session.md` + `active-group.md` | `steps-and-groups.md`, `pending-groups/` |
-| `APPEND_CODE_GROUP_N` | `test-session.md` + `active-group.md` | `steps-and-groups.md`, `pending-groups/` |
-| `UPDATE_CONFIG_GROUP_N` | `test-session.md` + `active-group.md` | `steps-and-groups.md`, `pending-groups/` |
+| `EXPLORE_GROUP_N` | `test-session.md` + `active-group.md` | `completed-groups/`, `pending-groups/` |
+| `APPEND_CODE_GROUP_N` | `test-session.md` + `active-group.md` | `completed-groups/`, `pending-groups/` |
+| `UPDATE_CONFIG_GROUP_N` | `test-session.md` + `active-group.md` | `completed-groups/`, `pending-groups/` |
 | `RUN_AND_VALIDATE` | `test-session.md` only | everything else |
-| `UPDATE_SESSION` | `test-session.md` + `steps-and-groups.md` + `pending-groups/group-[N+1].md` | `active-group.md` (being replaced) |
-| `CHECKPOINT` | `test-session.md` + `steps-and-groups.md` | `active-group.md`, `pending-groups/` |
+| `UPDATE_SESSION` | `test-session.md` only (file renames need no reads) | `active-group.md` (being renamed), `completed-groups/` |
+| `CHECKPOINT` | `test-session.md` only + directory listing | `active-group.md`, `pending-groups/` |
 | `FINALISE_TEST` | `test-session.md` only | everything else |
 
 **Write rules:**
 - `test-session.md` → edit specific fields only (never rewrite)
 - `active-group.md` → fill blank observation fields (targeted edits during EXPLORE)
-- `steps-and-groups.md` → toggle checkmarks + append completed line (never rewrite)
-- `pending-groups/group-N.md` → never modify, read once to promote, then delete
+- `completed-groups/` → receive renamed `active-group.md` (no file editing)
+- `pending-groups/group-N.md` → never modify, renamed to `active-group.md` when promoted
 
 ---
 
@@ -1001,7 +983,7 @@ Recommended Config Timeout calculation (done during UPDATE_CONFIG, not during EX
 | `RUN_AND_VALIDATE_GROUP_N` | Run spec in headed mode using TEST_COMMAND |
 | `FIX_AND_RERUN_GROUP_N` | Fix code (max 3 Level 1 attempts), re-run |
 | `UPDATE_SESSION_GROUP_N` | Rewrite session file, offer condense |
-| `CHECKPOINT` | Verify All Steps index, run full spec |
+| `CHECKPOINT` | Verify completed-groups/ count, run full spec |
 | `FINALISE_TEST` | Phase 3: POM refactoring + Phase 4: final validation and cleanup |
 | `STOPPED` | Halted — wait for user |
 
@@ -1037,10 +1019,9 @@ FOR EACH GROUP:
   3. CONFIG   → compare Recommended timeouts vs config | update file if exceeded
   4. RUN      → separate browser | BROWSER_STATUS unchanged
   5. FIX      → max 3 Level 1 attempts | then Level 2
-  6. UPDATE   → file rotation:
-                 steps-and-groups.md: toggle [x] + append completed line
-                 active-group.md: replace with next pending group file
-                 pending-groups/group-N.md: delete (promoted)
+  6. UPDATE   → file renames (zero reads):
+                 mv active-group.md → completed-groups/group-N.md
+                 mv pending-groups/group-[N+1].md → active-group.md
                  test-session.md: edit fields (NEXT_ACTION: STOPPED)
   7. CONDENSE → ⛔ MANDATORY STOP — offer condense to user
                  More groups remain → user picks (A/B) → edit NEXT_ACTION: EXPLORE_GROUP_[N+1]
