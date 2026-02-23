@@ -47,6 +47,33 @@ description: Unified web automation workflow with step-by-step validation
 
 ---
 
+## Resume Protocol: Fresh Session / Post-Condense
+
+Use when: user starts a new chat or session and says "Continue", "Proceed", "Resume", "Pick up where we left off", or similar — OR after a context condensation.
+
+1. Read `.postqode/workflows/web-automate.md` (this file) — restore all workflow rules
+2. Check if `test-session.md` exists in the project root
+   - **Exists** → read it, extract all state block values. Output:
+     ```
+     ## RESUMING WEB-AUTOMATE WORKFLOW
+     - Session file: test-session.md ✓
+     - CURRENT_GROUP: [value]
+     - LAST_COMPLETED_GROUP: [value]
+     - NEXT_ACTION: [value]
+     - BROWSER_STATUS: [value]
+     ```
+   - **Does not exist** → this is a new test. Ask the user to provide the test case steps, then start from Phase 0.
+3. Check `BROWSER_STATUS` from `test-session.md`:
+   - `OPEN` → run Protocol A to verify actual browser state
+   - `CLOSED` → if `LAST_COMPLETED_STEP > 0`, run Protocol B (replay completed steps)
+     If `LAST_COMPLETED_STEP = 0`, just open the browser fresh — no replay needed
+4. After browser is ready, resume from `NEXT_ACTION` in `test-session.md`
+
+> **Key principle:** In a fresh session, assume the browser is NOT accessible — always verify.
+> Never assume you have context from a previous session. Everything you need is in `test-session.md`.
+
+---
+
 ## Protocol A: Verify Browser State
 
 Use when: `BROWSER_STATUS` is uncertain or screenshot needed for confirmation.
