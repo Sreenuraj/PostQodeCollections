@@ -394,6 +394,32 @@ Runs only when page maps exist and steps have `MAP: ... (MAP_AVAILABLE)`. Valida
 
 ---
 
+> [!IMPORTANT]
+> ## PHASE BOUNDARY — SETUP → EXPLORE
+> Phase 0 + Phase 1 are complete. All setup context (parsing, grouping, approval, framework detection,
+> page map scanning) is now saved in the session files. It is no longer needed in the agent's context.
+
+**MANDATORY — Offer condense before exploration begins:**
+
+```
+✅ Setup complete — framework configured, session files written.
+
+Ready to begin Phase 2: Exploration.
+Would you like to condense the context first? This clears all setup noise
+and gives a clean context for exploration.
+
+  (A) Yes — condense now (recommended)
+  (B) No — continue to exploration immediately
+```
+
+**⛔ STOP — wait for user response.**
+
+- User says **A** → condensation with same 3-line summary referencing v2 workflow + session files.
+  After re-read, proceed from `NEXT_ACTION` in `test-session.md`.
+- User says **B** → proceed immediately from `NEXT_ACTION`.
+
+---
+
 ## Phase 2: Group Execution Loop
 
 > Exploration browser stays open throughout Phase 2.
