@@ -389,8 +389,7 @@ Runs only when page maps exist and steps have `MAP: ... (MAP_AVAILABLE)`. Valida
    MAP_VALIDATED steps: locators from page map, skip DOM analysis during exploration.
    MAP_STALE steps: full exploration, page map will be updated.
    ```
-   **⛔ STOP — wait for user to acknowledge before proceeding.**
-8. Set `NEXT_ACTION: EXPLORE_GROUP_1`
+8. Set `NEXT_ACTION: STOPPED` and `NEXT_ACTION_DETAIL: Offer condense before Phase 2` in `test-session.md`
 
 ---
 
@@ -420,8 +419,8 @@ and gives a clean context for exploration.
   Session state: test-session.md (state), active-group.md (current group). Re-read them.
   Do not summarize anything else — all context is in those files.
   ```
-  Wait for it to complete. After re-read, proceed from `NEXT_ACTION` in `test-session.md`.
-- User says **B** → proceed immediately from `NEXT_ACTION`.
+  Wait for it to complete. After re-read, edit `NEXT_ACTION: EXPLORE_GROUP_1` in `test-session.md` and proceed.
+- User says **B** → edit `NEXT_ACTION: EXPLORE_GROUP_1` in `test-session.md` and proceed immediately.
 
 ---
 
