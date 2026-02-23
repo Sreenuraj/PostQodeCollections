@@ -430,60 +430,51 @@ Each group follows this state sequence:
    `BROWSER_STATUS: OPEN`, `CURRENT_URL: [actual URL]`, `CURRENT_PAGE_STATE: [one-line description]`
 4. Note: Expected Results are already in `active-group.md` — no need to output predictions.
 5. For each step — one at a time:
-   - Check `MAP:` field in `active-group.md` for this step.
-     Also check: does `page-maps/` contain a map matching the current page URL — even if `MAP:` is `(none)`?
+   - **Step 1: Get the Locator (Pre-Action)**
+     - Check `page-maps/` for the current page.
+     - **If NO map exists:** Take ONE `browser_snapshot`. Extract all interactive elements and write `page-maps/<page-name>.json`. Update `MAP:` in `active-group.md` to `<filename> (MAP_VALIDATED)`. Find your target locator from this new map.
+     - **If map EXISTS:** Do NOT take a snapshot. Read the locator directly from the JSON file.
 
-   **If page map exists for this page (MAP_VALIDATED, MAP_AVAILABLE, or URL match)** — page-map-first:
-   - Output `BROWSER ACTION:` declaration
-   - Record `Action Timestamp`, perform the action, record `Stable Timestamp`
-   - Read locators from the page map file — use them for Stable Anchor Locator
-   - Use `browser_snapshot` ONLY to verify the expected result appeared (not for locator hunting)
-   - If page map locator doesn't match what you see → mark `MAP_STALE`, fall back to full exploration below
-   - Fill Step Observation using page map locators + fresh timestamps
+   - **Step 2: Execute Action**
+     - Output `BROWSER ACTION:` declaration.
+     - **Record `Action Timestamp`** (e.g., `13:14:02.100`) immediately before performing the action.
+     - Perform the action using the locator from the map.
+     
+   - **Step 3: Verify and Anchor (Post-Action)**
+     - **Classify `Step Type`:**
+       `NAVIGATION` = URL change, login, first entry into a new app section, or opening a major modal.
+       `IN_PAGE_ACTION` = Fill field, check box, select dropdown, or minor UI toggle on the same page.
+       
+     - **If `NAVIGATION` or major state change:**
+       - Take a `browser_snapshot` to see what changed.
+       - Identify the **Stable Anchor Locator** (the new element/heading that proves the transition finished).
+       - **Record `Stable Timestamp`** when this anchor is confirmed visible.
+       - Run Stability Checks (Table below) on the anchor.
+       
+     - **If `IN_PAGE_ACTION` (Smart Optimization):**
+       - **DO NOT take a browser snapshot.** This is a massive waste of time/tokens for simple field entries.
+       - Assume the action succeeded. The **Stable Anchor Locator** is simply the element you just interacted with (or the next element you plan to interact with). Playwright will inherently wait for it during the test execution.
+       - **Record `Stable Timestamp`** as ~100ms after the Action Timestamp.
+       - Write `Stability Check: PASS (In-Page Action)`.
 
-   **If NO page map exists for this page** — full exploration:
-   - Output `BROWSER ACTION:` declaration
-   - **Record `Action Timestamp`** — note the current time (`HH:MM:SS.sss`) immediately before performing the action
-   - Perform the action
-   - Use `browser_snapshot` to see what changed and identify the Stable Anchor
-     (Only take a full screenshot if: first step of the group, visual layout matters, or DOM text is insufficient to identify the anchor)
-   - **Record `Stable Timestamp`** — note the current time (`HH:MM:SS.sss`) when the stable anchor is confirmed visible
-   - **Calculate `Measured Duration`** — `Stable Timestamp - Action Timestamp` in milliseconds
-   - **Classify `Step Type`:**
-     `NAVIGATION` = page.goto(), URL change, login, first entry into a new app section, page reload
-     `IN_PAGE_ACTION` = click on same page, fill field, toggle, tab switch, modal open on same page
-   - **MANDATORY — Identify the Stable Anchor Locator:**
-     Take a `browser_snapshot` or use `page.evaluate()` to inspect the DOM around the Stable Anchor element.
-     Determine the best Playwright locator using this priority (first that uniquely identifies the element):
-     `data-testid` → `getByRole(role, { name })` → `getByText()` → `getByLabel()` → CSS selector
-     If Anchor Type is `URL_CHANGE`: record the URL pattern (e.g. `**/dashboard**`)
-     **`Stable Anchor Locator` must not be left blank** — if no locator can be determined, take a snapshot
-     and examine the DOM until one is found, or ask the user.
-   - **MANDATORY — Validate Locator Stability:**
-     Ask: "Would this locator work on a different day, with different data, or a different user session?"
+   - **Step 4: Record Observation**
+     - **Calculate `Measured Duration`** (`Stable Timestamp - Action Timestamp` in ms).
+     - **Fill blank fields in `active-group.md`** using targeted edits. Example: `- Trigger:` → `- Trigger: Filled "Email" input`.
+     - Do NOT rewrite the entire `active-group.md` — edit only the blank observation fields.
+     - **Edit** `CURRENT_URL` and `CURRENT_PAGE_STATE` in `test-session.md` if they changed.
+
+   - **MANDATORY — Validate Locator Stability (for NAVIGATION anchors):**
+     Ask: "Would this locator work on a different day, with different data, or a different session?"
 
      | Check | Fail if locator text contains | Fix approach |
      |---|---|---|
-     | Time/Date | Greetings, timestamps, "today", relative dates, day names | Use regex: `getByText(/Hi,.*Name/)` |
+     | Time/Date | Greetings, timestamps, "today", relative dates | Use regex: `getByText(/Hi,.*Name/)` |
      | Data/Count | Counts, totals, badges, dollar amounts | Use structural locator (`data-testid`, `role`) |
-     | User/Session | Session IDs, "Last login:", dynamic status | Use test data you control (static username OK) |
+     | User/Session | Session IDs, "Last login:", dynamic status | Use test data you control |
      | Uniqueness | Matches >1 element | Scope: `parent.locator(...)` or add container |
 
-     **If any check fails → escalation order:**
-     `data-testid`/`id`/`aria-label` → stable parent + scope → regex on stable portion → CSS selector → sibling-relative
-
-     Record result: `Stability Check: PASS` or `Stability Check: FIXED — [original] → [replacement]`
-   - **Fill blank fields in `active-group.md`** using targeted edits (see Anchor Reference table).
-     Example: `- Trigger:` → `- Trigger: Clicked "Login" button (getByRole 'button' name 'Login')`
-     Do NOT rewrite the entire `active-group.md` — edit only the blank observation fields.
-   - **Edit** `CURRENT_URL` and `CURRENT_PAGE_STATE` in `test-session.md` if they changed
-   - **MANDATORY — Page Map Capture (do this NOW, before moving to the next step):**
-     If the current page does not have a map in `page-maps/`:
-     1. Take a `browser_snapshot`, extract ALL interactive elements (buttons, links, inputs, headings, nav)
-     2. Group by page section (header, sidebar, content, footer, modal)
-     3. Run each through Stability Checks 1–4
-     4. Write/update `page-maps/<page-name>.json`
-     5. Update this step's `MAP:` field in `active-group.md` to `<filename> (MAP_VALIDATED)`
+     If any check fails → `data-testid`/`id` → stable parent + scope → regex → CSS.
+     Record result: `Stability Check: FIXED — [original] → [replacement]`
 6. **MANDATORY TRANSITION — DO NOT SKIP:**
    After the LAST step of the Active Group has been explored and its observation saved:
     a. Verify all Step Observation fields in `active-group.md` are filled (no blank Trigger/Anchor fields)
@@ -500,7 +491,7 @@ Each group follows this state sequence:
    e. **BOUNDARY CHECK:** If the step you are about to explore is NOT listed in the Active Group section
       of `test-session.md`, STOP — exploration for this group is already done
 
-**Step Observation example (with multiple verifications + fixed stability check):**
+**Step Observation example (NAVIGATION with multiple verifications + fixed stability check):**
 ```
 - Step Observation:
   - Trigger: Clicked "Log in" button (getByRole 'button' name 'Log in')
@@ -516,6 +507,22 @@ Each group follows this state sequence:
   - Additional Assertions:
     - ELEMENT_VISIBLE | getByRole('heading', { name: 'Projects' }) | Projects heading visible
     - ELEMENT_VISIBLE | getByText(/Hi,.*Manoj/) | Stability FIXED — time-sensitive → regex
+```
+
+**Step Observation example (Smart IN_PAGE_ACTION - No Snapshot Needed):**
+```
+- Step Observation:
+  - Trigger: Filled "Email" input (getByRole 'textbox' name 'Email') with "test@test.com"
+  - Action Timestamp: 13:14:10.100
+  - Stable Timestamp: 13:14:10.200
+  - Measured Duration: 100ms
+  - Step Type: IN_PAGE_ACTION
+  - Transient Elements Seen: (none)
+  - Stable Anchor: The Email input element itself
+  - Anchor Type: ELEMENT_VISIBLE
+  - Stable Anchor Locator: getByRole('textbox', { name: 'Email' })
+  - Stability Check: PASS (In-Page Action)
+  - Additional Assertions: (none)
 ```
 
 **Additional Assertions:** One line per extra verification: `Anchor Type | Locator | Description`.
