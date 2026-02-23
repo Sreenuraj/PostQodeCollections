@@ -219,6 +219,8 @@ CONFIG_ACTION_TIMEOUT: TBD
 CONFIG_NAVIGATION_TIMEOUT: TBD
 CONFIG_EXPECT_TIMEOUT: TBD
 TEST_COMMAND: TBD
+PAGE_MAPS_DIR: page-maps
+PAGE_MAPS_FOUND: 0
 ---
 
 ## All Steps
@@ -242,6 +244,7 @@ TEST_COMMAND: TBD
 - Target: [element description]
 - Data: [input values or N/A]
 - Expected Result: [what the UI shows after this step]
+- MAP: (none)
 - Step Observation:
   - Trigger:
   - Action Timestamp:
@@ -276,6 +279,7 @@ TEST_COMMAND: TBD
 - Target: [element description]
 - Data: [input values or N/A]
 - Expected Result: [what the UI shows after this step]
+- MAP: (none)
 - Step Observation:
   - Trigger:
   - Action Timestamp:
@@ -313,7 +317,7 @@ TEST_COMMAND: TBD
 6. Create working spec file following project patterns
 7. If EXTEND_EXISTING: extract reused steps into spec, mark them `[x]` in All Steps,
    position browser at start using Protocol B
-8. Set `NEXT_ACTION: EXPLORE_GROUP_1`
+8. Set `NEXT_ACTION: EXPLORE_GROUP_1` (or `VALIDATE_MAPS` if page maps found)
 
 ### No framework in project
 
@@ -329,7 +333,47 @@ TEST_COMMAND: TBD
 4. Create working spec file
 5. Set `NEXT_ACTION: EXPLORE_GROUP_1`
 
+### Page Map Scan (runs in both framework paths)
+
+After framework setup, before setting final `NEXT_ACTION`:
+
+1. Check if `page-maps/` directory exists
+2. If exists → list all `.json` files, read their `urlPattern` fields
+3. For each test step, match its target page/URL against page map URL patterns
+4. If match found → add `MAP: <filename> (MAP_AVAILABLE)` to the step in `test-session.md`
+5. Update state block: `PAGE_MAPS_FOUND: [count] ([file list])`
+6. If any steps have `MAP_AVAILABLE` → set `NEXT_ACTION: VALIDATE_MAPS`
+   Otherwise → set `NEXT_ACTION: EXPLORE_GROUP_1`
+
 > All subsequent references use `TEST_COMMAND`, `SPEC_FILE`, `CONFIG_FILE` from `test-session.md`.
+
+---
+
+### VALIDATE_MAPS (`NEXT_ACTION: VALIDATE_MAPS`)
+
+Runs only when page maps exist and steps have `MAP: ... (MAP_AVAILABLE)`. Validates that stored locators are still valid.
+
+1. Read all steps with `MAP_AVAILABLE` from `test-session.md`
+2. Group by page map file (multiple steps may share one map)
+3. For each page map, write a temp validation spec that:
+   - Navigates to the page (using steps already completed or direct URL)
+   - Checks 3–5 key locators from the map are present (`.waitFor({state:'visible'})` with 5s timeout)
+4. Run: `[TEST_COMMAND] [temp-validation-spec] --headed`
+5. Results per map:
+   - All locators found → mark steps `MAP: <file> (MAP_VALIDATED)`
+   - Some/all missing → mark steps `MAP: <file> (MAP_STALE)`
+6. Delete temp validation spec
+7. Output results:
+   ```
+   Page Map Validation:
+   ✅ login.json — locators valid (Steps 1)
+   ⚠️ dashboard.json — stale, will re-explore (Steps 2, 3)
+
+   MAP_VALIDATED steps: locators from page map, skip DOM analysis during exploration.
+   MAP_STALE steps: full exploration, page map will be updated.
+   ```
+   **⛔ STOP — wait for user to acknowledge before proceeding.**
+8. Set `NEXT_ACTION: EXPLORE_GROUP_1`
 
 ---
 
@@ -358,6 +402,17 @@ Each group follows this state sequence:
    Step [Y]: After [action] → expect [element / URL / state]
    ```
 5. For each step — one at a time:
+   - Check `MAP:` field in `test-session.md` for this step
+
+   **If `MAP_VALIDATED`** — fast path:
+   - Output `BROWSER ACTION:` declaration
+   - Record `Action Timestamp`, perform the action, record `Stable Timestamp`
+   - Read locators from the page map file — use them for Stable Anchor Locator
+   - Use `browser_snapshot` only to verify the expected result appeared (not for locator hunting)
+   - If page map locator doesn't match what you see → mark `MAP_STALE`, fall back to full exploration below
+   - Fill Step Observation using page map locators + fresh timestamps
+
+   **If no MAP or `MAP_STALE`** — full exploration:
    - Output `BROWSER ACTION:` declaration
    - **Record `Action Timestamp`** — note the current time (`HH:MM:SS.sss`) immediately before performing the action
    - Perform the action
@@ -410,6 +465,13 @@ Each group follows this state sequence:
      `Stability Check: PASS` or `Stability Check: FIXED — original "Hi, Good Afternoon" is time-sensitive → using getByText(/Hi,.*Manoj/)`
    - Fill ALL Step Observation fields in `test-session.md` immediately (see Anchor Reference table)
    - Update `CURRENT_URL` and `CURRENT_PAGE_STATE` in the state block if they changed
+   - **Page Map Capture** — after filling Step Observation, if this page has no page map or map is stale:
+     1. Take a `browser_snapshot` of the full page
+     2. Extract all interactive elements: buttons, links, inputs, headings, navigation items
+     3. Group by page section (header, sidebar, content, footer, modal)
+     4. Run each through Stability Checks 1–4
+     5. Write/update `page-maps/<page-name>.json` with all elements
+     6. Update step's `MAP:` field to `<filename> (MAP_VALIDATED)`
    - Write file before moving to next step — do not proceed without saving
 6. **MANDATORY TRANSITION — DO NOT SKIP:**
    After the LAST step of the Active Group has been explored and its observation saved:
@@ -509,7 +571,8 @@ Run each additional locator through the same Stability Check (Checks 1–4). If 
 
 1. Output STATE CHECK — confirm `NEXT_ACTION` is `APPEND_CODE_GROUP_N`
 2. Read each step's filled Step Observation from Active Group in `test-session.md`
-3. Write code for each step using this pattern:
+3. If a step has `MAP:` reference → also read the page map file for additional locator context
+4. Write code for each step using this pattern:
    ```
    // Step [N]: [description]
    // Measured: [Measured Duration]ms | Type: [Step Type]
@@ -521,8 +584,11 @@ Run each additional locator through the same Stability Check (Checks 1–4). If 
    ```
    If `Additional Assertions` is `(none)`, write only the primary wait + assertion.
    If it has entries, write one assertion per line after the primary, using the locator and type from each entry.
-4. Append code to working spec file
-5. Set `NEXT_ACTION: UPDATE_CONFIG_GROUP_N`, update `SPEC_FILE_LAST_STEP`
+5. **Page map locator fallback**: if code requires a locator not in the Step Observation
+   (intermediate element, parent container, scoping) → check `page-maps/<page>.json`.
+   Do NOT guess or write locators from memory.
+6. Append code to working spec file
+7. Set `NEXT_ACTION: UPDATE_CONFIG_GROUP_N`, update `SPEC_FILE_LAST_STEP`
 
 See **Anchor Reference** table for wait code per Anchor Type. No inline timeouts — ever.
 
@@ -632,6 +698,7 @@ TEST_COMMAND: [value]
 - Target: [from Pending Groups]
 - Data: [from Pending Groups]
 - Expected Result: [from Pending Groups]
+- MAP: [from Pending Groups]
 - Step Observation:
   - Trigger:
   - Action Timestamp:
@@ -756,11 +823,15 @@ All steps `[x]` or `[❌]`.
 ### NEW_TEST mode
 
 1. Read the working spec file — identify repeated patterns (locators, actions, waits)
-2. Extract Page Object classes:
-   - One class per major page/screen encountered during the test
-   - Move locators into `readonly` properties on the class
-   - Move action sequences into descriptive methods (e.g. `login()`, `selectDataset()`)
+2. Extract Page Object classes using `page-maps/` as primary source:
+   - One POM class per page map file in `page-maps/`
+   - Include ALL locators from the page map as `readonly` properties:
+     - Locators used in the test → full methods with waits
+     - Locators NOT used → `readonly` property only with comment: `// Available — not yet used in tests`
+   - If a locator in the working spec is NOT in the page map → add it to the map first
+   - POM methods reference page map element names: `// Source: page-maps/<file> > <section> > <name>`
    - Include wait logic inside POM methods, not in the test
+   - If no `page-maps/` exist yet → create them from the working spec locators
 3. Extract test data:
    - Credentials, URLs, dataset names, input values → move to a data object, config, or fixture
    - Do not hardcode test data in the spec file
@@ -806,6 +877,7 @@ Run the final test file (refactored spec, not the working spec) in headed mode:
    - Page object files
    - Fixture files
    - Updated config file
+   - `page-maps/` directory and all `.json` files (reused by future tests)
    - Any utility files created or modified
 
 ### 3. If fails
@@ -825,6 +897,39 @@ Run the final test file (refactored spec, not the working spec) in headed mode:
 ---
 
 ## Reference
+
+### Page Map File Format (`page-maps/<page-name>.json`)
+
+One file per distinct page/screen. Created during exploration, reused by future tests.
+
+```json
+{
+  "pageName": "Dashboard",
+  "urlPattern": "**/app/main/home**",
+  "capturedAt": "2026-02-22T14:15:00+05:30",
+  "sections": {
+    "header": [
+      { "name": "userGreeting", "locator": "getByText(/Hi,.*Manoj/)", "type": "text", "stabilityCheck": "FIXED" }
+    ],
+    "sidebar": [
+      { "name": "workOrdersLink", "locator": "getByRole('link', { name: /Work Orders/ })", "type": "link", "stabilityCheck": "PASS" }
+    ],
+    "content": [
+      { "name": "addButton", "locator": "getByRole('button', { name: 'Add' })", "type": "button", "stabilityCheck": "PASS" }
+    ]
+  }
+}
+```
+
+Element types: `button`, `link`, `input`, `heading`, `text`, `container`, `image`, `select`, `checkbox`, `radio`
+
+MAP statuses in `test-session.md`:
+- `(none)` — no page map for this page
+- `MAP_AVAILABLE` — map found, not yet validated
+- `MAP_VALIDATED` — locators confirmed valid, skip DOM analysis
+- `MAP_STALE` — locators invalid, needs full exploration
+
+---
 
 ### Anchor Type Reference (unified — observation, wait code, config setting)
 
@@ -849,9 +954,10 @@ Recommended Config Timeout calculation (done during UPDATE_CONFIG, not during EX
 
 | NEXT_ACTION | What to do |
 |---|---|
-| `FRAMEWORK_SETUP` | Phase 1: detect or install framework, fill session state block |
-| `EXPLORE_GROUP_N` | Read Active Group, predict, explore step by step, record observations |
-| `APPEND_CODE_GROUP_N` | Write code from Step Observations — no inline timeouts |
+| `FRAMEWORK_SETUP` | Phase 1: detect or install framework, scan page maps, fill session state block |
+| `VALIDATE_MAPS` | Validate existing page map locators, mark MAP_VALIDATED or MAP_STALE |
+| `EXPLORE_GROUP_N` | Read Active Group, predict, explore step by step, record observations, capture page maps |
+| `APPEND_CODE_GROUP_N` | Write code from Step Observations + page map fallback — no inline timeouts |
 | `UPDATE_CONFIG_GROUP_N` | Compare Recommended timeouts vs config, update file if exceeded |
 | `RUN_AND_VALIDATE_GROUP_N` | Run spec in headed mode using TEST_COMMAND |
 | `FIX_AND_RERUN_GROUP_N` | Fix code (max 3 Level 1 attempts), re-run |
@@ -879,12 +985,14 @@ Recommended Config Timeout calculation (done during UPDATE_CONFIG, not during EX
 FOR EACH GROUP:
   0. STATE CHECK from test-session.md — verify NEXT_ACTION before anything
      BOUNDARY: confirm the step you will act on is in the Active Group — not a Pending Group
-  1. EXPLORE  → read Active Group | predict | explore one step at a time
+  1. EXPLORE  → read Active Group | check MAP: field per step
+                 MAP_VALIDATED: fast path — use page map locators, still record timestamps
+                 No MAP / MAP_STALE: full exploration + capture page map
                  BROWSER ACTION: before every call
                  fill + save Step Observation before next step (Anchor Reference table)
                  update BROWSER_STATUS/CURRENT_URL/CURRENT_PAGE_STATE in state block
-                 AFTER LAST STEP: update NEXT_ACTION to APPEND_CODE_GROUP_N — do not explore further
-  2. CODE     → read observations from session file | write wait + assert per Anchor Type
+                 AFTER LAST STEP: update NEXT_ACTION to APPEND_CODE_GROUP_N
+  2. CODE     → read observations + page map fallback for missing locators
                  timing comment above each step | no inline timeouts
   3. CONFIG   → compare Recommended timeouts vs config | update file if exceeded
   4. RUN      → separate browser | BROWSER_STATUS unchanged
