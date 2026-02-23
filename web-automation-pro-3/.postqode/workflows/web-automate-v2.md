@@ -7,25 +7,18 @@ description: Unified web automation workflow v2 — context-efficient split sess
 > [!CAUTION]
 > ## CORE RULES — APPLY TO EVERY ACTION WITHOUT EXCEPTION
 >
-> **Ritual 1 — Before every action, output STATE CHECK filled from `test-session.md`:**
+> **Ritual 1 — Before every action, output STATE CHECK from `test-session.md`:**
 > ```
-> ## STATE CHECK
-> - WORKFLOW: web-automate-v2
-> - BROWSER_STATUS: [value]
-> - CURRENT_GROUP: [value]
-> - NEXT_ACTION: [value]
-> - LAST_COMPLETED_STEP: [value]
-> - ACTION I AM ABOUT TO TAKE: [one sentence]
-> - DOES THIS MATCH NEXT_ACTION?: [YES / NO — if NO, stop and explain]
-> - STEP I AM ACTING ON: Step [N] (Group [G])
-> - IS THIS STEP IN THE ACTIVE GROUP?: [YES / NO — if NO, STOP. Do not proceed.]
+> STATE: [NEXT_ACTION] | Group [N] | Step [N] in active-group? [YES/NO — if NO, STOP]
+> ACTION: [one sentence — what I am about to do]
 > ```
+> If NEXT_ACTION doesn't match what you're about to do → stop and explain.
 >
-> **Ritual 2 — Before every browser tool call:**
+> **Ritual 2 — Before the FIRST browser call of each step:**
 > ```
-> BROWSER ACTION: I am about to [action] because [reason].
-> This is part of: [NEXT_ACTION value]
+> BROWSER ACTION: [action] — [reason] — part of [NEXT_ACTION]
 > ```
+> Follow-up calls within the same step (snapshots, verifies) do not need a declaration.
 >
 > **NEVER:**
 > - Perform a browser action on a step that belongs to a Pending Group — only Active Group steps
@@ -345,7 +338,7 @@ After framework setup, before setting final `NEXT_ACTION`:
    - **Fallback**: `pageName` or `pageTitle` match against step's action/target description
    URLs change across environments; page names and titles don't.
 4. If match found → add `MAP: <filename> (MAP_AVAILABLE)` to the step in `active-group.md`
-   (or in the corresponding `pending-groups/group-N.md` file for pending steps)
+   (Pending groups get their MAP: field set when promoted to active — do NOT open pending group files)
 5. Update state block: `PAGE_MAPS_FOUND: [count] ([file list])`
 6. If any steps have `MAP_AVAILABLE` → set `NEXT_ACTION: VALIDATE_MAPS`
    Otherwise → set `NEXT_ACTION: EXPLORE_GROUP_1`
@@ -425,12 +418,7 @@ Each group follows this state sequence:
 3. Verify browser: `OPEN` → Protocol A | `CLOSED` → Protocol B | uncertain → Protocol A
    After browser is confirmed open, **edit** these fields in `test-session.md`:
    `BROWSER_STATUS: OPEN`, `CURRENT_URL: [actual URL]`, `CURRENT_PAGE_STATE: [one-line description]`
-4. Output prediction block:
-   ```
-   ## PREDICTED OUTCOMES — Group [N]
-   Step [X]: After [action] → expect [element / URL / state]
-   Step [Y]: After [action] → expect [element / URL / state]
-   ```
+4. Note: Expected Results are already in `active-group.md` — no need to output predictions.
 5. For each step — one at a time:
    - Check `MAP:` field in `active-group.md` for this step.
      Also check: does `page-maps/` contain a map matching the current page URL — even if `MAP:` is `(none)`?
@@ -462,38 +450,19 @@ Each group follows this state sequence:
      **`Stable Anchor Locator` must not be left blank** — if no locator can be determined, take a snapshot
      and examine the DOM until one is found, or ask the user.
    - **MANDATORY — Validate Locator Stability:**
-     Before recording the Stable Anchor Locator, ask: **"Would this locator return the same element
-     if the test ran at a different time, on a different day, or with different data?"**
-     Run the candidate locator text through these checks:
+     Ask: "Would this locator work on a different day, with different data, or a different user session?"
 
-     **Check 1 — Time/Date Sensitivity:**
-     Does the text contain content that changes based on when the test runs?
-     Greetings (Good Morning/Afternoon/Evening), timestamps, "today", relative dates ("2 hours ago"),
-     day names, session durations — all fail this check.
+     | Check | Fail if locator text contains | Fix approach |
+     |---|---|---|
+     | Time/Date | Greetings, timestamps, "today", relative dates, day names | Use regex: `getByText(/Hi,.*Name/)` |
+     | Data/Count | Counts, totals, badges, dollar amounts | Use structural locator (`data-testid`, `role`) |
+     | User/Session | Session IDs, "Last login:", dynamic status | Use test data you control (static username OK) |
+     | Uniqueness | Matches >1 element | Scope: `parent.locator(...)` or add container |
 
-     **Check 2 — Data/Count Sensitivity:**
-     Does the text contain counts, totals, or data values that change between runs?
-     "5 items", "Total: $42.00", record counts, notification badges — all fail this check.
+     **If any check fails → escalation order:**
+     `data-testid`/`id`/`aria-label` → stable parent + scope → regex on stable portion → CSS selector → sibling-relative
 
-     **Check 3 — User/Session Sensitivity:**
-     Does the text contain user-specific session data that varies per login?
-     Session IDs, tokens, "Last login: ...", dynamic user status — fail this check.
-     Note: Static user identity (e.g. a username like "Manoj") is acceptable if it is test data you control.
-
-     **Check 4 — Uniqueness:**
-     Does the locator match exactly one element on the page? If `getByText('Submit')` matches 3 buttons,
-     it fails. Scope it: `page.locator('.form-section').getByText('Submit')`.
-
-     **If any check fails → find an alternative locator using this escalation:**
-     1. Look for a structural attribute on the same element: `data-testid`, `id`, `aria-label`, `role`
-     2. Look at the parent/container: find a stable parent with an attribute, then scope within it
-     3. Use a partial/regex match on the stable portion: `getByText(/Hi,.*Manoj/)` instead of `getByText('Hi, Good Afternoon')`
-     4. Use a CSS selector targeting element structure: `.dashboard-header`, `[class*="greeting"]`
-     5. If the element has no stable attributes at all → inspect siblings: find a nearby stable element
-        and locate relative to it
-
-     **Output the validation result as a one-line comment in the Step Observation:**
-     `Stability Check: PASS` or `Stability Check: FIXED — original "Hi, Good Afternoon" is time-sensitive → using getByText(/Hi,.*Manoj/)`
+     Record result: `Stability Check: PASS` or `Stability Check: FIXED — [original] → [replacement]`
    - **Fill blank fields in `active-group.md`** using targeted edits (see Anchor Reference table).
      Example: `- Trigger:` → `- Trigger: Clicked "Login" button (getByRole 'button' name 'Login')`
      Do NOT rewrite the entire `active-group.md` — edit only the blank observation fields.
@@ -526,23 +495,7 @@ Each group follows this state sequence:
    e. **BOUNDARY CHECK:** If the step you are about to explore is NOT listed in the Active Group section
       of `test-session.md`, STOP — exploration for this group is already done
 
-**Filling the Step Observation — example of a correctly filled record (single anchor):**
-```
-- Step Observation:
-  - Trigger: Clicked "Login" button (getByRole 'button' name 'Login')
-  - Action Timestamp: 13:14:02.100
-  - Stable Timestamp: 13:14:04.200
-  - Measured Duration: 2100ms
-  - Step Type: NAVIGATION
-  - Transient Elements Seen: Loading spinner (do NOT assert on this)
-  - Stable Anchor: Dashboard header element visible and stable
-  - Anchor Type: ELEMENT_VISIBLE
-  - Stable Anchor Locator: [data-testid="dashboard-header"]
-  - Stability Check: PASS
-  - Additional Assertions: (none)
-```
-
-**Example with multiple verifications (login step with URL + heading + user name):**
+**Step Observation example (with multiple verifications + fixed stability check):**
 ```
 - Step Observation:
   - Trigger: Clicked "Log in" button (getByRole 'button' name 'Log in')
@@ -557,43 +510,17 @@ Each group follows this state sequence:
   - Stability Check: PASS
   - Additional Assertions:
     - ELEMENT_VISIBLE | getByRole('heading', { name: 'Projects' }) | Projects heading visible
-    - ELEMENT_VISIBLE | getByText(/Hi,.*Manoj/) | User greeting visible (regex — time-sensitive text)
+    - ELEMENT_VISIBLE | getByText(/Hi,.*Manoj/) | Stability FIXED — time-sensitive → regex
 ```
 
-**When to use Additional Assertions:**
-- The step's Expected Result describes multiple visible outcomes (e.g. "dashboard loads with user name and projects")
-- A verification step explicitly checks several elements (e.g. "Verify login succeeded")
-- The action causes both a URL change AND new elements to appear
-- The primary anchor alone is not sufficient to confirm the step fully succeeded
+**Additional Assertions:** One line per extra verification: `Anchor Type | Locator | Description`.
+Use when Expected Result describes multiple outcomes, or primary anchor alone isn't sufficient. Write `(none)` if not needed.
 
-**Format:** Each additional assertion is one line: `Anchor Type | Locator | Description`
-Run each additional locator through the same Stability Check (Checks 1–4). If none needed, write `(none)`.
-
-**Example of a FIXED stability check (time-sensitive greeting):**
-```
-- Step Observation:
-  - Trigger: Clicked "Log in" button (getByRole 'button' name 'Log in')
-  - Action Timestamp: 13:14:02.100
-  - Stable Timestamp: 13:14:05.600
-  - Measured Duration: 3500ms
-  - Step Type: NAVIGATION
-  - Transient Elements Seen: "Loading... Please wait!" (do NOT assert on this)
-  - Stable Anchor: User greeting element on dashboard
-  - Anchor Type: ELEMENT_VISIBLE
-  - Stable Anchor Locator: getByText(/Hi,.*Manoj/)
-  - Stability Check: FIXED — original "Hi, Good Afternoon" is time-sensitive → using regex getByText(/Hi,.*Manoj/)
-  - Additional Assertions: (none)
-```
-
-**Stable Anchor Selection (apply in order — use first that applies):**
+**Stable Anchor Selection (first that applies):**
 `URL_CHANGE → ELEMENT_TEXT → ELEMENT_VISIBLE → ELEMENT_ENABLED → ELEMENT_COUNT → NETWORK_IDLE`
 
-- Anchor must appear ONLY after the action fully completes — not before
-- Reject: anything with "Loading" / "Saving" / "Please wait", spinners, skeletons,
-  or anything disappearing within 3 seconds
-- Record transients explicitly — then find what appeared after them
-- No stable anchor found → take `browser_snapshot`, examine DOM for stable attributes
-- Still none → ask: "After [action], what is the most reliable sign of success?"
+Must appear ONLY after action completes. Reject transients (spinners, "Loading...").
+No stable anchor found → `browser_snapshot` → examine DOM → ask user.
 
 ---
 
@@ -699,26 +626,13 @@ After passing → set `NEXT_ACTION: UPDATE_SESSION_GROUP_N`.
 
 **If more groups remain** — offer condense with next group:
 
-You MUST output the following message AND STOP. Do NOT proceed to the next group until the user responds.
-
 ```
 ✅ Group [N] complete — [X] steps passing.
-
-We are following the `/web-automate` workflow (file: .postqode/workflows/web-automate.md).
-Group [N] ([label]) has been successfully completed.
-Next: Group [N+1] ([label]) — [G] groups remaining.
-
-Would you like to condense the context before proceeding?
-
-  (A) Yes — condense now, but ONLY remember these two things:
-      1. You are in the /web-automate-v2 workflow → re-read .postqode/workflows/web-automate-v2.md
-      2. Your session state is in test-session.md + active-group.md → re-read them for current progress and next action
-      Do NOT summarize steps, code, timing, config, or any other details — they are already saved in those files.
-
-  (B) No — continue to Group [N+1] immediately.
+Next: Group [N+1] ([label]) — [G] remaining.
+Condense context? (A) Yes (recommended)  (B) No — continue
 ```
 
-**⛔ STOP HERE. Do not perform any further actions, STATE CHECKs, or browser calls until the user replies.**
+**⛔ STOP — wait for user response.**
 
 - User says **A** → The user will trigger condensation. When creating the condensation summary,
   output ONLY these 3 lines — nothing more:
