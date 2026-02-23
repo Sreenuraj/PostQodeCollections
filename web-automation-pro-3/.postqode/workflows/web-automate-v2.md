@@ -400,13 +400,13 @@ and gives a clean context for exploration.
 
 **⛔ STOP — wait for user response.**
 
-- User says **A** → The user will trigger condensation. When creating the condensation summary, output ONLY these 3 lines — nothing more:
+- User says **A** → **MANDATORY:** Before doing anything else, edit `NEXT_ACTION: EXPLORE_GROUP_1` in `test-session.md`. Then, the user will trigger condensation. When creating the condensation summary, output ONLY these 3 lines — nothing more:
   ```
   I am in the /web-automate-v2 workflow. Re-read .postqode/workflows/web-automate-v2.md for all rules.
   Session state: test-session.md (state), active-group.md (current group). Re-read them.
   Do not summarize anything else — all context is in those files.
   ```
-  Wait for it to complete. After re-read, edit `NEXT_ACTION: EXPLORE_GROUP_1` in `test-session.md` and proceed.
+  After condensation completes, re-read your session files and proceed automatically.
 - User says **B** → edit `NEXT_ACTION: EXPLORE_GROUP_1` in `test-session.md` and proceed immediately.
 
 ---
@@ -639,16 +639,14 @@ Condense context? (A) Yes (recommended)  (B) No — continue
 
 **⛔ STOP — wait for user response.**
 
-- User says **A** → The user will trigger condensation. When creating the condensation summary, output ONLY these 3 lines — nothing more:
+- User says **A** → **MANDATORY:** Before doing anything else, update `NEXT_ACTION: EXPLORE_GROUP_[N+1]` (use `LAST_COMPLETED_GROUP` + 1) and `NEXT_ACTION_DETAIL` in `test-session.md`. Then, the user will trigger condensation. When creating the condensation summary, output ONLY these 3 lines — nothing more:
   ```
   I am in the /web-automate-v2 workflow. Re-read .postqode/workflows/web-automate-v2.md for all rules.
   Session state: test-session.md (state), active-group.md (current group). Re-read them.
   Do not summarize anything else — all context is in those files.
   ```
   **NEVER include** step details, code, timing, observations, config, file contents, or technical concepts.
-  **Wait for the condensation to complete.** After condensation, you will have a fresh context.
-  Re-read `test-session.md` and `active-group.md`. Then update `NEXT_ACTION: EXPLORE_GROUP_[N+1]`
-  (use `LAST_COMPLETED_GROUP` + 1) and `NEXT_ACTION_DETAIL` in `test-session.md`. Write the file, then resume.
+  After condensation completes, you will have a fresh context. Re-read your session files and proceed automatically.
 - User says **B** → update `NEXT_ACTION: EXPLORE_GROUP_[N+1]` and `NEXT_ACTION_DETAIL` in `test-session.md`,
   write the file, then continue immediately.
 - If you proceed without the user's response, you are violating the workflow
@@ -671,13 +669,13 @@ Would you like to condense the context before finalising?
 
 **⛔ STOP HERE. Wait for user response.**
 
-- User says **A** → The user will trigger condensation. When creating the condensation summary, output ONLY these 3 lines — nothing more:
+- User says **A** → **MANDATORY:** Before doing anything else, edit `NEXT_ACTION: FINALISE_TEST` in `test-session.md`. Then, the user will trigger condensation. When creating the condensation summary, output ONLY these 3 lines — nothing more:
   ```
   I am in the /web-automate-v2 workflow. Re-read .postqode/workflows/web-automate-v2.md for all rules.
   Session state: test-session.md (state), active-group.md (current group). Re-read them.
   Do not summarize anything else — all context is in those files.
   ```
-  Wait for it to complete. After re-read, edit `NEXT_ACTION: FINALISE_TEST` in `test-session.md`.
+  After condensation completes, re-read your session files and proceed automatically.
 - User says **B** → edit `NEXT_ACTION: FINALISE_TEST` in `test-session.md`, then proceed.
 
 ---
