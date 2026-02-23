@@ -202,7 +202,16 @@ Does everything look correct?
 **⛔ STOP — wait for explicit user approval. Do not write files until the user confirms.**
 Apply changes if requested, re-present, and wait again.
 
-**After approval → write 4 file types:**
+**After approval → setup workspace and write session files:**
+
+#### `Context Optimization` (CRITICAL)
+Append these lines to `.postqodeignore` in the project root (create the file if it doesn't exist):
+```
+completed-groups/
+pending-groups/
+page-maps/
+```
+*(This ensures your context remains perfectly flat and efficient throughout the session. The `active-group.md` file is intentionally NOT ignored).*
 
 #### `test-session.md` (state block only — ~24 lines, always small)
 ```
@@ -796,6 +805,7 @@ Run the final test file (refactored spec, not the working spec) in headed mode:
    - Updated config file
    - `page-maps/` directory and all `.json` files (reused by future tests)
    - Any utility files created or modified
+5. Remove the 3 entries (`completed-groups/`, `pending-groups/`, `page-maps/`) from `.postqodeignore`
 
 ### 3. If fails
 
