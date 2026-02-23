@@ -873,15 +873,11 @@ All steps `[x]` or `[❌]`.
 ### NEW_TEST mode
 
 1. Read the working spec file — identify repeated patterns (locators, actions, waits)
-2. Extract Page Object classes using `page-maps/` as primary source:
-   - One POM class per page map file in `page-maps/`
-   - Include ALL locators from the page map as `readonly` properties:
-     - Locators used in the test → full methods with waits
-     - Locators NOT used → `readonly` property only with comment: `// Available — not yet used in tests`
-   - If a locator in the working spec is NOT in the page map → add it to the map first
-   - POM methods reference page map element names: `// Source: page-maps/<file> > <section> > <name>`
+2. Extract Page Object classes **from the working spec** (it is complete and passing):
+   - One class per major page/screen encountered during the test
+   - Move locators into `readonly` properties on the class
+   - Move action sequences into descriptive methods (e.g. `login()`, `selectDataset()`)
    - Include wait logic inside POM methods, not in the test
-   - If no `page-maps/` exist yet → create them from the working spec locators
 3. Extract test data:
    - Credentials, URLs, dataset names, input values → move to a data object, config, or fixture
    - Do not hardcode test data in the spec file
@@ -893,11 +889,15 @@ All steps `[x]` or `[❌]`.
 7. Update any index/barrel files if the project uses them (e.g. `pages/index.ts`)
 8. Run the refactored test in headed mode: `[TEST_COMMAND] [final spec] --headed`
 9. Passes → proceed to Phase 4
-10. Fails → compare against working spec to find what broke during refactoring. Common issues:
-    - Import paths wrong after moving files
-    - POM method missing a wait that was inline in the working spec
-    - Fixture not providing the expected page state
-    Fix and re-run. If still failing → Failure Escalation Protocol.
+10. Fails → compare against working spec to find what broke during refactoring:
+    a. **First**: check common issues — import paths, missing waits in POM methods, fixture mismatch
+    b. **If locator issue**: check `page-maps/` for the correct locator — do NOT guess from memory
+    c. **If page-maps don't help**: open browser (Protocol A/B), navigate to the page, take
+       `browser_snapshot` to find the correct locator. Follow all exploration protocols.
+    d. Fix and re-run. Max 3 attempts, then Failure Escalation Protocol.
+
+> Do NOT read `page-maps/` at the start of Phase 3. The working spec has everything needed.
+> Page maps are a fallback reference only when a refactored locator fails.
 
 ---
 
