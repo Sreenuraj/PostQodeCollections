@@ -351,8 +351,11 @@ PAGE_MAPS_FOUND: 0
 After framework setup, before setting final `NEXT_ACTION`:
 
 1. Check if `page-maps/` directory exists
-2. If exists → list all `.json` files, read their `urlPattern` fields
-3. For each test step, match its target page/URL against page map URL patterns
+2. If exists → list all `.json` files, read their `urlPattern`, `pageName`, and `pageTitle` fields
+3. For each test step, match against page maps using dual matching:
+   - **Primary**: `urlPattern` glob match against step's target URL (ignores domain)
+   - **Fallback**: `pageName` or `pageTitle` match against step's action/target description
+   URLs change across environments; page names and titles don't.
 4. If match found → add `MAP: <filename> (MAP_AVAILABLE)` to the step in `test-session.md`
 5. Update state block: `PAGE_MAPS_FOUND: [count] ([file list])`
 6. If any steps have `MAP_AVAILABLE` → set `NEXT_ACTION: VALIDATE_MAPS`
@@ -926,6 +929,7 @@ One file per distinct page/screen. Created during exploration, reused by future 
 ```json
 {
   "pageName": "Dashboard",
+  "pageTitle": "MyApp - Dashboard",
   "urlPattern": "**/app/main/home**",
   "capturedAt": "2026-02-22T14:15:00+05:30",
   "sections": {
@@ -941,6 +945,8 @@ One file per distinct page/screen. Created during exploration, reused by future 
   }
 }
 ```
+
+Matching priority: `urlPattern` (path glob, domain ignored) → `pageName` → `pageTitle`
 
 Element types: `button`, `link`, `input`, `heading`, `text`, `container`, `image`, `select`, `checkbox`, `radio`
 
