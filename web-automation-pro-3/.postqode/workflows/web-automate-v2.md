@@ -2,7 +2,7 @@
 description: Unified web automation workflow v2 — context-efficient split session files
 ---
 
-# /web-automate-v2
+# /web-automate
 
 > [!CAUTION]
 > ## CORE RULES — APPLY TO EVERY ACTION WITHOUT EXCEPTION
@@ -36,9 +36,6 @@ description: Unified web automation workflow v2 — context-efficient split sess
 > - Carry locators, timing, or page assumptions from one group into the next
 > - Exceed 3 Level 1 fix attempts — escalate to Level 2 immediately
 > - Rewrite entire session files — use targeted field edits (edit specific lines, not full rewrites)
->
-> **Always apply all rules in `.postqode/rules/` in every phase.**
-> (`coordinate-fallback.md`, `hover-handling.md`, `slider-handling.md`, `playwright-framework-best-practices.md`)
 
 ---
 
@@ -46,11 +43,11 @@ description: Unified web automation workflow v2 — context-efficient split sess
 
 Use when: user starts a new chat or says "Continue", "Resume", etc. — OR after a context condensation.
 
-1. Read `.postqode/workflows/web-automate-v2.md` (this file) — restore all workflow rules
+1. Read `.postqode/workflows/web-automate.md` (this file) — restore all workflow rules
 2. Check if `test-session.md` exists in the project root
    - **Exists** → read it (state block only, ~22 lines). Output:
      ```
-     ## RESUMING WEB-AUTOMATE-V2 WORKFLOW
+     ## RESUMING web-automate WORKFLOW
      - Session file: test-session.md ✓
      - CURRENT_GROUP: [value]
      - LAST_COMPLETED_GROUP: [value]
@@ -208,7 +205,7 @@ Apply changes if requested, re-present, and wait again.
 
 #### `test-session.md` (state block only — ~24 lines, always small)
 ```
-WORKFLOW: web-automate-v2
+WORKFLOW: web-automate
 BROWSER_STATUS: CLOSED
 CURRENT_URL: N/A
 CURRENT_PAGE_STATE: N/A
@@ -402,12 +399,7 @@ and gives a clean context for exploration.
 
 **⛔ STOP — wait for user response.**
 
-- User says **A** → **MANDATORY:** Before doing anything else, edit `NEXT_ACTION: EXPLORE_GROUP_1` in `test-session.md`. Then, you MUST call the `new_task` tool (Create a new task with context). Provide ONLY these 3 lines as the context/message to the new task — nothing more:
-  ```
-  I am in the /web-automate-v2 workflow. Re-read .postqode/workflows/web-automate-v2.md for all rules.
-  Session state: test-session.md (state), active-group.md (current group). Re-read them.
-  Do not summarize anything else — all context is in those files.
-  ```
+- User says **A** → **MANDATORY:** Before doing anything else, edit `NEXT_ACTION: EXPLORE_GROUP_1` in `test-session.md`. Then, you MUST call the `new_task` tool (Create a new task with context). Provide ONLY this exact string to the new task: `"/web-automate.md continue"`
   This will hand off execution to a fresh agent, which will re-read the session files and proceed automatically.
 - User says **B** → edit `NEXT_ACTION: EXPLORE_GROUP_1` in `test-session.md` and proceed immediately.
 
@@ -476,11 +468,10 @@ Each group follows this state sequence:
        - **Record `Stable Timestamp`** as ~100ms after the Action Timestamp.
        - Write `Stability Check: PASS (In-Page Action)`.
 
-   - **Step 4: Record Observation**
+   - **Step 4: Record Observation (In-Memory)**
      - **Calculate `Measured Duration`** (`Stable Timestamp - Action Timestamp` in ms).
-     - **Fill blank fields in `active-group.md`** using targeted edits. Example: `- Trigger:` → `- Trigger: Filled "Email" input`.
-     - Do NOT rewrite the entire `active-group.md` — edit only the blank observation fields.
-     - **Edit** `CURRENT_URL` and `CURRENT_PAGE_STATE` in `test-session.md` if they changed.
+     - **MANDATORY I/O OPTIMIZATION:** Do NOT write the blank observation fields to `active-group.md` or edit `test-session.md` after this step.
+     - Hold the Step Observation details (Timestamps, Durations, Anchors, new URLs) in your mental memory while you explore subsequent steps in the group at full speed.
 
    - **MANDATORY — Validate Locator Stability (for NAVIGATION anchors):**
      Ask: "Would this locator work on a different day, with different data, or a different session?"
@@ -507,20 +498,20 @@ Each group follows this state sequence:
 > `data-testid` → `id`/`aria-label`/`role` → stable parent + scope → regex on stable portion → CSS selector
 
 6. **MANDATORY TRANSITION — DO NOT SKIP:**
-   After the LAST step of the Active Group has been explored and its observation saved:
-    a. Verify all Step Observation fields in `active-group.md` are filled (no blank Trigger/Anchor fields)
-    b. **Edit** `NEXT_ACTION` to `APPEND_CODE_GROUP_N` in `test-session.md`
-   c. Output:
-      ```
-      ✅ EXPLORATION COMPLETE — Group [N]
-      Steps explored: [list]
-      All observations saved: YES
-      NEXT_ACTION updated to: APPEND_CODE_GROUP_N
-      Proceeding to write code from observations.
-      ```
-   d. Do NOT perform any browser actions after this point — the next phase is CODE, not more exploration
-   e. **BOUNDARY CHECK:** If the step you are about to explore is NOT listed in the Active Group section
-      of `test-session.md`, STOP — exploration for this group is already done
+   After the LAST step of the Active Group has been explored:
+    a. **Bulk Save to Disk:** Make EXACTLY ONE `multi_replace_file_content` call to `active-group.md` to fill in the observations for ALL steps in the group at once.
+    b. Make EXACTLY ONE edit to `test-session.md` to update `CURRENT_URL`/`CURRENT_PAGE_STATE` (if changed) and set `NEXT_ACTION` to `APPEND_CODE_GROUP_N`.
+    c. Output:
+       ```
+       ✅ EXPLORATION COMPLETE — Group [N]
+       Steps explored: [list]
+       All observations saved to disk: YES
+       NEXT_ACTION updated to: APPEND_CODE_GROUP_N
+       Proceeding to write code from observations.
+       ```
+    d. Do NOT perform any browser actions after this point — the next phase is CODE, not more exploration
+    e. **BOUNDARY CHECK:** If the step you are about to explore is NOT listed in the Active Group section
+       of `test-session.md`, STOP — exploration for this group is already done
 
 **Step Observation example (NAVIGATION with multiple verifications + fixed stability check):**
 ```
@@ -677,12 +668,7 @@ Condense context? (A) Yes (recommended)  (B) No — continue
 
 **⛔ STOP — wait for user response.**
 
-- User says **A** → **MANDATORY:** Before doing anything else, update `NEXT_ACTION: EXPLORE_GROUP_[N+1]` (use `LAST_COMPLETED_GROUP` + 1) and `NEXT_ACTION_DETAIL` in `test-session.md`. Then, you MUST call the `new_task` tool (Create a new task with context). Provide ONLY these 3 lines as the context/message to the new task — nothing more:
-  ```
-  I am in the /web-automate-v2 workflow. Re-read .postqode/workflows/web-automate-v2.md for all rules.
-  Session state: test-session.md (state), active-group.md (current group). Re-read them.
-  Do not summarize anything else — all context is in those files.
-  ```
+- User says **A** → **MANDATORY:** Before doing anything else, update `NEXT_ACTION: EXPLORE_GROUP_[N+1]` (use `LAST_COMPLETED_GROUP` + 1) and `NEXT_ACTION_DETAIL` in `test-session.md`. Then, you MUST call the `new_task` tool (Create a new task with context). Provide ONLY this exact string to the new task: `"/web-automate.md continue"`
   **NEVER include** step details, code, timing, observations, config, file contents, or technical concepts.
   This will hand off execution to a fresh agent, which will re-read the session files and proceed automatically.
 - User says **B** → update `NEXT_ACTION: EXPLORE_GROUP_[N+1]` and `NEXT_ACTION_DETAIL` in `test-session.md`,
@@ -707,12 +693,7 @@ Would you like to condense the context before finalising?
 
 **⛔ STOP HERE. Wait for user response.**
 
-- User says **A** → **MANDATORY:** Before doing anything else, edit `NEXT_ACTION: FINALISE_TEST` in `test-session.md`. Then, you MUST call the `new_task` tool (Create a new task with context). Provide ONLY these 3 lines as the context/message to the new task — nothing more:
-  ```
-  I am in the /web-automate-v2 workflow. Re-read .postqode/workflows/web-automate-v2.md for all rules.
-  Session state: test-session.md (state), active-group.md (current group). Re-read them.
-  Do not summarize anything else — all context is in those files.
-  ```
+- User says **A** → **MANDATORY:** Before doing anything else, edit `NEXT_ACTION: FINALISE_TEST` in `test-session.md`. Then, you MUST call the `new_task` tool (Create a new task with context). Provide ONLY this exact string to the new task: `"/web-automate.md continue"`
   This will hand off execution to a fresh agent, which will re-read the session files and proceed automatically.
 - User says **B** → edit `NEXT_ACTION: FINALISE_TEST` in `test-session.md`, then proceed.
 
@@ -745,7 +726,8 @@ Would you like to condense the context before finalising?
 → After 3 attempts: Level 2. No more variations.
 
 **Level 2 — Ask user:**
-1. Set `NEXT_ACTION: STOPPED` and `NEXT_ACTION_DETAIL: Waiting for user locator for step [N]` in `test-session.md`.
+1. **Safety Dump:** Dump any successfully explored Step Observations from your memory into `active-group.md` and save `test-session.md` state so data is not lost.
+2. Set `NEXT_ACTION: STOPPED` and `NEXT_ACTION_DETAIL: Waiting for user locator for step [N]` in `test-session.md`.
 2. Output:
 ```
 ⚠️ Stuck on Step [N]: "[description]"
@@ -982,9 +964,8 @@ FOR EACH GROUP:
                  MAP_VALIDATED or page map exists: page-map-first — use locators, still record timestamps
                  No MAP: full exploration + capture page map
                  BROWSER ACTION: before every call
-                 fill blank fields in active-group.md (targeted edits, not full rewrite)
-                 edit CURRENT_URL/CURRENT_PAGE_STATE in test-session.md
-                 AFTER LAST STEP: edit NEXT_ACTION in test-session.md
+                 Hold observations in memory (do NOT edit markdown yet)
+                 AFTER LAST STEP: Bulk write all observations to active-group.md | edit NEXT_ACTION/URL in test-session.md
   2. CODE     → read active-group.md observations + page map fallback for missing locators
                  timing comment above each step | no inline timeouts
   3. CONFIG   → compare Recommended timeouts vs config | update file if exceeded
