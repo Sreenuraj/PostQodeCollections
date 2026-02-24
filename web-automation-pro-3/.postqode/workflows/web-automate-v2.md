@@ -437,7 +437,7 @@ Each group follows this state sequence:
        1. **MANDATORY SEQUENCE:** You MUST execute these exact tool calls in order to build the map:
           a. **Run `browser_run_code`**: Execute `await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});` to guarantee the page has finished fetching background data.
           b. **Run `browser_snapshot`**: This MUST be a dedicated call. Do NOT use the auto-generated "Page Snapshot" text appended to other tools.
-          c. **Verify**: Check your tool history. Did you just call `browser_snapshot`? If no, do it now.
+          c. **Verify**: **🛑 STOP.** Look at your tool history. Was your *very last action* a successful call to `browser_snapshot`? If NO, you MUST call it now.
        2. Extract ALL interactive elements **exclusively from the fresh `browser_snapshot` JSON output**.
        4. **Run Stability Check (Checks 1–4) on EVERY extracted locator** before writing the map.
           If a locator fails → fix it (see Page Map Locator Quality Rule below). The `"locator"` field MUST contain the corrected value.
@@ -461,7 +461,7 @@ Each group follows this state sequence:
        - **MANDATORY PAGE MAP SEQUENCE:** Execute these exact tool calls in order:
          1. **Run `browser_run_code`**: Execute `await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});`
          2. **Run `browser_snapshot`**: Take a fresh, dedicated snapshot of the fully loaded page.
-         3. **Verify**: Check your tool history. You MUST have called `browser_snapshot` just now. Do NOT use auto-generated text from wait tools.
+         3. **Verify**: **🛑 STOP.** Look at your tool history. Was your *very last action* a successful call to `browser_snapshot`? If NO, you MUST call it now. Do NOT use auto-generated text from wait tools.
        - **IMMEDIATELY create or update the page map:**
          1. Extract all interactive elements **exclusively from the fresh `browser_snapshot` output**
          2. **Run Stability Check (Checks 1–4) on EVERY locator** before writing
