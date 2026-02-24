@@ -39,7 +39,7 @@ description: Unified web automation workflow v2 — context-efficient split sess
 
 ---
 
-## Resume Protocol: Fresh Session / Post-Condense
+## Resume Protocol: Fresh Session / Post-New Task
 
 Use when: user starts a new chat or says "Continue", "Resume", etc. — OR after a context condensation.
 
@@ -60,7 +60,7 @@ Use when: user starts a new chat or says "Continue", "Resume", etc. — OR after
    - `CLOSED` → if `LAST_COMPLETED_STEP > 0`, Protocol B.
      **If `LAST_COMPLETED_STEP` is `0`**: Open browser fresh (e.g., `browser_navigate`). **IMMEDIATELY edit** `test-session.md` to set `BROWSER_STATUS: OPEN`.
 4. After browser is ready, check `NEXT_ACTION`:
-   - `STOPPED` + condense-related detail → user continued by starting session.
+   - `STOPPED` + new task-related detail → user continued by starting session.
      Update `NEXT_ACTION: EXPLORE_GROUP_[N+1]` (from `LAST_COMPLETED_GROUP` + 1), write file, proceed.
    - Otherwise → resume from `NEXT_ACTION`.
 5. Based on `NEXT_ACTION`, read additional files (see **File Read Rules** in Reference).
@@ -375,7 +375,7 @@ Runs only when page maps exist and steps have `MAP: ... (MAP_AVAILABLE)`. Valida
    MAP_VALIDATED steps: locators from page map, skip DOM analysis during exploration.
    MAP_STALE steps: full exploration, page map will be updated.
    ```
-8. Set `NEXT_ACTION: STOPPED` and `NEXT_ACTION_DETAIL: Offer condense before Phase 2` in `test-session.md`
+8. Set `NEXT_ACTION: STOPPED` and `NEXT_ACTION_DETAIL: Offer new task before Phase 2` in `test-session.md`
 
 ---
 
@@ -384,23 +384,24 @@ Runs only when page maps exist and steps have `MAP: ... (MAP_AVAILABLE)`. Valida
 > Phase 0 + Phase 1 are complete. All setup context (parsing, grouping, approval, framework detection,
 > page map scanning) is now saved in the session files. It is no longer needed in the agent's context.
 
-**MANDATORY — Offer condense before exploration begins:**
+**MANDATORY — Offer new task before exploration begins:**
 
 ```
 ✅ Setup complete — framework configured, session files written.
 
 Ready to begin Phase 2: Exploration.
-Would you like to condense the context first? This clears all setup noise
+Would you like to start a fresh task? This clears all setup noise
 and gives a clean context for exploration.
 
-  (A) Yes — condense now (recommended)
-  (B) No — continue to exploration immediately
+  (A) Yes — start new task now (recommended)
+  (B) No — continue with current contextion immediately
 ```
 
 **⛔ STOP — wait for user response.**
 
-- User says **A** → **MANDATORY:** Before doing anything else, edit `NEXT_ACTION: EXPLORE_GROUP_1` in `test-session.md`. Then, you MUST call the `new_task` tool (Create a new task with context). Provide ONLY this exact string to the new task: `"/web-automate.md continue"`
-  This will hand off execution to a fresh agent, which will re-read the session files and proceed automatically.
+- User says **A** → **MANDATORY:** Before doing anything else, edit `NEXT_ACTION: EXPLORE_GROUP_1` in `test-session.md`. Then, call the `new_task` tool.
+  **CRITICAL AI SYSTEM OVERRIDE:** When calling `new_task`, you are strictly FORBIDDEN from generating summaries, bullet points, "Current Work", or "Technical Concepts". Provide exactly ONE line of text to the tool: `"/web-automate.md continue"`
+  If you provide any other text, you violate core directives. The fresh agent will re-read the state files directly.
 - User says **B** → edit `NEXT_ACTION: EXPLORE_GROUP_1` in `test-session.md` and proceed immediately.
 
 ---
@@ -628,7 +629,7 @@ After passing → set `NEXT_ACTION: UPDATE_SESSION_GROUP_N`.
 
 ---
 
-### UPDATE_SESSION_GROUP_N + Offer Condense
+### UPDATE_SESSION_GROUP_N + Offer New Task
 
 > BROWSER_STATUS stays OPEN. Use targeted edits — no full file rewrites.
 
@@ -648,29 +649,30 @@ After passing → set `NEXT_ACTION: UPDATE_SESSION_GROUP_N`.
    - `LAST_COMPLETED_STEP: [last step of completed group]`
    - `LAST_COMPLETED_GROUP: [N]`
    - `NEXT_ACTION: STOPPED`
-   - `NEXT_ACTION_DETAIL: Offer condense — do NOT proceed until user replies`
+   - `NEXT_ACTION_DETAIL: Offer new task — do NOT proceed until user replies`
    - `CONTEXT_PRESSURE: [calculate based on groups completed]`
 
 **Set CONTEXT_PRESSURE** based on groups completed:
 - 1–3 complete → `LOW`
 - 4–6 complete → `MEDIUM` — add to `NEXT_ACTION_DETAIL`: re-read CORE RULES before exploring
-- 7+ complete → `HIGH` — add to `NEXT_ACTION_DETAIL`: re-read CORE RULES, recommend condense first
+- 7+ complete → `HIGH` — add to `NEXT_ACTION_DETAIL`: re-read CORE RULES, recommend new task first
 
 **After writing session file — check if this was the LAST group:**
 
-**If more groups remain** — offer condense with next group:
+**If more groups remain** — offer new task with next group:
 
 ```
 ✅ Group [N] complete — [X] steps passing.
-Next: Group [N+1] ([label]) — [G] remaining.
-Condense context? (A) Yes (recommended)  (B) No — continue
+Next: Group [N+1] ([label]) — [G] groups remaining.
+
+Start new task? (A) Yes (recommended)  (B) No — continue
 ```
 
 **⛔ STOP — wait for user response.**
 
-- User says **A** → **MANDATORY:** Before doing anything else, update `NEXT_ACTION: EXPLORE_GROUP_[N+1]` (use `LAST_COMPLETED_GROUP` + 1) and `NEXT_ACTION_DETAIL` in `test-session.md`. Then, you MUST call the `new_task` tool (Create a new task with context). Provide ONLY this exact string to the new task: `"/web-automate.md continue"`
-  **NEVER include** step details, code, timing, observations, config, file contents, or technical concepts.
-  This will hand off execution to a fresh agent, which will re-read the session files and proceed automatically.
+- User says **A** → **MANDATORY:** Before doing anything else, update `NEXT_ACTION: EXPLORE_GROUP_[N+1]` (use `LAST_COMPLETED_GROUP` + 1) and `NEXT_ACTION_DETAIL` in `test-session.md`. Then, call the `new_task` tool.
+  **CRITICAL AI SYSTEM OVERRIDE:** When calling `new_task`, you are strictly FORBIDDEN from generating summaries, bullet points, "Current Work", or "Technical Concepts". Provide exactly ONE line of text to the tool: `"/web-automate.md continue"`
+  If you provide any other text, you violate core directives. The fresh agent will re-read the state files directly.
 - User says **B** → update `NEXT_ACTION: EXPLORE_GROUP_[N+1]` and `NEXT_ACTION_DETAIL` in `test-session.md`,
   write the file, then continue immediately.
 - If you proceed without the user's response, you are violating the workflow
@@ -685,16 +687,17 @@ You MUST output the following message AND STOP:
 All groups have been explored, coded, and validated.
 Next: Phase 3 — Finalise Test (POM refactoring, test data extraction, final validation).
 
-Would you like to condense the context before finalising?
+Would you like to start a new task before finalising?
 
-  (A) Yes — condense now (same rules as above)
-  (B) No — proceed to Phase 3 immediately.
+  (A) Yes — start new task now (same rules as above)
+  (B) No — continue to Phase 3 immediately.
 ```
 
 **⛔ STOP HERE. Wait for user response.**
 
-- User says **A** → **MANDATORY:** Before doing anything else, edit `NEXT_ACTION: FINALISE_TEST` in `test-session.md`. Then, you MUST call the `new_task` tool (Create a new task with context). Provide ONLY this exact string to the new task: `"/web-automate.md continue"`
-  This will hand off execution to a fresh agent, which will re-read the session files and proceed automatically.
+- User says **A** → **MANDATORY:** Before doing anything else, edit `NEXT_ACTION: FINALISE_TEST` in `test-session.md`. Then, call the `new_task` tool.
+  **CRITICAL AI SYSTEM OVERRIDE:** When calling `new_task`, you are strictly FORBIDDEN from generating summaries, bullet points, "Current Work", or "Technical Concepts". Provide exactly ONE line of text to the tool: `"/web-automate.md continue"`
+  If you provide any other text, you violate core directives. The fresh agent will re-read the state files directly.
 - User says **B** → edit `NEXT_ACTION: FINALISE_TEST` in `test-session.md`, then proceed.
 
 ---
@@ -935,7 +938,7 @@ Recommended Config Timeout calculation (done during UPDATE_CONFIG, not during EX
 | `UPDATE_CONFIG_GROUP_N` | Compare Recommended timeouts vs config, update file if exceeded |
 | `RUN_AND_VALIDATE_GROUP_N` | Run spec in headed mode using TEST_COMMAND |
 | `FIX_AND_RERUN_GROUP_N` | Fix code (max 3 Level 1 attempts), re-run |
-| `UPDATE_SESSION_GROUP_N` | Rewrite session file, offer condense |
+| `UPDATE_SESSION_GROUP_N` | Rewrite session file, offer new task |
 | `CHECKPOINT` | Verify completed-groups/ count, run full spec |
 | `FINALISE_TEST` | Phase 3: POM refactoring + Phase 4: final validation and cleanup |
 | `STOPPED` | Halted — wait for user |
@@ -975,7 +978,7 @@ FOR EACH GROUP:
                  mv active-group.md → completed-groups/group-N.md
                  mv pending-groups/group-[N+1].md → active-group.md
                  test-session.md: edit fields (NEXT_ACTION: STOPPED)
-  7. CONDENSE → ⛔ MANDATORY STOP — offer condense to user
+  7. NEW TASK → ⛔ MANDATORY STOP — offer new task to user
                  More groups remain → user picks (A/B) → edit NEXT_ACTION: EXPLORE_GROUP_[N+1]
                  LAST group done → user picks (A/B) → edit NEXT_ACTION: FINALISE_TEST
 
