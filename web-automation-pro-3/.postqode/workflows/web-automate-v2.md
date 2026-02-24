@@ -31,7 +31,7 @@ description: Unified web automation workflow v2 — context-efficient split sess
 > - Proceed to the next step without saving the Step Observation to `active-group.md` first
 > - Write wait logic from memory — only from recorded Step Observations
 > - Write inline timeouts in test code — config file only
-> - Extract locators or create page maps based on the text response of `browser_wait_for`, `browser_click`, or any non-snapshot tool. You MUST make a dedicated `browser_snapshot` call to get the full DOM structure first.
+> - 🛑 **NEVER write to a `page-maps/*.json` file unless your IMMEDIATELY PRECEDING tool call was `browser_snapshot`.** If your last tool was `browser_wait_for`, `browser_run_code`, or anything else, you are FORBIDDEN from creating the map. You MUST call `browser_snapshot` first! to get the full DOM structure first.
 > - Assert on anything listed in `Transient Elements Seen`
 > - Carry locators, timing, or page assumptions from one group into the next
 > - Exceed 3 Level 1 fix attempts — escalate to Level 2 immediately
@@ -437,11 +437,10 @@ Each group follows this state sequence:
        1. **MANDATORY SEQUENCE:** You MUST execute these exact tool calls in order to build the map:
           a. **Run `browser_run_code`**: Execute `await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});` to guarantee the page has finished fetching background data.
           b. **Run `browser_snapshot`**: This MUST be a dedicated call. Do NOT use the auto-generated "Page Snapshot" text appended to other tools.
-          c. **Verify**: **🛑 STOP.** Look at your tool history. Was your *very last action* a successful call to `browser_snapshot`? If NO, you MUST call it now.
        2. Extract ALL interactive elements **exclusively from the fresh `browser_snapshot` JSON output**.
        4. **Run Stability Check (Checks 1–4) on EVERY extracted locator** before writing the map.
           If a locator fails → fix it (see Page Map Locator Quality Rule below). The `"locator"` field MUST contain the corrected value.
-       5. Write `page-maps/<page-name>.json`. (Do NOT defer this to the end of the group).
+       5. **🛑 FINAL CHECK BEFORE WRITING:** Look at your tool history. Was your *very last action* a successful call to `browser_snapshot`? If NO, you are forbidden from writing the file. Call `browser_snapshot` now. If YES, write `page-maps/<page-name>.json`. (Do NOT defer this to the end of the group).
        6. Update `MAP:` in `active-group.md` to `<filename> (MAP_VALIDATED)`.
        7. Find your target locator from the map you just created.
      - **If map EXISTS:** Do NOT take a snapshot. Read the locator directly from the JSON file.
@@ -461,11 +460,10 @@ Each group follows this state sequence:
        - **MANDATORY PAGE MAP SEQUENCE:** Execute these exact tool calls in order:
          1. **Run `browser_run_code`**: Execute `await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});`
          2. **Run `browser_snapshot`**: Take a fresh, dedicated snapshot of the fully loaded page.
-         3. **Verify**: **🛑 STOP.** Look at your tool history. Was your *very last action* a successful call to `browser_snapshot`? If NO, you MUST call it now. Do NOT use auto-generated text from wait tools.
        - **IMMEDIATELY create or update the page map:**
          1. Extract all interactive elements **exclusively from the fresh `browser_snapshot` output**
          2. **Run Stability Check (Checks 1–4) on EVERY locator** before writing
-         3. Write/update `page-maps/<new-page-name>.json`
+         3. **🛑 FINAL CHECK:** Was your last tool call `browser_snapshot`? If NO, do not write. Call it now. If YES, write/update `page-maps/<new-page-name>.json`.
        - Identify the **Stable Anchor Locator** (the new element/heading that proves the transition finished).
        - **Record `Stable Timestamp`** when this anchor is confirmed visible.
        - Run Stability Checks (Table below) on the anchor.
