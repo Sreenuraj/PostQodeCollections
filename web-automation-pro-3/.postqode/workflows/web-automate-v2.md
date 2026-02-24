@@ -105,7 +105,7 @@ Prefer:
 
 **Option A:** Run validated spec file in headed mode (preferred). Fallback: open browser,
 execute all prior steps rapidly from spec file, no screenshots between steps,
-one screenshot at the end to verify. Update `BROWSER_STATUS: OPEN`.
+one snapshot at the end to verify. Update `BROWSER_STATUS: OPEN`.
 
 **Option B:** Read the completed test steps from `completed-groups/group-*.md` files.
 Each file has the step actions and targets from when they were the active group.
@@ -118,16 +118,15 @@ Please perform these steps in your browser:
 ...
 
 ⛔ Waiting for you to complete the steps above.
-Reply "Done" when you have finished and I will verify with a screenshot.
+Reply "Done" when you have finished.
 ```
 List only the USER ACTIONS (navigate, click, fill, select) — NOT internal workflow phases,
 state checks, or agent decisions. Each line should be something the user can physically do in the browser.
 
 **⛔ STOP — do NOT open a browser, navigate, click, fill, or take any browser action.**
 Wait for the user to reply "Done". After they confirm:
-1. Take a screenshot to verify the browser is at the expected state
-2. Update `BROWSER_STATUS: OPEN`
-3. Resume from `NEXT_ACTION`
+1. Update `BROWSER_STATUS: OPEN`
+2. Resume from `NEXT_ACTION`
 
 > Agent must NOT interact with the browser during Option B. The user owns the session until they say "Done".
 
@@ -555,7 +554,7 @@ Use when Expected Result describes multiple outcomes, or primary anchor alone is
 `URL_CHANGE → ELEMENT_TEXT → ELEMENT_VISIBLE → ELEMENT_ENABLED → ELEMENT_COUNT → NETWORK_IDLE`
 
 Must appear ONLY after action completes. Reject transients (spinners, "Loading...").
-No stable anchor found → `browser_snapshot` → examine DOM → ask user.
+No stable anchor found → `browser_snapshot` → examine DOM → take visual screenshot ONLY if still ambiguous → ask user.
 
 ---
 
@@ -721,10 +720,12 @@ Would you like to start a new task before finalising?
    Try the page map locator as the fix.
 3. If the page map locator also fails → add `waitFor({state:'visible'})` before action.
    Try locator priority: `getByRole()` with name → `getByLabel()` → `getByTestId()`
-4. If still failing → take ONE `browser_snapshot` in the exploration browser to re-examine the DOM.
+   **Manually try the locator in the open exploration browser** (using `browser_run_code` to test `page.locator(...).count()`) before writing to the file.
+4. If still failing → take ONE DOM **`browser_snapshot`** in the exploration browser to re-examine the DOM structure.
    **After the snapshot:** compare what you see against `page-maps/<page>.json`.
    If any locators are missing, changed, or new elements are found → **update the page map file**
    with the corrected locators (run Stability Checks 1–4 on each). This keeps the map current for future attempts.
+5. **If and ONLY IF the DOM snapshot is insufficient or elements are hidden/ambiguous:** Take a visual **screenshot** as an absolute last resort to understand the visual layout.
 
 → After 3 attempts: Level 2. No more variations.
 
