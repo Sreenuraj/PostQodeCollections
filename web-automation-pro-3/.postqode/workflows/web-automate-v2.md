@@ -60,7 +60,8 @@ Use when: user starts a new chat or says "Continue", "Resume", etc. — OR after
    - **Does not exist** → new test. Ask user for test case steps, start from Phase 0.
 3. Check `BROWSER_STATUS`:
    - `OPEN` → Protocol A
-   - `CLOSED` → if `LAST_COMPLETED_STEP > 0`, Protocol B. If `0`, open browser fresh.
+   - `CLOSED` → if `LAST_COMPLETED_STEP > 0`, Protocol B.
+     **If `LAST_COMPLETED_STEP` is `0`**: Open browser fresh (e.g., `browser_navigate`). **IMMEDIATELY edit** `test-session.md` to set `BROWSER_STATUS: OPEN`.
 4. After browser is ready, check `NEXT_ACTION`:
    - `STOPPED` + condense-related detail → user continued by starting session.
      Update `NEXT_ACTION: EXPLORE_GROUP_[N+1]` (from `LAST_COMPLETED_GROUP` + 1), write file, proceed.
@@ -72,23 +73,23 @@ Use when: user starts a new chat or says "Continue", "Resume", etc. — OR after
 
 ---
 
-## Protocol A: Verify Browser State
+## Protocol A: Optimistic Execution (Trust the Session)
 
-Use when: `BROWSER_STATUS` is uncertain or screenshot needed for confirmation.
+Use when: `BROWSER_STATUS` is `OPEN`.
 
-1. Read `BROWSER_STATUS`, `CURRENT_URL`, `CURRENT_PAGE_STATE` from `test-session.md`
-2. Take a screenshot or snapshot
-3. Screenshot succeeds and matches session → proceed
-4. Screenshot succeeds but page differs → update `test-session.md` to actual state, proceed
-5. Page broken or error → Protocol B
-6. Screenshot fails or ambiguous → ask:
-   ```
-   ⚠️ Cannot determine browser state. Is the browser open?
-     (A) Yes  (B) No
-   ```
-   **⛔ STOP — wait for user to reply (A) or (B) before taking any action.**
-   - A → fresh screenshot, update session, continue
-   - B → Protocol B
+1. **Assume the browser is open and ready.** Do NOT take a preemptive screenshot just to verify state.
+2. Proceed directly with the next scheduled browser action (e.g., `browser_snapshot` for a page map, or `browser_click`).
+3. **If the action SUCCEEDS:** The optimistic assumption was correct. Proceed normally.
+4. **If the action FAILS** (e.g., "browser not found", "connection refused", or Playwright throws an error indicating the page is gone):
+   - Ask the user:
+     ```
+     ⚠️ Browser connection failed. Is the browser closed?
+       (A) Yes, open it fresh and replay steps
+       (B) I will fix it manually
+     ```
+     **⛔ STOP — wait for user to reply.**
+     - A → Trigger **Protocol B**
+     - B → Stop execution and wait for user.
 
 ---
 
@@ -426,9 +427,10 @@ Each group follows this state sequence:
 
 1. Output STATE CHECK — confirm `NEXT_ACTION` is `EXPLORE_GROUP_N`
 2. Read `active-group.md` — steps, targets, data, expected results, blank observations
-3. Verify browser: `OPEN` → Protocol A | `CLOSED` → Protocol B | uncertain → Protocol A
-   After browser is confirmed open, **edit** these fields in `test-session.md`:
-   `BROWSER_STATUS: OPEN`, `CURRENT_URL: [actual URL]`, `CURRENT_PAGE_STATE: [one-line description]`
+3. **Browser State Check:**
+   - If `BROWSER_STATUS: OPEN` → Protocol A (Optimistic Execution)
+   - If `BROWSER_STATUS: CLOSED` + prior steps exist → Protocol B
+   - If `BROWSER_STATUS: CLOSED` + no prior steps → Launch browser now. **MANDATORY:** Edit `test-session.md` (set `BROWSER_STATUS: OPEN`).
 4. Note: Expected Results are already in `active-group.md` — no need to output predictions.
 5. For each step — one at a time:
    - **Step 1: Get the Locator (Pre-Action)**
