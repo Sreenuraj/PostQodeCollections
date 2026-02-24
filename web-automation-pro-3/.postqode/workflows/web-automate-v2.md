@@ -434,13 +434,11 @@ Each group follows this state sequence:
    - **Step 1: Get the Locator (Pre-Action)**
      - Check `page-maps/` for the current page.
      - **If NO map exists:** You MUST create the map RIGHT NOW. Do not proceed to Step 2 until the file is written to disk.
-       1. **Ensure page is stable first**
-          Check if transient elements ("Loading...", spinners) are visible. If present → use `browser_wait_for` to wait for them to disappear.
-          **If the page is still loading heavily**, use `browser_run_code` to execute `await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});` to wait for background requests to settle without hanging forever.
-       2. **Take ONE `browser_snapshot`.** This is a MANDATORY, dedicated tool call.
-          You MUST call `browser_snapshot` AFTER the page is perfectly stable.
-          **CRITICAL:** Do NOT attempt to extract locators from the text response of `browser_wait_for` or any other tool. You MUST use the full structured output from this new `browser_snapshot` call.
-       3. Extract ALL interactive elements (buttons, links, inputs, headings, navigation items).
+       1. **MANDATORY SEQUENCE:** You MUST execute these exact tool calls in order to build the map:
+          a. **Run `browser_run_code`**: Execute `await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});` to guarantee the page has finished fetching background data.
+          b. **Run `browser_snapshot`**: This MUST be a dedicated call. Do NOT use the auto-generated "Page Snapshot" text appended to other tools.
+          c. **Verify**: Check your tool history. Did you just call `browser_snapshot`? If no, do it now.
+       2. Extract ALL interactive elements **exclusively from the fresh `browser_snapshot` JSON output**.
        4. **Run Stability Check (Checks 1–4) on EVERY extracted locator** before writing the map.
           If a locator fails → fix it (see Page Map Locator Quality Rule below). The `"locator"` field MUST contain the corrected value.
        5. Write `page-maps/<page-name>.json`. (Do NOT defer this to the end of the group).
@@ -459,13 +457,13 @@ Each group follows this state sequence:
        `IN_PAGE_ACTION` = Fill field, check box, select dropdown, or minor UI toggle on the same page.
        
      - **If `NAVIGATION` or major state change:**
-       - **Wait for stability first:**
-         Confirm the Stable Anchor is visible and all transients have cleared.
-         **If the page is still loading data**, use `browser_run_code` to execute `await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});` to guarantee stability without hanging.
-       - **Take ONE dedicated `browser_snapshot`.**
-         This MUST be a new tool call. Do NOT use the text output from previous wait commands.
+       - **Wait for stability first:** Confirm the Stable Anchor is visible and all transients have cleared.
+       - **MANDATORY PAGE MAP SEQUENCE:** Execute these exact tool calls in order:
+         1. **Run `browser_run_code`**: Execute `await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});`
+         2. **Run `browser_snapshot`**: Take a fresh, dedicated snapshot of the fully loaded page.
+         3. **Verify**: Check your tool history. You MUST have called `browser_snapshot` just now. Do NOT use auto-generated text from wait tools.
        - **IMMEDIATELY create or update the page map:**
-         1. Extract all interactive elements from this snapshot
+         1. Extract all interactive elements **exclusively from the fresh `browser_snapshot` output**
          2. **Run Stability Check (Checks 1–4) on EVERY locator** before writing
          3. Write/update `page-maps/<new-page-name>.json`
        - Identify the **Stable Anchor Locator** (the new element/heading that proves the transition finished).
