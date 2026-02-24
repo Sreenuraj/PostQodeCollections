@@ -31,6 +31,7 @@ description: Unified web automation workflow v2 — context-efficient split sess
 > - Proceed to the next step without saving the Step Observation to `active-group.md` first
 > - Write wait logic from memory — only from recorded Step Observations
 > - Write inline timeouts in test code — config file only
+> - Use `Page state` / `Page Snapshot` from `browser_wait_for`, `browser_click`, `browser_navigate`, or any non-snapshot tool as a substitute for `browser_snapshot` when creating/updating page maps
 > - Assert on anything listed in `Transient Elements Seen`
 > - Carry locators, timing, or page assumptions from one group into the next
 > - Exceed 3 Level 1 fix attempts — escalate to Level 2 immediately
@@ -433,11 +434,16 @@ Each group follows this state sequence:
    - **Step 1: Get the Locator (Pre-Action)**
      - Check `page-maps/` for the current page.
      - **If NO map exists:** You MUST create the map RIGHT NOW. Do not proceed to Step 2 until the file is written to disk.
-       1. Take ONE `browser_snapshot`.
-       2. Look at the snapshot output. Extract ALL interactive elements (buttons, links, inputs).
-       3. Write `page-maps/<page-name>.json`. (Do NOT defer this to the end of the group).
-       4. Update `MAP:` in `active-group.md` to `<filename> (MAP_VALIDATED)`.
-       5. Find your target locator from the map you just created.
+       1. **Ensure page is stable first** — confirm no transient elements ("Loading...", spinners) are visible.
+          If the page recently loaded, the Stable Anchor from a prior NAVIGATION step should already confirm this.
+          If transients are still present → use `browser_wait_for` to wait, but do NOT use its response as the snapshot.
+       2. Take ONE `browser_snapshot`. This is a dedicated snapshot call — not a side-effect from another tool.
+       3. Extract ALL interactive elements (buttons, links, inputs, headings, navigation items).
+       4. **Run Stability Check (Checks 1–4) on EVERY extracted locator** before writing the map.
+          If a locator fails → fix it (see Page Map Locator Quality Rule below). The `"locator"` field MUST contain the corrected value.
+       5. Write `page-maps/<page-name>.json`. (Do NOT defer this to the end of the group).
+       6. Update `MAP:` in `active-group.md` to `<filename> (MAP_VALIDATED)`.
+       7. Find your target locator from the map you just created.
      - **If map EXISTS:** Do NOT take a snapshot. Read the locator directly from the JSON file.
 
    - **Step 2: Execute Action**
@@ -451,8 +457,12 @@ Each group follows this state sequence:
        `IN_PAGE_ACTION` = Fill field, check box, select dropdown, or minor UI toggle on the same page.
        
      - **If `NAVIGATION` or major state change:**
-       - Take ONE `browser_snapshot` to see what changed.
-       - **IMMEDIATELY create or update the page map:** Extract all interactive elements from this snapshot. If `page-maps/<new-page-name>.json` doesn't exist, create it. If it does exist, update it with any new locators found BEFORE moving on.
+       - **Wait for stability first:** Confirm the Stable Anchor is visible (URL changed, heading appeared, etc.). If transients are still present, wait for them to clear before proceeding.
+       - Take ONE dedicated `browser_snapshot`.
+       - **IMMEDIATELY create or update the page map:**
+         1. Extract all interactive elements from this snapshot
+         2. **Run Stability Check (Checks 1–4) on EVERY locator** before writing
+         3. Write/update `page-maps/<new-page-name>.json`
        - Identify the **Stable Anchor Locator** (the new element/heading that proves the transition finished).
        - **Record `Stable Timestamp`** when this anchor is confirmed visible.
        - Run Stability Checks (Table below) on the anchor.
@@ -481,6 +491,18 @@ Each group follows this state sequence:
 
      If any check fails → `data-testid`/`id` → stable parent + scope → regex → CSS.
      Record result: `Stability Check: FIXED — [original] → [replacement]`
+
+> [!IMPORTANT]
+> ### Page Map Locator Quality Rule
+> Every locator written to a `page-maps/*.json` file MUST pass Stability Checks 1–4.
+> When a locator fails and is marked `"FIXED"`, the `"locator"` field MUST contain the **corrected** locator:
+> 
+> ❌ `"locator": "getByText(/Hi, Good Evening/)", "stabilityCheck": "FIXED"`
+> ✅ `"locator": "getByText(/Hi,.*Manoj/)", "stabilityCheck": "FIXED"`
+> 
+> A `FIXED` entry with an unstable locator string is a workflow violation. The stability check escalation:
+> `data-testid` → `id`/`aria-label`/`role` → stable parent + scope → regex on stable portion → CSS selector
+
 6. **MANDATORY TRANSITION — DO NOT SKIP:**
    After the LAST step of the Active Group has been explored and its observation saved:
     a. Verify all Step Observation fields in `active-group.md` are filled (no blank Trigger/Anchor fields)
@@ -707,8 +729,15 @@ Would you like to condense the context before finalising?
 
 **Level 1 — Self-fix (3 attempts max, then stop):**
 1. Read all `.postqode/rules/` files relevant to the problem before trying anything
-2. Try: `getByRole()` with name → `getByLabel()` → `getByTestId()`
-3. Add `waitFor({state:'visible'})` before action + take snapshot to re-examine DOM
+2. **Consult the page map FIRST:** Read `page-maps/<page>.json` for the failing step's page.
+   Check if a better locator exists in the map, or if the failing locator matches a `FIXED` entry.
+   Try the page map locator as the fix.
+3. If the page map locator also fails → add `waitFor({state:'visible'})` before action.
+   Try locator priority: `getByRole()` with name → `getByLabel()` → `getByTestId()`
+4. If still failing → take ONE `browser_snapshot` in the exploration browser to re-examine the DOM.
+   **After the snapshot:** compare what you see against `page-maps/<page>.json`.
+   If any locators are missing, changed, or new elements are found → **update the page map file**
+   with the corrected locators (run Stability Checks 1–4 on each). This keeps the map current for future attempts.
 
 → After 3 attempts: Level 2. No more variations.
 
