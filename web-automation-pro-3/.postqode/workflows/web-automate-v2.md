@@ -31,7 +31,7 @@ description: Unified web automation workflow v2 — context-efficient split sess
 > - Proceed to the next step without saving the Step Observation to `active-group.md` first
 > - Write wait logic from memory — only from recorded Step Observations
 > - Write inline timeouts in test code — config file only
-> - Use `Page state` / `Page Snapshot` from `browser_wait_for`, `browser_click`, `browser_navigate`, or any non-snapshot tool as a substitute for `browser_snapshot` when creating/updating page maps
+> - Extract locators or create page maps based on the text response of `browser_wait_for`, `browser_click`, or any non-snapshot tool. You MUST make a dedicated `browser_snapshot` call to get the full DOM structure first.
 > - Assert on anything listed in `Transient Elements Seen`
 > - Carry locators, timing, or page assumptions from one group into the next
 > - Exceed 3 Level 1 fix attempts — escalate to Level 2 immediately
@@ -434,10 +434,12 @@ Each group follows this state sequence:
    - **Step 1: Get the Locator (Pre-Action)**
      - Check `page-maps/` for the current page.
      - **If NO map exists:** You MUST create the map RIGHT NOW. Do not proceed to Step 2 until the file is written to disk.
-       1. **Ensure page is stable first** — confirm no transient elements ("Loading...", spinners) are visible.
-          If the page recently loaded, the Stable Anchor from a prior NAVIGATION step should already confirm this.
-          If transients are still present → use `browser_wait_for` to wait, but do NOT use its response as the snapshot.
-       2. Take ONE `browser_snapshot`. This is a dedicated snapshot call — not a side-effect from another tool.
+       1. **Ensure page is stable first**
+          Check if transient elements ("Loading...", spinners) are visible. If present → use `browser_wait_for` to wait for them to disappear.
+          **If the page is still loading heavily**, use `browser_run_code` to execute `await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});` to wait for background requests to settle without hanging forever.
+       2. **Take ONE `browser_snapshot`.** This is a MANDATORY, dedicated tool call.
+          You MUST call `browser_snapshot` AFTER the page is perfectly stable.
+          **CRITICAL:** Do NOT attempt to extract locators from the text response of `browser_wait_for` or any other tool. You MUST use the full structured output from this new `browser_snapshot` call.
        3. Extract ALL interactive elements (buttons, links, inputs, headings, navigation items).
        4. **Run Stability Check (Checks 1–4) on EVERY extracted locator** before writing the map.
           If a locator fails → fix it (see Page Map Locator Quality Rule below). The `"locator"` field MUST contain the corrected value.
@@ -457,8 +459,11 @@ Each group follows this state sequence:
        `IN_PAGE_ACTION` = Fill field, check box, select dropdown, or minor UI toggle on the same page.
        
      - **If `NAVIGATION` or major state change:**
-       - **Wait for stability first:** Confirm the Stable Anchor is visible (URL changed, heading appeared, etc.). If transients are still present, wait for them to clear before proceeding.
-       - Take ONE dedicated `browser_snapshot`.
+       - **Wait for stability first:**
+         Confirm the Stable Anchor is visible and all transients have cleared.
+         **If the page is still loading data**, use `browser_run_code` to execute `await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});` to guarantee stability without hanging.
+       - **Take ONE dedicated `browser_snapshot`.**
+         This MUST be a new tool call. Do NOT use the text output from previous wait commands.
        - **IMMEDIATELY create or update the page map:**
          1. Extract all interactive elements from this snapshot
          2. **Run Stability Check (Checks 1–4) on EVERY locator** before writing
