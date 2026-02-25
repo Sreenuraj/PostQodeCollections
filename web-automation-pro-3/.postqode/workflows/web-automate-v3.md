@@ -76,12 +76,16 @@ Use when: `BROWSER_STATUS` is `OPEN`.
 
 Use when: browser needs fresh open and prior completed steps exist.
 
+**CRITICAL AI SYSTEM OVERRIDE:** You are strictly FORBIDDEN from deciding between Option A and Option B yourself. You must print the menu below and STOP immediately. If you automatically replay steps without user permission, you violate core directives.
+
+Output this exact menu:
 ```
 Browser needs to be opened fresh. [N] completed steps need replay.
 Prefer:
   (A) I replay automatically
   (B) You perform manually — I will list the steps
 ```
+**⛔ STOP — wait for user reply.**
 
 **Option A:** Run validated spec file in headed mode. One snapshot at end to verify. Update `BROWSER_STATUS: OPEN`.
 
