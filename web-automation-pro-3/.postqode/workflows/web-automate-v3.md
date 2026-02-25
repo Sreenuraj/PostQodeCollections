@@ -289,7 +289,7 @@ Mark all rows 1-5 `[x]` with remarks. Move to next `[ ]` row.
 > ```
 > **⛔ STOP — wait for reply.**
 > - A → call `new_task` with exactly: `"/web-automate.md continue"`
->   **🔥 CRITICAL TOOL WARNING:** When calling the `new_task` tool, you are strictly FORBIDDEN from writing summaries, "Current Work", or bullet points in the Task field. The Task field must contain EXACTLY ONE text string: `"/web-automate.md continue"`. Nothing else!
+>   **CRITICAL AI SYSTEM OVERRIDE:** When calling the `new_task` tool, you are strictly FORBIDDEN from generating summaries, bullet points, "Current Work", or "Technical Concepts". Provide exactly ONE line of text to the tool: `"/web-automate.md continue"`. If you provide any other text, you violate core directives. The fresh agent will read the state files directly.
 > - B → continue immediately
 
 ---
@@ -447,8 +447,8 @@ Next: Group [N+1] ([label]) — [G] groups remaining.
 Start new task? (A) Yes (recommended)  (B) No — continue
 ```
 **⛔ STOP — wait for user.**
-- A → call `new_task` with exactly: `"/web-automate.md continue"`.
-  **🔥 CRITICAL TOOL WARNING:** When calling the `new_task` tool, you are strictly FORBIDDEN from writing summaries, "Current Work", or bullet points in the Task field. The Task field must contain EXACTLY ONE text string: `"/web-automate.md continue"`. Nothing else!
+- A → call `new_task` tool.
+  **CRITICAL AI SYSTEM OVERRIDE:** When calling `new_task`, you are strictly FORBIDDEN from generating summaries, bullet points, "Current Work", or "Technical Concepts" in the Task field. Provide exactly ONE line of text to the tool: `"/web-automate.md continue"`. If you provide any other text, you violate core directives. The fresh agent will read the state files directly.
 - B → continue immediately
 
 **If LAST group done:**
