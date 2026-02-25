@@ -31,7 +31,7 @@ description: Unified web automation workflow v2 — context-efficient split sess
 > - Write code for a step without recording timestamps (Action Timestamp, Stable Timestamp, Measured Duration) — timing is MANDATORY even in per-step flow
 > - Write inline timeouts in test code — config file only
 > - 🛑 **NEVER write to a `page-maps/*.json` file unless your IMMEDIATELY PRECEDING tool call was `browser_snapshot`.** If your last tool was `browser_wait_for`, `browser_run_code`, or anything else, you are FORBIDDEN from creating the map. You MUST call `browser_snapshot` first to get the full DOM structure.
-> - 🛑 **NEVER create a page map DURING exploration mid-stream.** Page maps are created AFTER code is written for a NAVIGATION step.
+> - 🛑 **NEVER navigate to a different page to create a page map.** Page maps are ONLY created for the page the browser is CURRENTLY ON. If you missed a page, it will be captured on the next visit.
 > - Assert on anything listed as transient (spinners, loading indicators)
 > - Carry locators, timing, or page assumptions from one group into the next
 > - Exceed 2 Level 1 fix attempts — escalate to Level 2 immediately
@@ -447,7 +447,13 @@ AFTER ALL STEPS CODED:
    - If `BROWSER_STATUS: OPEN` → Protocol A (Optimistic Execution)
    - If `BROWSER_STATUS: CLOSED` + prior steps exist → Protocol B
    - If `BROWSER_STATUS: CLOSED` + no prior steps → Launch browser now. **MANDATORY:** Edit `test-session.md` (set `BROWSER_STATUS: OPEN`).
-4. **For each step — one at a time, route by MAP field:**
+4. **Starting Page Map Check (once per group, before step loop):**
+   After the browser is open and on the starting page:
+   - Check `page-maps/` — does a map exist for the current page?
+   - If NO → take `browser_snapshot` → create `page-maps/<page>.json` → update Step 1’s `MAP:` field
+   - If YES → skip
+   - **Edit `test-session.md`:** set `CURRENT_STEP: 1`
+5. **For each step — one at a time, route by MAP field:**
 
 ---
 
@@ -519,13 +525,16 @@ Write test code for THIS step using the observation you just made:
   - `Step Type: [NAVIGATION | IN_PAGE_ACTION]`
   - `Recommended Timeout: [Nms]`
   - `Status: [x]`
-  - If `MAP:` is still `(none)` → update to `MAP: NEEDS_CREATION (<page name>)` — this is the reminder for A3
+- **Update `test-session.md`** — mandatory after each step:
+  - `CURRENT_STEP: [N+1]` (next step number)
+  - `LAST_COMPLETED_STEP: [N]`
 
-##### A3: PageMap (for any page without a map)
+##### A3: PageMap (for the CURRENT page only)
 
-After code is written, check `MAP:` field in `active-group.md`:
-- **`MAP: NEEDS_CREATION (<page>)`** → create the page map now:
-- **`MAP:` already has a validated file** → skip. Move to next step.
+After code is written, check: does the page the browser is **currently on** have a page map?
+- Check `page-maps/` for a file matching the current URL or page title.
+- **If map exists** → skip. Move to next step.
+- **If NO map exists** → create one now:
 
 1. **MANDATORY PAGE MAP SEQUENCE:**
    a. *(Optional)* Run `browser_run_code` for `waitForLoadState('networkidle')` if page may still be loading.
@@ -533,10 +542,10 @@ After code is written, check `MAP:` field in `active-group.md`:
 2. Extract ALL interactive elements **exclusively from the fresh `browser_snapshot` output**.
 3. **Run Stability Check (Checks 1–4) on EVERY locator** before writing.
 4. **🛑 FINAL CHECK:** Was your last tool call `browser_snapshot`? If NO, call it now. If YES, write `page-maps/<page-name>.json`.
-5. Update `MAP:` field in `active-group.md` to `<filename> (MAP_VALIDATED)`.
+5. Update the step’s `MAP:` field in `active-group.md` to `<filename> (MAP_VALIDATED)`.
 
-> Page map is created **AFTER** code, not during exploration. This ensures the map captures the page in its final state.
-> This applies to ALL pages — starting pages, navigation destinations, and any page the agent interacts with.
+> **⛔ NEVER navigate to a different page to create a page map.**
+> The map is ALWAYS for the page the browser is currently on. If you missed a page (e.g., the login page after navigating to dashboard), it will be captured on the next visit — during Protocol B replay, next test run, or VALIDATE_MAPS.
 
 ---
 
@@ -936,7 +945,6 @@ Element types: `button`, `link`, `input`, `heading`, `text`, `container`, `image
 
 MAP statuses in `active-group.md`:
 - `(none)` — no page map or PO for this page (initial state)
-- `NEEDS_CREATION (<page>)` — code written, page map pending (set by A2, consumed by A3)
 - `MAP_AVAILABLE` — page map found, not yet validated
 - `MAP_VALIDATED` — page map locators confirmed valid, skip DOM analysis
 - `MAP_STALE` — page map locators invalid, needs full exploration (Path A)
@@ -1020,22 +1028,25 @@ FOR EACH GROUP:
   0. STATE CHECK from test-session.md — verify NEXT_ACTION before anything
      BOUNDARY: confirm the step you will act on is in active-group.md — not a pending group
 
-  1. EXECUTE (per-step loop):
+  1. STARTING PAGE MAP → if current page has no map, create it now (browser is here)
+
+  2. EXECUTE (per-step loop):
      FOR EACH STEP in active-group.md:
        Check MAP: field →
-         PATH A (no map): Explore → Code (immediately) → PageMap (if NAVIGATION)
+         PATH A (no map): Explore → Code → PageMap for CURRENT page (if no map exists)
          PATH B (map/PO): Check POM → Code from map or PO → (no browser needed)
        Record timestamps + Recommended Timeout in active-group.md
        Mark Status: [x]
+       **Update test-session.md: CURRENT_STEP, LAST_COMPLETED_STEP**
 
-  2. CONFIG → read Recommended Timeouts from active-group.md | update config if exceeded
-  3. RUN    → headless, zero retries (config snapshot on first run) | full cumulative spec
-  4. FIX    → read report first | re-explore if unclear | max 2 attempts | Path B → Path A fallback
-  5. UPDATE → file renames (zero reads):
+  3. CONFIG → read Recommended Timeouts from active-group.md | update config if exceeded
+  4. RUN    → headless, zero retries (config snapshot on first run) | full cumulative spec
+  5. FIX    → read report first | re-explore if unclear | max 2 attempts | Path B → Path A fallback
+  6. UPDATE → file renames (zero reads):
                mv active-group.md → completed-groups/group-N.md
                mv pending-groups/group-[N+1].md → active-group.md
                test-session.md: edit fields (NEXT_ACTION: STOPPED)
-  6. NEW TASK → ⛔ MANDATORY STOP — offer new task to user
+  7. NEW TASK → ⛔ MANDATORY STOP — offer new task to user
                More groups remain → user picks (A/B) → edit NEXT_ACTION: EXECUTE_GROUP_[N+1]
                LAST group done → restore config originals → user picks (A/B) → FINALISE_TEST
 
