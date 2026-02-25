@@ -443,17 +443,23 @@ AFTER ALL STEPS CODED:
 
 1. Output STATE CHECK — confirm `NEXT_ACTION` is `EXECUTE_GROUP_N`
 2. Read `active-group.md` — steps, targets, data, expected results, MAP fields
-3. **Browser State Check (Path A steps only — skip if all steps are Path B):**
-   - If `BROWSER_STATUS: OPEN` → Protocol A (Optimistic Execution)
-   - If `BROWSER_STATUS: CLOSED` + prior steps exist → Protocol B
-   - If `BROWSER_STATUS: CLOSED` + no prior steps → Launch browser now. **MANDATORY:** Edit `test-session.md` (set `BROWSER_STATUS: OPEN`).
-4. **Starting Page Map Check (once per group, before step loop):**
-   After the browser is open and on the starting page:
-   - Check `page-maps/` — does a map exist for the current page?
-   - If NO → take `browser_snapshot` → create `page-maps/<page>.json` → update Step 1’s `MAP:` field
-   - If YES → skip
-   - **Edit `test-session.md`:** set `CURRENT_STEP: 1`
-5. **For each step — one at a time, route by MAP field:**
+3. **Browser Initialization & Session Update:**
+   - If `BROWSER_STATUS: OPEN` → Proceed to Protocol A (Optimistic Execution).
+   - If `BROWSER_STATUS: CLOSED` + prior steps exist → Proceed to Protocol B.
+   - If `BROWSER_STATUS: CLOSED` + no prior steps → 
+     a. Launch browser to the starting URL.
+     b. **🛑 STOP AND WRITE:** IMMEDIATELY edit `test-session.md`. You MUST set `BROWSER_STATUS: OPEN` and `CURRENT_STEP: 1` before taking any browser actions.
+
+4. **Starting Page Map Check (MANDATORY before Step 1 actions):**
+   - After the browser is open and on the starting page, look at the UI.
+   - Check `page-maps/` — does a map already exist for this starting page?
+   - If YES → skip to step loop.
+   - If NO → 
+     a. Take a `browser_snapshot`.
+     b. Create `page-maps/<page>.json` for the starting page.
+     c. Update the first step's `MAP:` field in `active-group.md` to `<filename> (MAP_VALIDATED)`.
+
+5. **Step Execution Loop — Process one step at a time, routing by MAP field:**
 
 ---
 
