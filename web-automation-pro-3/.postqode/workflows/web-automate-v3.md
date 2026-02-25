@@ -13,6 +13,9 @@ description: Unified web automation workflow v3 — checklist-driven execution
 > ```
 > If the current checklist row doesn't match what you're about to do → stop and re-read the checklist.
 >
+> **🔥 ANTI-BATCHING RULE (CRITICAL):**
+> You must execute exactly ONE `[ ]` checklist row at a time. It is STRICTLY FORBIDDEN to perform the actions for rows 4, 5, and 6 in a single thought process or tool call. You must: read row 4, do row 4, mark row 4 `[x]`, STOP. Then read row 5, do row 5, etc. Batching rows causes skipped steps and hallucinations.
+>
 > **Before the FIRST browser call of each step:**
 > ```
 > BROWSER ACTION: [action] — [reason]
@@ -188,15 +191,16 @@ GROUPING_CONFIRMED: NO
 | 15 | G1-END | UPDATE CONFIG: compare timeouts, update if exceeded | [ ] | |
 | 16 | G1-END | RUN VALIDATION: headless, zero retries | [ ] | |
 | 17 | G1-END | ROTATE FILES: mv active→completed, promote next | [ ] | |
-| 18 | G1-END | OFFER NEW TASK: ⛔ stop and ask user | [ ] | |
-| 19 | G2-START | Check browser state (Protocol A if OPEN) | [ ] | |
-| 20 | G2-START | Check/create starting page map | [ ] | |
+| 18 | G1-END | COLLAPSE CHECKLIST: merge completed rows 1-18 | [ ] | |
+| 19 | G1-END | OFFER NEW TASK: ⛔ stop and ask user | [ ] | |
+| 20 | G2-START | Check browser state (Protocol A if OPEN) | [ ] | |
+| 21 | G2-START | Check/create starting page map | [ ] | |
 | ... | | (same pattern for remaining groups) | | |
 | N | FINAL | OFFER NEW TASK: ⛔ stop, then Phase 3 | [ ] | |
 ```
 
 **Checklist generation rules:**
-- For each group: START block (2-3 rows) + per-step block (4 rows each) + END block (4 rows)
+- For each group: START block (2-3 rows) + per-step block (4 rows each) + END block (5 rows)
 - Per-step block pattern: EXPLORE → WRITE CODE → PAGE MAP → UPDATE
 - If step has `MAP_VALIDATED` or `PO_AVAILABLE`: replace EXPLORE row with `CODE FROM MAP: Step N`
 - `OFFER NEW TASK` rows always include `⛔` — the agent MUST stop and wait
@@ -422,6 +426,18 @@ Mark row `[x]`. Write what changed in Remarks.
 
 1. Execute `mv active-group.md completed-groups/group-N.md` in the terminal.
 2. Execute `mv pending-groups/group-[N+1].md active-group.md` in the terminal (skip if last group).
+
+Mark row `[x]`.
+
+### COLLAPSE CHECKLIST (Context Optimization)
+
+To prevent the checklist from growing too large and consuming excessive tokens, collapse all `[x]` rows from the current group and any previous `SETUP` rows into a single summary row.
+
+1. Open `test-session.md`.
+2. Delete the fully completed block of rows for the current group (e.g., rows 4 through 18).
+3. Replace them with a single summary row:
+   `| - | SUMMARY | Group N completed successfully | [x] | Steps A-B |`
+4. Leave the remaining `[ ]` rows intact.
 
 Mark row `[x]`.
 
