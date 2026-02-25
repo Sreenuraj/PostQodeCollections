@@ -243,6 +243,12 @@ CONFIG_EXPECT_TIMEOUT: TBD
 TEST_COMMAND: TBD
 PAGE_MAPS_DIR: page-maps
 PAGE_MAPS_FOUND: 0
+
+### Execution Checklist (for BROWSER_START phase)
+- [ ] Launch browser to starting URL
+- [ ] Set BROWSER_STATUS to OPEN
+- [ ] Check if starting page needs a map (take snapshot + create if missing)
+- [ ] Set NEXT_ACTION to EXECUTE_STEPS
 ```
 
 #### `completed-groups/` (empty directory — groups are moved here when done)
@@ -433,33 +439,33 @@ FOR EACH STEP in Active Group:
 
 AFTER ALL STEPS CODED:
   UPDATE_CONFIG_GROUP_N   → compare Recommended Timeouts vs config, update if exceeded
-  RUN_AND_VALIDATE_GROUP_N → headless, zero retries, fix+rerun up to 3 attempts
+  RUN_AND_VALIDATE_GROUP_N → headless, zero retries, fix+rerun up to 2 attempts
   UPDATE_SESSION_GROUP_N   → file rotation, offer new task
 ```
 
 ---
 
-### EXECUTE_GROUP_N — Per-Step Loop
+### State: BROWSER_START
 
-1. Output STATE CHECK — confirm `NEXT_ACTION` is `EXECUTE_GROUP_N`
-2. Read `active-group.md` — steps, targets, data, expected results, MAP fields
-3. **Browser Initialization & Session Update:**
-   - If `BROWSER_STATUS: OPEN` → Proceed to Protocol A (Optimistic Execution).
-   - If `BROWSER_STATUS: CLOSED` + prior steps exist → Proceed to Protocol B.
+1. Output STATE CHECK — confirm `NEXT_ACTION` is `BROWSER_START`
+2. **Browser Initialization & Starting Page Map:**
+   - If `BROWSER_STATUS: OPEN` → Skip to step 3.
+   - If `BROWSER_STATUS: CLOSED` + prior steps exist → Proceed to Protocol B replay.
    - If `BROWSER_STATUS: CLOSED` + no prior steps → 
-     a. Launch browser to the starting URL.
-     b. **🛑 STOP AND WRITE:** IMMEDIATELY edit `test-session.md`. You MUST set `BROWSER_STATUS: OPEN` and `CURRENT_STEP: 1` before taking any browser actions.
+     You MUST execute the Focus Chain Checklist located in `test-session.md`:
+     - [ ] Launch browser to starting URL.
+     - [ ] Edit `test-session.md` to set `BROWSER_STATUS: OPEN` and `CURRENT_STEP: 1`.
+     - [ ] Look at the UI. Check `page-maps/`. If no map exists for this starting page, take a `browser_snapshot` and create it. Update Step 1's `MAP:` field.
+     - [ ] Edit `test-session.md` to set `NEXT_ACTION: EXECUTE_STEPS`.
+3. **🛑 STOP AND WRITE:** You may NOT begin exploring Step 1 until you have explicitly ticked off all boxes in the `test-session.md` checklist.
 
-4. **Starting Page Map Check (MANDATORY before Step 1 actions):**
-   - After the browser is open and on the starting page, look at the UI.
-   - Check `page-maps/` — does a map already exist for this starting page?
-   - If YES → skip to step loop.
-   - If NO → 
-     a. Take a `browser_snapshot`.
-     b. Create `page-maps/<page>.json` for the starting page.
-     c. Update the first step's `MAP:` field in `active-group.md` to `<filename> (MAP_VALIDATED)`.
+---
 
-5. **Step Execution Loop — Process one step at a time, routing by MAP field:**
+### State: EXECUTE_STEPS — Per-Step Loop
+
+1. Output STATE CHECK — confirm `NEXT_ACTION` is `EXECUTE_STEPS`
+2. Read `active-group.md` — steps, targets, data, expected results, MAP fields
+3. **Step Execution Loop — Process one step at a time, routing by MAP field:**
 
 ---
 
@@ -964,7 +970,8 @@ Read ONLY the files needed for the current `NEXT_ACTION`. Do NOT read all files 
 
 | NEXT_ACTION | Read | Do NOT read |
 |---|---|---|
-| `EXECUTE_GROUP_N` | `test-session.md` + `active-group.md` + relevant `page-maps/*.json` | `completed-groups/`, `pending-groups/` |
+| `BROWSER_START` | `test-session.md` + `active-group.md` + `page-maps/` | `completed-groups/`, `pending-groups/` |
+| `EXECUTE_STEPS` | `test-session.md` + `active-group.md` + relevant `page-maps/*.json` | `completed-groups/`, `pending-groups/` |
 | `UPDATE_CONFIG_GROUP_N` | `test-session.md` + `active-group.md` (Recommended Timeout fields) | `completed-groups/`, `pending-groups/` |
 | `RUN_AND_VALIDATE` | `test-session.md` only | everything else |
 | `UPDATE_SESSION` | `test-session.md` only (file renames need no reads) | `active-group.md` (being renamed), `completed-groups/` |
@@ -1004,7 +1011,8 @@ Recommended Config Timeout calculation (done during EXECUTE per-step, stored in 
 |---|---|
 | `FRAMEWORK_SETUP` | Phase 1: detect or install framework, scan page maps, fill session state block |
 | `VALIDATE_MAPS` | Validate existing page map locators, mark MAP_VALIDATED or MAP_STALE |
-| `EXECUTE_GROUP_N` | Per-step loop: Path A (explore→code→pagemap) or Path B (code from map). Record timing. |
+| `BROWSER_START` | Execute the Focus Chain Checklist: open browser, update status, check starting map |
+| `EXECUTE_STEPS` | Per-step loop: Path A (explore→code→pagemap) or Path B (code from map). Record timing. |
 | `UPDATE_CONFIG_GROUP_N` | Read Recommended Timeouts from active-group.md, update config if exceeded |
 | `RUN_AND_VALIDATE_GROUP_N` | Run full cumulative spec (headless, zero retries) |
 | `FIX_AND_RERUN_GROUP_N` | Evidence-based fix (report → re-explore, max 2 attempts), Path B fallback to Path A after 2 |
@@ -1034,9 +1042,10 @@ FOR EACH GROUP:
   0. STATE CHECK from test-session.md — verify NEXT_ACTION before anything
      BOUNDARY: confirm the step you will act on is in active-group.md — not a pending group
 
-  1. STARTING PAGE MAP → if current page has no map, create it now (browser is here)
+  1. BROWSER_START → 🛑 MANDATORY CHECKLIST in test-session.md:
+     - Open browser → `BROWSER_STATUS: OPEN` → Starting Page Map check → `NEXT_ACTION: EXECUTE_STEPS`
 
-  2. EXECUTE (per-step loop):
+  2. EXECUTE_STEPS (per-step loop):
      FOR EACH STEP in active-group.md:
        Check MAP: field →
          PATH A (no map): Explore → Code → PageMap for CURRENT page (if no map exists)
