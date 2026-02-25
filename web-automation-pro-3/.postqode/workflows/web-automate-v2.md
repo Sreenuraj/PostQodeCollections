@@ -245,7 +245,7 @@ PAGE_MAPS_DIR: page-maps
 PAGE_MAPS_FOUND: 0
 
 ### Execution Checklist (for BROWSER_START phase)
-- [ ] Launch browser to starting URL
+- [ ] Initialize browser (launch if closed, verify if open)
 - [ ] Set BROWSER_STATUS to OPEN
 - [ ] Check if starting page needs a map (take snapshot + create if missing)
 - [ ] Set NEXT_ACTION to EXECUTE_STEPS
@@ -449,15 +449,12 @@ AFTER ALL STEPS CODED:
 
 1. Output STATE CHECK — confirm `NEXT_ACTION` is `BROWSER_START`
 2. **Browser Initialization & Starting Page Map:**
-   - If `BROWSER_STATUS: OPEN` → Skip to step 3.
-   - If `BROWSER_STATUS: CLOSED` + prior steps exist → Proceed to Protocol B replay.
-   - If `BROWSER_STATUS: CLOSED` + no prior steps → 
-     You MUST execute the Focus Chain Checklist located in `test-session.md`:
-     - [ ] Launch browser to starting URL.
-     - [ ] Edit `test-session.md` to set `BROWSER_STATUS: OPEN` and `CURRENT_STEP: 1`.
-     - [ ] Look at the UI. Check `page-maps/`. If no map exists for this starting page, take a `browser_snapshot` and create it. Update Step 1's `MAP:` field.
-     - [ ] Edit `test-session.md` to set `NEXT_ACTION: EXECUTE_STEPS`.
-3. **🛑 STOP AND WRITE:** You may NOT begin exploring Step 1 until you have explicitly ticked off all boxes in the `test-session.md` checklist.
+   You MUST execute the Focus Chain Checklist located in `test-session.md`:
+   - [ ] **Initialize browser**: If `BROWSER_STATUS: CLOSED`, launch to starting URL or replay Protocol B. If `OPEN`, verify it is ready.
+   - [ ] Edit `test-session.md` to set `BROWSER_STATUS: OPEN` and `CURRENT_STEP: [first step number]`.
+   - [ ] Look at the UI. Check `page-maps/`. If no map exists for this starting page, take a `browser_snapshot` and create it. Update the active step's `MAP:` field.
+   - [ ] Edit `test-session.md` to set `NEXT_ACTION: EXECUTE_STEPS`.
+3. **🛑 STOP AND WRITE:** You may NOT begin exploring the step until you have explicitly ticked off all boxes in the `test-session.md` checklist.
 
 ---
 
