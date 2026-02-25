@@ -22,17 +22,17 @@ description: Unified web automation workflow v2 — context-efficient split sess
 >
 > **NEVER:**
 > - Perform a browser action on a step that belongs to a Pending Group — only Active Group steps
-> - Skip the APPEND_CODE → UPDATE_CONFIG → RUN_AND_VALIDATE → UPDATE_SESSION sequence
+> - Skip the per-step Explore→Code→PageMap sequence (Path A) or Code→Validate sequence (Path B)
 > - Assume browser is open or closed — verify first (Protocol A)
 > - Auto-replay previously completed steps without asking the user (Protocol B)
 > - Restart from Step 1 — always resume from `LAST_COMPLETED_STEP`
 > - Close the exploration browser during Phase 2 except: all groups done, Level 3 exit, user stop
 > - Change `BROWSER_STATUS` after a validation run — it stays `OPEN`
-> - Proceed to the next step without saving the Step Observation to `active-group.md` first
-> - Write wait logic from memory — only from recorded Step Observations
+> - Write code for a step without recording timestamps (Action Timestamp, Stable Timestamp, Measured Duration) — timing is MANDATORY even in per-step flow
 > - Write inline timeouts in test code — config file only
-> - 🛑 **NEVER write to a `page-maps/*.json` file unless your IMMEDIATELY PRECEDING tool call was `browser_snapshot`.** If your last tool was `browser_wait_for`, `browser_run_code`, or anything else, you are FORBIDDEN from creating the map. You MUST call `browser_snapshot` first! to get the full DOM structure first.
-> - Assert on anything listed in `Transient Elements Seen`
+> - 🛑 **NEVER write to a `page-maps/*.json` file unless your IMMEDIATELY PRECEDING tool call was `browser_snapshot`.** If your last tool was `browser_wait_for`, `browser_run_code`, or anything else, you are FORBIDDEN from creating the map. You MUST call `browser_snapshot` first to get the full DOM structure.
+> - 🛑 **NEVER create a page map DURING exploration mid-stream.** Page maps are created AFTER code is written for a NAVIGATION step.
+> - Assert on anything listed as transient (spinners, loading indicators)
 > - Carry locators, timing, or page assumptions from one group into the next
 > - Exceed 3 Level 1 fix attempts — escalate to Level 2 immediately
 > - Rewrite entire session files — use targeted field edits (edit specific lines, not full rewrites)
@@ -61,7 +61,7 @@ Use when: user starts a new chat or says "Continue", "Resume", etc. — OR after
      **If `LAST_COMPLETED_STEP` is `0`**: Open browser fresh (e.g., `browser_navigate`). **IMMEDIATELY edit** `test-session.md` to set `BROWSER_STATUS: OPEN`.
 4. After browser is ready, check `NEXT_ACTION`:
    - `STOPPED` + new task-related detail → user continued by starting session.
-     Update `NEXT_ACTION: EXPLORE_GROUP_[N+1]` (from `LAST_COMPLETED_GROUP` + 1), write file, proceed.
+     Update `NEXT_ACTION: EXECUTE_GROUP_[N+1]` (from `LAST_COMPLETED_GROUP` + 1), write file, proceed.
    - Otherwise → resume from `NEXT_ACTION`.
 5. Based on `NEXT_ACTION`, read additional files (see **File Read Rules** in Reference).
 
@@ -107,14 +107,15 @@ Prefer:
 execute all prior steps rapidly from spec file, no screenshots between steps,
 one snapshot at the end to verify. Update `BROWSER_STATUS: OPEN`.
 
-**Option B:** Read the completed test steps from `completed-groups/group-*.md` files.
+**Option B:** Open the exploration browser and navigate to `TARGET_URL`. Provide the user with
+the list of steps they need to perform in the agent's browser session.
+Read the completed test steps from `completed-groups/group-*.md` files.
 Each file has the step actions and targets from when they were the active group.
 List them as numbered user-facing actions:
 ```
-Please perform these steps in your browser:
-1. Navigate to [TARGET_URL]
-2. [Action from Step 1: e.g. Enter "username" in the Username field]
-3. [Action from Step 2: e.g. Click the "Login" button]
+Browser is open at [TARGET_URL]. Please perform these steps:
+1. [Action from Step 1: e.g. Enter "username" in the Username field]
+2. [Action from Step 2: e.g. Click the "Login" button]
 ...
 
 ⛔ Waiting for you to complete the steps above.
@@ -123,37 +124,50 @@ Reply "Done" when you have finished.
 List only the USER ACTIONS (navigate, click, fill, select) — NOT internal workflow phases,
 state checks, or agent decisions. Each line should be something the user can physically do in the browser.
 
-**⛔ STOP — do NOT open a browser, navigate, click, fill, or take any browser action.**
+**⛔ STOP — do NOT click, fill, or take any browser action beyond opening and navigating.**
 Wait for the user to reply "Done". After they confirm:
 1. Update `BROWSER_STATUS: OPEN`
 2. Resume from `NEXT_ACTION`
 
-> Agent must NOT interact with the browser during Option B. The user owns the session until they say "Done".
+> Agent provides the browser session but does NOT interact beyond the initial open. The user owns the session until they say "Done".
 
 ---
 
-## Protocol C: Post-Group-1 Grouping Review
+## Protocol C: Post-Group-1 Intelligent Grouping Review
 
 Use when: `LAST_COMPLETED_GROUP = 1` and `GROUPING_CONFIRMED = NO`.
 
-After Group 1 exploration, real app behaviour is known. Review Pending Groups and adjust if:
+After Group 1 execution, you have real data about the app's behaviour. **Use your intelligence** to assess the site under test and adjust future groups.
 
-| Observation | Action |
+**What to observe from Group 1:**
+- **Page load speed:** Were transitions fast (<1s) or slow (>3s)? Heavy async? Loading spinners?
+- **UI complexity:** Simple forms with standard inputs, or complex widgets (date pickers, map controls, rich editors)?
+- **State management:** Does the app maintain state reliably, or does it reset/redirect unexpectedly?
+- **Locator stability:** Were locators straightforward (`data-testid`, semantic roles) or fragile (dynamic classes, nested iframes)?
+
+**Make intelligent grouping decisions based on what you observed:**
+
+| What you learned | Intelligent action |
 |---|---|
-| App faster and more stable than expected | Merge adjacent single-step pending groups where same page |
-| Heavy async / slow transitions observed | Keep or split groups to 1 step each |
-| `NEEDS_DECOMPOSITION` step is next | Decompose into specific sub-steps now, before it becomes Active |
-| Initial grouping was every-step-is-a-group | Merge where steps share a page and flow naturally |
+| App is fast, stable, predictable UI | **Merge** adjacent single-step groups into 2-3 step groups where they share a page |
+| App is slow, heavy async, complex state | **Keep** groups small (1-2 steps). Add extra steps if intermediate waits are needed |
+| `NEEDS_DECOMPOSITION` step is next | **Decompose** into specific sub-steps now, using what you learned about the app's UI patterns |
+| Initial grouping is too conservative | **Merge** where steps share a page and flow naturally |
+| Initial grouping is too aggressive | **Split** groups that cross page boundaries or involve complex interactions |
 
-If changes needed → update Pending Groups and Groups index, present to user:
+**Present your reasoning to the user** — don't just show a table of changes:
 ```
-Grouping changes proposed — please review:
-[show changes]
+Based on Group 1 execution, I observed [specific observations].
+This suggests the app is [assessment].
+
+Proposed grouping adjustments:
+  [Group X]: [change and reason]
+  [Group Y]: [change and reason]
+
 Approve? (A) Yes  (B) No — suggest changes
 ```
 **⛔ STOP — wait for user to approve before continuing. Do not write changes until approved.**
 
-If grouping is appropriate → note confirmed and continue.
 Set `GROUPING_CONFIRMED: YES` in `test-session.md`. If groups changed, update `pending-groups/` files accordingly. Runs once only.
 
 ---
@@ -245,28 +259,17 @@ Create the directory. It starts empty. As each group completes,
 - Data: [input values or N/A]
 - Expected Result: [what the UI shows after this step]
 - MAP: (none)
-- Step Observation:
-  - Trigger:
-  - Action Timestamp:
-  - Stable Timestamp:
-  - Measured Duration:
-  - Step Type: [NAVIGATION | IN_PAGE_ACTION]
-  - Transient Elements Seen:
-  - Stable Anchor:
-  - Anchor Type:
-  - Stable Anchor Locator:
-  - Stability Check:
-  - Additional Assertions:
+- Step Type:
+- Recommended Timeout:
+- Status: [ ]
 
 ### Step 2
 [same structure]
 
 ### Group Success Criteria
-- [ ] Each step produced expected result in live browser
-- [ ] Step Observations filled and saved
+- [ ] Each step code written (per-step, immediately after explore)
 - [ ] Config updated if any Recommended timeout exceeded current
-- [ ] Code written and appended — no inline timeouts
-- [ ] Validation run passed
+- [ ] Group validation run passed (headless)
 ```
 
 #### `pending-groups/group-N.md` (one file per pending group — read once to promote, then deleted)
@@ -279,18 +282,9 @@ Create the directory. It starts empty. As each group completes,
 - Data: [input values or N/A]
 - Expected Result: [what the UI shows after this step]
 - MAP: (none)
-- Step Observation:
-  - Trigger:
-  - Action Timestamp:
-  - Stable Timestamp:
-  - Measured Duration:
-  - Step Type: [NAVIGATION | IN_PAGE_ACTION]
-  - Transient Elements Seen:
-  - Stable Anchor:
-  - Anchor Type:
-  - Stable Anchor Locator:
-  - Stability Check:
-  - Additional Assertions:
+- Step Type:
+- Recommended Timeout:
+- Status: [ ]
 ```
 One file per group: `pending-groups/group-2.md`, `pending-groups/group-3.md`, etc.
 
@@ -304,18 +298,31 @@ One file per group: `pending-groups/group-2.md`, `pending-groups/group-3.md`, et
    test command, spec pattern, config location
 2. Read config file — record current timeout values
 3. Read existing test files — note POM structure, naming, imports, base classes
-4. Check if any user steps are already implemented → if yes, ask:
+4. **Page Object Analysis (Agent Intelligence Required):**
+   Scan existing Page Object files. Assess their quality and coverage:
+
+   | PO Quality | Indicators | Decision |
+   |---|---|---|
+   | **Rich POs** | Detailed locators (`data-testid`, semantic roles), descriptive method names, good coverage of page elements | Treat as locator source — equivalent to page maps. Set `MAP: PO:<filename> (PO_AVAILABLE)` for matching steps. No need to create page maps for these pages. |
+   | **Thin POs** | Few locators, generic selectors (CSS classes), minimal methods | Create page maps during exploration. POs are a hint but not reliable. Set `MAP: (none)`. |
+   | **No POs** | No page object files found | Standard Path A — full exploration needed. Set `MAP: (none)`. |
+
+   Record in `test-session.md`: `PO_QUALITY: [RICH | THIN | NONE]`, `PO_FILES: [list or N/A]`
+
+   > When POs are rich, the agent can write code directly from PO methods + locators (similar to Path B with page maps). Exploration is a fallback only.
+
+5. Check if any user steps are already implemented → if yes, ask:
    ```
    Steps [X, Y] appear to be implemented already. Prefer:
      (A) Add to existing test file  (B) Create separate new test
    ```
    **⛔ STOP — wait for user to reply (A) or (B) before proceeding.**
-5. Update `test-session.md` state block: `FRAMEWORK`, `SPEC_FILE`, `CONFIG_FILE`,
+6. Update `test-session.md` state block: `FRAMEWORK`, `SPEC_FILE`, `CONFIG_FILE`,
    `TEST_COMMAND`, `CONFIG_ACTION_TIMEOUT`, `CONFIG_NAVIGATION_TIMEOUT`, `CONFIG_EXPECT_TIMEOUT`, `MODE`
-6. Create working spec file following project patterns
-7. If EXTEND_EXISTING: extract reused steps into spec, mark completed groups by moving
+7. Create working spec file following project patterns
+8. If EXTEND_EXISTING: extract reused steps into spec, mark completed groups by moving
    their files to `completed-groups/`, position browser at start using Protocol B
-8. Set `NEXT_ACTION: EXPLORE_GROUP_1` (or `VALIDATE_MAPS` if page maps found)
+9. Set `NEXT_ACTION: EXECUTE_GROUP_1` (or `VALIDATE_MAPS` if page maps found)
 
 ### No framework in project
 
@@ -329,7 +336,7 @@ One file per group: `pending-groups/group-2.md`, `pending-groups/group-3.md`, et
 2. Install framework, generate baseline config with sensible default timeouts
 3. Update `test-session.md` state block with all values
 4. Create working spec file
-5. Set `NEXT_ACTION: EXPLORE_GROUP_1`
+5. Set `NEXT_ACTION: EXECUTE_GROUP_1`
 
 ### Page Map Scan (runs in both framework paths)
 
@@ -345,7 +352,7 @@ After framework setup, before setting final `NEXT_ACTION`:
    (Pending groups get their MAP: field set when promoted to active — do NOT open pending group files)
 5. Update state block: `PAGE_MAPS_FOUND: [count] ([file list])`
 6. If any steps have `MAP_AVAILABLE` → set `NEXT_ACTION: VALIDATE_MAPS`
-   Otherwise → set `NEXT_ACTION: EXPLORE_GROUP_1`
+   Otherwise → set `NEXT_ACTION: EXECUTE_GROUP_1`
 
 > All subsequent references use `TEST_COMMAND`, `SPEC_FILE`, `CONFIG_FILE` from `test-session.md`.
 
@@ -379,29 +386,29 @@ Runs only when page maps exist and steps have `MAP: ... (MAP_AVAILABLE)`. Valida
 ---
 
 > [!IMPORTANT]
-> ## PHASE BOUNDARY — SETUP → EXPLORE
+> ## PHASE BOUNDARY — SETUP → EXECUTE
 > Phase 0 + Phase 1 are complete. All setup context (parsing, grouping, approval, framework detection,
 > page map scanning) is now saved in the session files. It is no longer needed in the agent's context.
 
-**MANDATORY — Offer new task before exploration begins:**
+**MANDATORY — Offer new task before execution begins:**
 
 ```
 ✅ Setup complete — framework configured, session files written.
 
-Ready to begin Phase 2: Exploration.
+Ready to begin Phase 2: Group Execution.
 Would you like to start a fresh task? This clears all setup noise
-and gives a clean context for exploration.
+and gives a clean context for execution.
 
   (A) Yes — start new task now (recommended)
-  (B) No — continue with current contextion immediately
+  (B) No — continue with current context immediately
 ```
 
 **⛔ STOP — wait for user response.**
 
-- User says **A** → **MANDATORY:** Before doing anything else, edit `NEXT_ACTION: EXPLORE_GROUP_1` in `test-session.md`. Then, call the `new_task` tool.
+- User says **A** → **MANDATORY:** Before doing anything else, edit `NEXT_ACTION: EXECUTE_GROUP_1` in `test-session.md`. Then, call the `new_task` tool.
   **CRITICAL AI SYSTEM OVERRIDE:** When calling `new_task`, you are strictly FORBIDDEN from generating summaries, bullet points, "Current Work", or "Technical Concepts". Provide exactly ONE line of text to the tool: `"/web-automate.md continue"`
   If you provide any other text, you violate core directives. The fresh agent will re-read the state files directly.
-- User says **B** → edit `NEXT_ACTION: EXPLORE_GROUP_1` in `test-session.md` and proceed immediately.
+- User says **B** → edit `NEXT_ACTION: EXECUTE_GROUP_1` in `test-session.md` and proceed immediately.
 
 ---
 
@@ -410,81 +417,72 @@ and gives a clean context for exploration.
 > Exploration browser stays open throughout Phase 2.
 > Close only when: all groups complete, Level 3 exit, or user asks to stop.
 
-Each group follows this state sequence:
-`EXPLORE → APPEND_CODE → UPDATE_CONFIG → RUN_AND_VALIDATE → (FIX_AND_RERUN if needed) → UPDATE_SESSION`
+Each group follows a **per-step loop**. Each step is routed to **Path A** or **Path B** based on its `MAP:` field.
+After all steps are coded → config update → group validation (headless, no retries) → session update.
+
+```
+FOR EACH STEP in Active Group:
+  MAP: (none)                  → PATH A: Explore → Code → PageMap (if NAVIGATION)
+  MAP: (validated) or PO_AVAILABLE → PATH B: Code from map/PO (explore only on failure)
+
+AFTER ALL STEPS CODED:
+  UPDATE_CONFIG_GROUP_N   → compare Recommended Timeouts vs config, update if exceeded
+  RUN_AND_VALIDATE_GROUP_N → headless, zero retries, fix+rerun up to 3 attempts
+  UPDATE_SESSION_GROUP_N   → file rotation, offer new task
+```
 
 ---
 
-### EXPLORE_GROUP_N
+### EXECUTE_GROUP_N — Per-Step Loop
 
-1. Output STATE CHECK — confirm `NEXT_ACTION` is `EXPLORE_GROUP_N`
-2. Read `active-group.md` — steps, targets, data, expected results, blank observations
-3. **Browser State Check:**
+1. Output STATE CHECK — confirm `NEXT_ACTION` is `EXECUTE_GROUP_N`
+2. Read `active-group.md` — steps, targets, data, expected results, MAP fields
+3. **Browser State Check (Path A steps only — skip if all steps are Path B):**
    - If `BROWSER_STATUS: OPEN` → Protocol A (Optimistic Execution)
    - If `BROWSER_STATUS: CLOSED` + prior steps exist → Protocol B
    - If `BROWSER_STATUS: CLOSED` + no prior steps → Launch browser now. **MANDATORY:** Edit `test-session.md` (set `BROWSER_STATUS: OPEN`).
-4. Note: Expected Results are already in `active-group.md` — no need to output predictions.
-5. For each step — one at a time:
-   - **Step 1: Get the Locator (Pre-Action)**
-     - Check `page-maps/` for the current page.
-     - **If NO map exists:** You MUST create the map RIGHT NOW. Do not proceed to Step 2 until the file is written to disk.
-       1. **MANDATORY SEQUENCE:** You MUST execute these exact tool calls in order to build the map:
-          a. **Run `browser_run_code`**: Execute `await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});` to guarantee the page has finished fetching background data.
-          b. **Run `browser_snapshot`**: This MUST be a dedicated call. Do NOT use the auto-generated "Page Snapshot" text appended to other tools.
-       2. Extract ALL interactive elements **exclusively from the fresh `browser_snapshot` JSON output**.
-       4. **Run Stability Check (Checks 1–4) on EVERY extracted locator** before writing the map.
-          If a locator fails → fix it (see Page Map Locator Quality Rule below). The `"locator"` field MUST contain the corrected value.
-       5. **🛑 FINAL CHECK BEFORE WRITING:** Look at your tool history. Was your *very last action* a successful call to `browser_snapshot`? If NO, you are forbidden from writing the file. Call `browser_snapshot` now. If YES, write `page-maps/<page-name>.json`. (Do NOT defer this to the end of the group).
-       6. Update `MAP:` in `active-group.md` to `<filename> (MAP_VALIDATED)`.
-       7. Find your target locator from the map you just created.
-     - **If map EXISTS:** Do NOT take a snapshot. Read the locator directly from the JSON file.
+4. **For each step — one at a time, route by MAP field:**
 
-   - **Step 2: Execute Action**
-     - Output `BROWSER ACTION:` declaration.
-     - **Record `Action Timestamp`** (e.g., `13:14:02.100`) immediately before performing the action.
-     - Perform the action using the locator from the map.
-     
-   - **Step 3: Verify and Anchor (Post-Action)**
-     - **Classify `Step Type`:**
-       `NAVIGATION` = URL change, login, first entry into a new app section, or opening a major modal.
-       `IN_PAGE_ACTION` = Fill field, check box, select dropdown, or minor UI toggle on the same page.
-       
-     - **If `NAVIGATION` or major state change:**
-       - **Wait for stability first:** Confirm the Stable Anchor is visible and all transients have cleared.
-       - **MANDATORY PAGE MAP SEQUENCE:** Execute these exact tool calls in order:
-         1. **Run `browser_run_code`**: Execute `await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});`
-         2. **Run `browser_snapshot`**: Take a fresh, dedicated snapshot of the fully loaded page.
-       - **IMMEDIATELY create or update the page map:**
-         1. Extract all interactive elements **exclusively from the fresh `browser_snapshot` output**
-         2. **Run Stability Check (Checks 1–4) on EVERY locator** before writing
-         3. **🛑 FINAL CHECK:** Was your last tool call `browser_snapshot`? If NO, do not write. Call it now. If YES, write/update `page-maps/<new-page-name>.json`.
-       - Identify the **Stable Anchor Locator** (the new element/heading that proves the transition finished).
-       - **Record `Stable Timestamp`** when this anchor is confirmed visible.
-       - Run Stability Checks (Table below) on the anchor.
-       
-     - **If `IN_PAGE_ACTION` (Smart Optimization):**
-       - **DO NOT take a browser snapshot.** This is a massive waste of time/tokens for simple field entries.
-       - Assume the action succeeded. The **Stable Anchor Locator** is simply the element you just interacted with (or the next element you plan to interact with). Playwright will inherently wait for it during the test execution.
-       - **Record `Stable Timestamp`** as ~100ms after the Action Timestamp.
-       - Write `Stability Check: PASS (In-Page Action)`.
+---
 
-   - **Step 4: Record Observation (In-Memory)**
-     - **Calculate `Measured Duration`** (`Stable Timestamp - Action Timestamp` in ms).
-     - **MANDATORY I/O OPTIMIZATION:** Do NOT write the blank observation fields to `active-group.md` or edit `test-session.md` after this step.
-     - Hold the Step Observation details (Timestamps, Durations, Anchors, new URLs) in your mental memory while you explore subsequent steps in the group at full speed.
+#### PATH A — No Map Available (`MAP: (none)`)
 
-   - **MANDATORY — Validate Locator Stability (for NAVIGATION anchors):**
-     Ask: "Would this locator work on a different day, with different data, or a different session?"
+> Use when: the step's page has no page map. Requires browser exploration.
 
-     | Check | Fail if locator text contains | Fix approach |
-     |---|---|---|
-     | Time/Date | Greetings, timestamps, "today", relative dates | Use regex: `getByText(/Hi,.*Name/)` |
-     | Data/Count | Counts, totals, badges, dollar amounts | Use structural locator (`data-testid`, `role`) |
-     | User/Session | Session IDs, "Last login:", dynamic status | Use test data you control |
-     | Uniqueness | Matches >1 element | Scope: `parent.locator(...)` or add container |
+##### A1: Explore
 
-     If any check fails → `data-testid`/`id` → stable parent + scope → regex → CSS.
-     Record result: `Stability Check: FIXED — [original] → [replacement]`
+- Output `BROWSER ACTION:` declaration.
+- **Record `Action Timestamp`** (e.g., `13:14:02.100`) immediately before performing the action.
+- Perform the action in the browser.
+- **Classify `Step Type`:**
+  `NAVIGATION` = URL change, login, first entry into a new app section, or opening a major modal.
+  `IN_PAGE_ACTION` = Fill field, check box, select dropdown, or minor UI toggle on the same page.
+
+- **If `NAVIGATION` or major state change:**
+  - Wait for stability: confirm the Stable Anchor is visible and all transients have cleared.
+  - **Record `Stable Timestamp`** when the anchor is confirmed visible.
+  - Identify the **Stable Anchor Locator** (element/heading proving transition finished).
+  - Run Stability Checks (Table below) on the anchor.
+
+- **If `IN_PAGE_ACTION`:**
+  - **DO NOT take a browser snapshot.** Waste of time/tokens for simple field entries.
+  - **Record `Stable Timestamp`** as ~100ms after Action Timestamp.
+
+- **Calculate `Measured Duration`** = `Stable Timestamp - Action Timestamp` (in ms).
+- **Calculate `Recommended Timeout`:**
+  - NAVIGATION: Measured Duration × 4, minimum 15000ms
+  - IN_PAGE_ACTION: Measured Duration × 3, minimum 5000ms
+
+- **MANDATORY — Validate Locator Stability (for NAVIGATION anchors):**
+
+  | Check | Fail if locator text contains | Fix approach |
+  |---|---|---|
+  | Time/Date | Greetings, timestamps, "today", relative dates | Use regex: `getByText(/Hi,.*Name/)` |
+  | Data/Count | Counts, totals, badges, dollar amounts | Use structural locator (`data-testid`, `role`) |
+  | User/Session | Session IDs, "Last login:", dynamic status | Use test data you control |
+  | Uniqueness | Matches >1 element | Scope: `parent.locator(...)` or add container |
+
+  If any check fails → `data-testid`/`id` → stable parent + scope → regex → CSS.
 
 > [!IMPORTANT]
 > ### Page Map Locator Quality Rule
@@ -497,58 +495,96 @@ Each group follows this state sequence:
 > A `FIXED` entry with an unstable locator string is a workflow violation. The stability check escalation:
 > `data-testid` → `id`/`aria-label`/`role` → stable parent + scope → regex on stable portion → CSS selector
 
-6. **MANDATORY TRANSITION — DO NOT SKIP:**
-   After the LAST step of the Active Group has been explored:
-    a. **Bulk Save to Disk:** Make EXACTLY ONE `multi_replace_file_content` call to `active-group.md` to fill in the observations for ALL steps in the group at once.
-    b. Make EXACTLY ONE edit to `test-session.md` to update `CURRENT_URL`/`CURRENT_PAGE_STATE` (if changed) and set `NEXT_ACTION` to `APPEND_CODE_GROUP_N`.
-    c. Output:
-       ```
-       ✅ EXPLORATION COMPLETE — Group [N]
-       Steps explored: [list]
-       All observations saved to disk: YES
-       NEXT_ACTION updated to: APPEND_CODE_GROUP_N
-       Proceeding to write code from observations.
-       ```
-    d. Do NOT perform any browser actions after this point — the next phase is CODE, not more exploration
-    e. **BOUNDARY CHECK:** If the step you are about to explore is NOT listed in the Active Group section
-       of `test-session.md`, STOP — exploration for this group is already done
+##### A2: Code (Immediately — while observation is fresh)
 
-**Step Observation example (NAVIGATION with multiple verifications + fixed stability check):**
+Write test code for THIS step using the observation you just made:
 ```
-- Step Observation:
-  - Trigger: Clicked "Log in" button (getByRole 'button' name 'Log in')
-  - Action Timestamp: 13:14:02.100
-  - Stable Timestamp: 13:14:05.600
-  - Measured Duration: 3500ms
-  - Step Type: NAVIGATION
-  - Transient Elements Seen: "Loading... Please wait!" (do NOT assert on this)
-  - Stable Anchor: URL changed to dashboard (primary wait target)
-  - Anchor Type: URL_CHANGE
-  - Stable Anchor Locator: **/home**
-  - Stability Check: PASS
-  - Additional Assertions:
-    - ELEMENT_VISIBLE | getByRole('heading', { name: 'Projects' }) | Projects heading visible
-    - ELEMENT_VISIBLE | getByText(/Hi,.*Manoj/) | Stability FIXED — time-sensitive → regex
+// Step [N]: [description]
+// Measured: [Measured Duration]ms | Type: [Step Type]
+[action using the locator from exploration]
+[wait — from Anchor Reference table, using Stable Anchor Locator, no inline timeout]
+[assertion — targets Stable Anchor Locator, not the trigger]
+// Additional assertions (if any observed)
 ```
+- If a page map exists for the current page, use it for locator fallback (intermediate elements, parent scoping).
+- **No inline timeouts — ever.** Timeouts come from config only.
+- Append code to working spec file.
+- Update `active-group.md` for this step:
+  - `Step Type: [NAVIGATION | IN_PAGE_ACTION]`
+  - `Recommended Timeout: [Nms]`
+  - `Status: [x]`
 
-**Step Observation example (Smart IN_PAGE_ACTION - No Snapshot Needed):**
-```
-- Step Observation:
-  - Trigger: Filled "Email" input (getByRole 'textbox' name 'Email') with "test@test.com"
-  - Action Timestamp: 13:14:10.100
-  - Stable Timestamp: 13:14:10.200
-  - Measured Duration: 100ms
-  - Step Type: IN_PAGE_ACTION
-  - Transient Elements Seen: (none)
-  - Stable Anchor: The Email input element itself
-  - Anchor Type: ELEMENT_VISIBLE
-  - Stable Anchor Locator: getByRole('textbox', { name: 'Email' })
-  - Stability Check: PASS (In-Page Action)
-  - Additional Assertions: (none)
-```
+##### A3: PageMap (Only for NAVIGATION steps)
 
-**Additional Assertions:** One line per extra verification: `Anchor Type | Locator | Description`.
-Use when Expected Result describes multiple outcomes, or primary anchor alone isn't sufficient. Write `(none)` if not needed.
+After code is written, if this step was a `NAVIGATION`:
+1. **MANDATORY PAGE MAP SEQUENCE:**
+   a. *(Optional)* Run `browser_run_code` for `waitForLoadState('networkidle')` if page may still be loading.
+   b. **Run `browser_snapshot`**: Dedicated call. Do NOT use auto-generated snapshot text from other tools.
+2. Extract ALL interactive elements **exclusively from the fresh `browser_snapshot` output**.
+3. **Run Stability Check (Checks 1–4) on EVERY locator** before writing.
+4. **🛑 FINAL CHECK:** Was your last tool call `browser_snapshot`? If NO, call it now. If YES, write `page-maps/<page-name>.json`.
+5. Update `MAP:` field in `active-group.md` to `<filename> (MAP_VALIDATED)`.
+
+> Page map is created **AFTER** code, not during exploration. This is a deliberate sequencing rule.
+
+---
+
+#### PATH B — Map or PO Available (`MAP_VALIDATED` or `PO_AVAILABLE`)
+
+> Use when: a validated page map or rich Page Object exists for the step's page. No browser needed initially.
+
+##### B1: Check Existing Implementation
+
+- Scan the Page Object(s) and existing spec file.
+- If a method covering this step already exists → reuse it. Mark `Status: [x]`. Done with this step.
+
+##### B2: Code from Map
+
+If not already implemented:
+- Read locators from `page-maps/<page>.json` or from the Page Object file (whichever is the source).
+- Write test code using those locators. Same code pattern as A2.
+- If using PO: call existing PO methods where applicable. Wrap new actions in new PO methods if the project uses POM pattern.
+- Append to working spec file (or temp spec for EXTEND_EXISTING mode).
+- Update `active-group.md`: `Status: [x]`
+- **No browser, no snapshot, no exploration.**
+
+##### B3: Failure Fallback (during group validation)
+
+If group validation fails on a Path B step:
+- **Attempt 1:** Try alternate locator from the page map.
+- **Attempt 2:** Try locator priority escalation (`getByRole` → `getByLabel` → `getByTestId`).
+- **After 2 failures:** Mark map `MAP_STALE`, fall back to **Path A** for this step (full exploration).
+
+---
+
+#### Smart Navigation for Exploration (Path A / Path B fallback)
+
+When exploration is needed and the step requires prior page state:
+
+| Situation | Strategy |
+|-----------|----------|
+| Prior steps are coded + validated | **Run spec headless** (Protocol B, option A) to reach the right state |
+| Prior steps not yet coded (first group) | Open browser, navigate directly |
+| Spec replay fails | Ask user to navigate manually (Protocol B, option B) |
+| Step requires learning an unknown flow | Ask user to navigate — agent learns from observation |
+
+**Key principle:** Spend exploration time on what the agent needs to **learn**. Replay what's already coded. Only involve the user when the flow can't be automated yet.
+
+---
+
+#### Per-Step Transition
+
+After completing Path A or Path B for each step, move to the next step in the Active Group.
+After the **LAST step** of the group:
+
+1. Verify all steps in `active-group.md` show `Status: [x]`.
+2. Edit `test-session.md`: update `CURRENT_URL`/`CURRENT_PAGE_STATE` (if changed), set `NEXT_ACTION: UPDATE_CONFIG_GROUP_N`.
+3. Output:
+   ```
+   ✅ ALL STEPS CODED — Group [N]
+   Steps: [list with path used: A or B]
+   NEXT_ACTION: UPDATE_CONFIG_GROUP_N
+   ```
 
 **Stable Anchor Selection (first that applies):**
 `URL_CHANGE → ELEMENT_TEXT → ELEMENT_VISIBLE → ELEMENT_ENABLED → ELEMENT_COUNT → NETWORK_IDLE`
@@ -558,72 +594,60 @@ No stable anchor found → `browser_snapshot` → examine DOM → take visual sc
 
 ---
 
-> [!IMPORTANT]
-> ## PHASE BOUNDARY — EXPLORE → CODE
-> After EXPLORE_GROUP_N completes, you MUST proceed to APPEND_CODE_GROUP_N.
-> You must NOT explore any more steps, open any more pages, or click anything in the browser.
-> The browser stays open but idle until after RUN_AND_VALIDATE completes.
-> If `NEXT_ACTION` in `test-session.md` does not say `APPEND_CODE_GROUP_N`, exploration is NOT done — go back and finish it.
-
-### APPEND_CODE_GROUP_N
-
-1. Output STATE CHECK — confirm `NEXT_ACTION` is `APPEND_CODE_GROUP_N`
-2. Read each step's filled Step Observation from `active-group.md`
-3. If a step has `MAP:` reference → also read the page map file for additional locator context
-4. Write code for each step using this pattern:
-   ```
-   // Step [N]: [description]
-   // Measured: [Measured Duration]ms | Type: [Step Type]
-   [action]
-   [wait — from Anchor Reference table, using Stable Anchor Locator, no inline timeout]
-   [assertion — targets Stable Anchor Locator, not the trigger]
-   // Additional assertions (if any from Step Observation)
-   [assertion per Additional Assertion line — use Anchor Reference table for wait/assert code per type]
-   ```
-   If `Additional Assertions` is `(none)`, write only the primary wait + assertion.
-   If it has entries, write one assertion per line after the primary, using the locator and type from each entry.
-5. **Page map locator fallback**: if code requires a locator not in the Step Observation
-   (intermediate element, parent container, scoping) → check `page-maps/<page>.json`.
-   Do NOT guess or write locators from memory.
-6. Append code to working spec file
-7. Set `NEXT_ACTION: UPDATE_CONFIG_GROUP_N`, update `SPEC_FILE_LAST_STEP`
-
-See **Anchor Reference** table for wait code per Anchor Type. No inline timeouts — ever.
-
----
-
 ### UPDATE_CONFIG_GROUP_N
 
 1. Output STATE CHECK — confirm `NEXT_ACTION` is `UPDATE_CONFIG_GROUP_N`
-2. For each step in the completed group, read `Measured Duration` and `Step Type` from Step Observations
-3. Calculate Recommended Config Timeout per step:
-   - `NAVIGATION` steps: Recommended = Measured Duration × 4, minimum 15000ms
-   - `IN_PAGE_ACTION` steps: Recommended = Measured Duration × 3, minimum 5000ms
-4. Map each step's Recommended to the correct config key using the Anchor Reference table:
-   - `URL_CHANGE` / `NETWORK_IDLE` → `navigationTimeout`
-   - All other Anchor Types → `actionTimeout` + `expectTimeout`
-5. Take the maximum Recommended value per config key
-6. Read current config values from `test-session.md` state block
-7. If any maximum exceeds current config → update config file, update values in `test-session.md` state block
-8. If none exceeded → note unchanged, proceed
-9. Set `NEXT_ACTION: RUN_AND_VALIDATE_GROUP_N`
+2. For each step in the group, read `Recommended Timeout` and `Step Type` from `active-group.md`
+3. Map each step's Recommended Timeout to the correct config key using the Anchor Reference table:
+   - `NAVIGATION` steps → `navigationTimeout`
+   - `IN_PAGE_ACTION` steps → `actionTimeout` + `expectTimeout`
+4. Take the maximum Recommended value per config key
+5. Read current config values from `test-session.md` state block
+6. If any maximum exceeds current config → update config file, update values in `test-session.md` state block
+7. If none exceeded → note unchanged, proceed
+8. Set `NEXT_ACTION: RUN_AND_VALIDATE_GROUP_N`
+
+---
+
+### Config Snapshot (before first group validation only)
+
+Before the **first** `RUN_AND_VALIDATE` in Phase 2, capture and temporarily override framework config:
+
+| Config key | Check | Override for Phase 2 | Restore when |
+|------------|-------|----------------------|--------------|
+| `retries` / `retry` | If `> 0` | Set to `0` | After Phase 2 (before Phase 3) |
+| Headed/headless mode | If configured as `headed` | Override to `headless` | After Phase 2 (before Phase 3) |
+| Any re-run on failure settings | If enabled | Disable | After Phase 2 |
+
+Store the **original values** in `test-session.md`:
+```
+ORIGINAL_RETRIES: [value]
+ORIGINAL_HEADED: [true/false]
+```
+These are restored when transitioning to Phase 3.
 
 ---
 
 ### RUN_AND_VALIDATE_GROUP_N
 
-> Validation opens its own browser. Exploration browser stays open. Do NOT update `BROWSER_STATUS`.
+> Validation uses the config-overridden settings (headless, zero retries).
+> Exploration browser stays open. Do NOT update `BROWSER_STATUS`.
 
 1. Output STATE CHECK — confirm `NEXT_ACTION` is `RUN_AND_VALIDATE_GROUP_N`
-2. Run: `[TEST_COMMAND] [SPEC_FILE] --headed`
-3. Passes → set `NEXT_ACTION: UPDATE_SESSION_GROUP_N`
-4. Fails → set `NEXT_ACTION: FIX_AND_RERUN_GROUP_N`
+2. Run: `[TEST_COMMAND] [SPEC_FILE]`
+   (Config already ensures headless + zero retries — no command-line flags needed.)
+3. **This runs the full cumulative spec** (all groups coded so far), not just the current group.
+4. Passes → set `NEXT_ACTION: UPDATE_SESSION_GROUP_N`
+5. Fails → set `NEXT_ACTION: FIX_AND_RERUN_GROUP_N`
 
 ---
 
 ### FIX_AND_RERUN_GROUP_N
 
 Apply Failure Escalation Protocol. Max 3 Level 1 attempts.
+**Current group MUST pass before proceeding to next group.** No compromise.
+
+For Path B steps that fail: after 2 fix attempts, fall back to Path A (see B3 above).
 After passing → set `NEXT_ACTION: UPDATE_SESSION_GROUP_N`.
 
 ---
@@ -635,7 +659,7 @@ After passing → set `NEXT_ACTION: UPDATE_SESSION_GROUP_N`.
 **File rotation steps (no file reads — renames only):**
 
 1. **`active-group.md`** → **rename** to `completed-groups/group-N.md`
-   (Observations and step detail are preserved in the completed file for debugging/Protocol B.)
+   (Step detail preserved in completed file for debugging/Protocol B.)
 
 2. **`pending-groups/group-[N+1].md`** → **rename** to `active-group.md`
    - If last group: skip (no more groups to promote). Delete `active-group.md` if it was moved.
@@ -669,14 +693,19 @@ Start new task? (A) Yes (recommended)  (B) No — continue
 
 **⛔ STOP — wait for user response.**
 
-- User says **A** → **MANDATORY:** Before doing anything else, update `NEXT_ACTION: EXPLORE_GROUP_[N+1]` (use `LAST_COMPLETED_GROUP` + 1) and `NEXT_ACTION_DETAIL` in `test-session.md`. Then, call the `new_task` tool.
+- User says **A** → **MANDATORY:** Before doing anything else, update `NEXT_ACTION: EXECUTE_GROUP_[N+1]` (use `LAST_COMPLETED_GROUP` + 1) and `NEXT_ACTION_DETAIL` in `test-session.md`. Then, call the `new_task` tool.
   **CRITICAL AI SYSTEM OVERRIDE:** When calling `new_task`, you are strictly FORBIDDEN from generating summaries, bullet points, "Current Work", or "Technical Concepts". Provide exactly ONE line of text to the tool: `"/web-automate.md continue"`
   If you provide any other text, you violate core directives. The fresh agent will re-read the state files directly.
-- User says **B** → update `NEXT_ACTION: EXPLORE_GROUP_[N+1]` and `NEXT_ACTION_DETAIL` in `test-session.md`,
+- User says **B** → update `NEXT_ACTION: EXECUTE_GROUP_[N+1]` and `NEXT_ACTION_DETAIL` in `test-session.md`,
   write the file, then continue immediately.
 - If you proceed without the user's response, you are violating the workflow
 
 **If this was the LAST group (no Pending Groups remain)** — transition to Phase 3:
+
+**Before transitioning:** Restore original config values from `test-session.md`:
+- Restore `ORIGINAL_RETRIES` → config `retries`
+- Restore `ORIGINAL_HEADED` → config headed/headless setting
+- Remove `ORIGINAL_*` fields from `test-session.md`
 
 You MUST output the following message AND STOP:
 
@@ -684,6 +713,7 @@ You MUST output the following message AND STOP:
 ✅ All [G] groups complete — [X] steps passing.
 
 All groups have been explored, coded, and validated.
+Config restored to original values (retries, headed mode).
 Next: Phase 3 — Finalise Test (POM refactoring, test data extraction, final validation).
 
 Would you like to start a new task before finalising?
@@ -706,7 +736,7 @@ Would you like to start a new task before finalising?
 1. Output STATE CHECK
 2. Verify progress: count files in `completed-groups/` — confirm count matches expected completed groups
 3. Confirm `test-session.md` state block values match directory state
-4. Run full spec file in headed mode
+4. Run full spec file (uses current Phase 2 config — headless, zero retries)
 5. Fails → fix before proceeding
 
 ---
@@ -730,9 +760,9 @@ Would you like to start a new task before finalising?
 → After 3 attempts: Level 2. No more variations.
 
 **Level 2 — Ask user:**
-1. **Safety Dump:** Dump any successfully explored Step Observations from your memory into `active-group.md` and save `test-session.md` state so data is not lost.
+1. **Safety Dump:** Save `test-session.md` state so data is not lost.
 2. Set `NEXT_ACTION: STOPPED` and `NEXT_ACTION_DETAIL: Waiting for user locator for step [N]` in `test-session.md`.
-2. Output:
+3. Output:
 ```
 ⚠️ Stuck on Step [N]: "[description]"
 Tried 3 times: [attempt 1] | [attempt 2] | [attempt 3]
@@ -743,7 +773,7 @@ Please provide:
   C: Screenshot of element + describe its location
 ```
 **⛔ STOP — wait for user to provide the requested information. Do not attempt further fixes until user responds.**
-3. Receive input → edit `NEXT_ACTION: FIX_AND_RERUN_GROUP_N` → extract locator → test in browser → write code.
+4. Receive input → edit `NEXT_ACTION: FIX_AND_RERUN_GROUP_N` → extract locator → test in browser → write code.
 
 **Level 3 — Graceful exit (only if Level 2 fails):**
 - Remaining steps depend on failed step → mark `[❌]`, mark dependents `⏭️ SKIPPED`,
@@ -839,8 +869,8 @@ Run the final test file (refactored spec, not the working spec) in headed mode:
 2. Identify the failure category:
    - **Import/path error** → fix import paths, re-run
    - **Timing/flaky failure** → check if a POM method lost a wait during refactoring,
-     compare against the working spec's Step Observations for the correct wait
-   - **Locator not found** → verify the Stable Anchor Locator from the Step Observation
+     compare against the working spec's code comments (timing data) for the correct wait
+   - **Locator not found** → verify the locator from the working spec code
      is correctly used in the POM method, not accidentally changed during refactoring
    - **Config mismatch** → verify config timeout values match what was recorded in `test-session.md`
 3. Fix and re-run: `[TEST_COMMAND] [final spec file] --headed`
@@ -880,10 +910,11 @@ Matching priority: `urlPattern` (path glob, domain ignored) → `pageName` → `
 Element types: `button`, `link`, `input`, `heading`, `text`, `container`, `image`, `select`, `checkbox`, `radio`
 
 MAP statuses in `active-group.md`:
-- `(none)` — no page map for this page
-- `MAP_AVAILABLE` — map found, not yet validated
-- `MAP_VALIDATED` — locators confirmed valid, skip DOM analysis
-- `MAP_STALE` — locators invalid, needs full exploration
+- `(none)` — no page map or PO for this page
+- `MAP_AVAILABLE` — page map found, not yet validated
+- `MAP_VALIDATED` — page map locators confirmed valid, skip DOM analysis
+- `MAP_STALE` — page map locators invalid, needs full exploration (Path A)
+- `PO_AVAILABLE` — rich Page Object found with usable locators/methods (treated like MAP_VALIDATED)
 
 ---
 
@@ -893,9 +924,8 @@ Read ONLY the files needed for the current `NEXT_ACTION`. Do NOT read all files 
 
 | NEXT_ACTION | Read | Do NOT read |
 |---|---|---|
-| `EXPLORE_GROUP_N` | `test-session.md` + `active-group.md` | `completed-groups/`, `pending-groups/` |
-| `APPEND_CODE_GROUP_N` | `test-session.md` + `active-group.md` | `completed-groups/`, `pending-groups/` |
-| `UPDATE_CONFIG_GROUP_N` | `test-session.md` + `active-group.md` | `completed-groups/`, `pending-groups/` |
+| `EXECUTE_GROUP_N` | `test-session.md` + `active-group.md` + relevant `page-maps/*.json` | `completed-groups/`, `pending-groups/` |
+| `UPDATE_CONFIG_GROUP_N` | `test-session.md` + `active-group.md` (Recommended Timeout fields) | `completed-groups/`, `pending-groups/` |
 | `RUN_AND_VALIDATE` | `test-session.md` only | everything else |
 | `UPDATE_SESSION` | `test-session.md` only (file renames need no reads) | `active-group.md` (being renamed), `completed-groups/` |
 | `CHECKPOINT` | `test-session.md` only + directory listing | `active-group.md`, `pending-groups/` |
@@ -903,7 +933,7 @@ Read ONLY the files needed for the current `NEXT_ACTION`. Do NOT read all files 
 
 **Write rules:**
 - `test-session.md` → edit specific fields only (never rewrite)
-- `active-group.md` → fill blank observation fields (targeted edits during EXPLORE)
+- `active-group.md` → update Step Type, Recommended Timeout, Status per step (targeted edits during EXECUTE)
 - `completed-groups/` → receive renamed `active-group.md` (no file editing)
 - `pending-groups/group-N.md` → never modify, renamed to `active-group.md` when promoted
 
@@ -922,7 +952,7 @@ Read ONLY the files needed for the current `NEXT_ACTION`. Do NOT read all files 
 
 Preferred selection order (top = most stable): `URL_CHANGE → ELEMENT_TEXT → ELEMENT_VISIBLE → ELEMENT_ENABLED → ELEMENT_COUNT → NETWORK_IDLE`
 
-Recommended Config Timeout calculation (done during UPDATE_CONFIG, not during EXPLORE):
+Recommended Config Timeout calculation (done during EXECUTE per-step, stored in active-group.md):
 - NAVIGATION steps (page.goto, URL change, login): Measured Duration × 4, minimum 15000ms
 - IN_PAGE_ACTION steps (click, fill, tab switch): Measured Duration × 3, minimum 5000ms
 
@@ -934,12 +964,11 @@ Recommended Config Timeout calculation (done during UPDATE_CONFIG, not during EX
 |---|---|
 | `FRAMEWORK_SETUP` | Phase 1: detect or install framework, scan page maps, fill session state block |
 | `VALIDATE_MAPS` | Validate existing page map locators, mark MAP_VALIDATED or MAP_STALE |
-| `EXPLORE_GROUP_N` | Read Active Group, predict, explore step by step, record observations, capture page maps |
-| `APPEND_CODE_GROUP_N` | Write code from Step Observations + page map fallback — no inline timeouts |
-| `UPDATE_CONFIG_GROUP_N` | Compare Recommended timeouts vs config, update file if exceeded |
-| `RUN_AND_VALIDATE_GROUP_N` | Run spec in headed mode using TEST_COMMAND |
-| `FIX_AND_RERUN_GROUP_N` | Fix code (max 3 Level 1 attempts), re-run |
-| `UPDATE_SESSION_GROUP_N` | Rewrite session file, offer new task |
+| `EXECUTE_GROUP_N` | Per-step loop: Path A (explore→code→pagemap) or Path B (code from map). Record timing. |
+| `UPDATE_CONFIG_GROUP_N` | Read Recommended Timeouts from active-group.md, update config if exceeded |
+| `RUN_AND_VALIDATE_GROUP_N` | Run full cumulative spec (headless, zero retries) |
+| `FIX_AND_RERUN_GROUP_N` | Fix code (max 3 Level 1 attempts), Path B fallback to Path A after 2 |
+| `UPDATE_SESSION_GROUP_N` | File rotation, offer new task |
 | `CHECKPOINT` | Verify completed-groups/ count, run full spec |
 | `FINALISE_TEST` | Phase 3: POM refactoring + Phase 4: final validation and cleanup |
 | `STOPPED` | Halted — wait for user |
@@ -964,25 +993,26 @@ Recommended Config Timeout calculation (done during UPDATE_CONFIG, not during EX
 FOR EACH GROUP:
   0. STATE CHECK from test-session.md — verify NEXT_ACTION before anything
      BOUNDARY: confirm the step you will act on is in active-group.md — not a pending group
-  1. EXPLORE  → read active-group.md | check MAP: field per step
-                 MAP_VALIDATED or page map exists: page-map-first — use locators, still record timestamps
-                 No MAP: full exploration + capture page map
-                 BROWSER ACTION: before every call
-                 Hold observations in memory (do NOT edit markdown yet)
-                 AFTER LAST STEP: Bulk write all observations to active-group.md | edit NEXT_ACTION/URL in test-session.md
-  2. CODE     → read active-group.md observations + page map fallback for missing locators
-                 timing comment above each step | no inline timeouts
-  3. CONFIG   → compare Recommended timeouts vs config | update file if exceeded
-  4. RUN      → separate browser | BROWSER_STATUS unchanged
-  5. FIX      → max 3 Level 1 attempts | then Level 2
-  6. UPDATE   → file renames (zero reads):
-                 mv active-group.md → completed-groups/group-N.md
-                 mv pending-groups/group-[N+1].md → active-group.md
-                 test-session.md: edit fields (NEXT_ACTION: STOPPED)
-  7. NEW TASK → ⛔ MANDATORY STOP — offer new task to user
-                 More groups remain → user picks (A/B) → edit NEXT_ACTION: EXPLORE_GROUP_[N+1]
-                 LAST group done → user picks (A/B) → edit NEXT_ACTION: FINALISE_TEST
+
+  1. EXECUTE (per-step loop):
+     FOR EACH STEP in active-group.md:
+       Check MAP: field →
+         PATH A (no map): Explore → Code (immediately) → PageMap (if NAVIGATION)
+         PATH B (map/PO): Check POM → Code from map or PO → (no browser needed)
+       Record timestamps + Recommended Timeout in active-group.md
+       Mark Status: [x]
+
+  2. CONFIG → read Recommended Timeouts from active-group.md | update config if exceeded
+  3. RUN    → headless, zero retries (config snapshot on first run) | full cumulative spec
+  4. FIX    → max 3 Level 1 attempts | Path B → Path A fallback after 2 failures
+  5. UPDATE → file renames (zero reads):
+               mv active-group.md → completed-groups/group-N.md
+               mv pending-groups/group-[N+1].md → active-group.md
+               test-session.md: edit fields (NEXT_ACTION: STOPPED)
+  6. NEW TASK → ⛔ MANDATORY STOP — offer new task to user
+               More groups remain → user picks (A/B) → edit NEXT_ACTION: EXECUTE_GROUP_[N+1]
+               LAST group done → restore config originals → user picks (A/B) → FINALISE_TEST
 
 AFTER ALL GROUPS:
-  8. FINALISE → Phase 3: POM refactoring (from working spec) + Phase 4: final validation + cleanup
+  7. FINALISE → Phase 3: POM refactoring (from working spec) + Phase 4: final headed validation + cleanup
 ```
