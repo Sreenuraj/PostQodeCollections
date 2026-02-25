@@ -187,12 +187,9 @@ after Group 1 exploration. Present this to the user so they know.
 
 Default: 2–3 related steps per group. Do not make every step its own group.
 
-**Group together when:** same page, sequential logical actions, simple predictable flow. Max 3.
+**Group together when:** sequential logical actions flowing through the app. It is EXPECTED and CORRECT for a group to contain page transitions (e.g., Navigate to login -> Fill credentials -> Click submit -> Wait for dashboard is a perfect single group). Max 4 steps.
 
-**Keep as 1 step when:** significant page navigation, modal or overlay, file upload, map widget,
-first entry into a major app section, or described as complex or unreliable.
-
-### 3. Present plan and write session files
+**Keep as 1 step ONLY when:** dealing with extremely complex, isolated, or unreliable actions like file uploads, heavy async map widgets, or complex drag-and-drop interfaces. Do NOT keep as 1 step just because of a navigation.
 
 Present the full plan to the user **in chat** using a detailed Markdown table.
 This is conversational output, NOT from a file.
