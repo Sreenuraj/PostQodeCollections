@@ -357,7 +357,7 @@ Write test code using the observation from the EXPLORE step:
 - **No inline timeouts — ever.** Config only.
 - Append to spec file. EXTEND_EXISTING: write at insertion point, match patterns.
 
-Mark row `[x]`. Write locator used in Remarks.
+**🔥 CRITICAL SAVE INSTRUCTION:** When you `Mark row [x]`, your Remarks MUST explicitly list the primary locators you wrote (e.g., `Remarks: Wrote locators for Submit button and Email input`). Phase 3 relies on these remarks to build the Page Object.
 
 ### CODE FROM MAP: Step N
 
@@ -382,6 +382,8 @@ Mark row `[x]`.
    d. Extract ALL interactive elements from the snapshot output.
    e. **Run Stability Checks on EVERY locator** before writing the JSON.
    f. Write `page-maps/<intelligent-page-name>.json` and update step's `MAP:` field in `active-group.md`
+
+**🔥 CRITICAL SAVE INSTRUCTION:** When you `Mark row [x]`, your Remarks MUST explicitly state the name of the file you created or reused (e.g., `Remarks: Created target-dashboard.json`). Phase 3 uses this history.
 
 > [!IMPORTANT]
 > ### Page Map Locator Quality Rule
@@ -439,7 +441,7 @@ To prevent the checklist from growing too large and consuming excessive tokens, 
 1. Open `test-session.md`.
 2. Delete the fully completed block of rows for the current group (e.g., rows 4 through 18).
 3. Replace them with a single summary row:
-   `| - | SUMMARY | Group N completed successfully | [x] | Steps A-B |`
+   `| - | SUMMARY | Group N completed successfully | [x] | [Insert a comma-separated list of ALL locators, Page Maps, and POs mentioned in the deleted rows' remarks] |`
 4. Leave the remaining `[ ]` rows intact.
 
 Mark row `[x]`.
@@ -537,11 +539,12 @@ Receive input → extract locator → test in browser → write code.
 5. Fails → Failure Escalation. Level 3 → restore from `.backup`
 
 ### NEW_TEST mode
-1. Extract Page Object classes from working spec
-2. Extract test data to config/fixture
-3. Create fixture file if framework supports it
-4. Rename spec to project conventions
-5. Run refactored test headed: `[TEST_COMMAND] [final spec] --headed`
+1. **Analyze `test-session.md` Remarks:** Read the collapsed summary rows in `test-session.md` to identify all the interactive elements and Page Maps recorded during Phase 2.
+2. Extract Page Object classes from working spec
+3. Extract test data to config/fixture
+4. Create fixture file if framework supports it
+5. Rename spec to project conventions
+6. Run refactored test headed: `[TEST_COMMAND] [final spec] --headed`
 6. Passes → Phase 4. Fails → compare against working spec, fix. Max 3 attempts.
 
 > Page maps are a fallback reference only when a refactored locator fails.
