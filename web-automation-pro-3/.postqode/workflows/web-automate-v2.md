@@ -519,13 +519,13 @@ Write test code for THIS step using the observation you just made:
   - `Step Type: [NAVIGATION | IN_PAGE_ACTION]`
   - `Recommended Timeout: [Nms]`
   - `Status: [x]`
+  - If `MAP:` is still `(none)` → update to `MAP: NEEDS_CREATION (<page name>)` — this is the reminder for A3
 
 ##### A3: PageMap (for any page without a map)
 
-After code is written, check: **does the current page have a page map?**
-- Check `page-maps/` for a file matching the current URL or page name.
-- **If a map already exists** → skip. Move to next step.
-- **If NO map exists** → create one now (applies to NAVIGATION destinations AND starting pages):
+After code is written, check `MAP:` field in `active-group.md`:
+- **`MAP: NEEDS_CREATION (<page>)`** → create the page map now:
+- **`MAP:` already has a validated file** → skip. Move to next step.
 
 1. **MANDATORY PAGE MAP SEQUENCE:**
    a. *(Optional)* Run `browser_run_code` for `waitForLoadState('networkidle')` if page may still be loading.
@@ -923,7 +923,8 @@ Matching priority: `urlPattern` (path glob, domain ignored) → `pageName` → `
 Element types: `button`, `link`, `input`, `heading`, `text`, `container`, `image`, `select`, `checkbox`, `radio`
 
 MAP statuses in `active-group.md`:
-- `(none)` — no page map or PO for this page
+- `(none)` — no page map or PO for this page (initial state)
+- `NEEDS_CREATION (<page>)` — code written, page map pending (set by A2, consumed by A3)
 - `MAP_AVAILABLE` — page map found, not yet validated
 - `MAP_VALIDATED` — page map locators confirmed valid, skip DOM analysis
 - `MAP_STALE` — page map locators invalid, needs full exploration (Path A)
