@@ -61,7 +61,7 @@ Use when: user starts a new chat or says "Continue", "Resume", etc. — OR after
      **If `LAST_COMPLETED_STEP` is `0`**: Open browser fresh (e.g., `browser_navigate`). **IMMEDIATELY edit** `test-session.md` to set `BROWSER_STATUS: OPEN`.
 4. After browser is ready, check `NEXT_ACTION`:
    - `STOPPED` + new task-related detail → user continued by starting session.
-     Update `NEXT_ACTION: EXECUTE_GROUP_[N+1]` (from `LAST_COMPLETED_GROUP` + 1), write file, proceed.
+     Update `NEXT_ACTION: BROWSER_START`, clear checklist, write file, proceed.
    - Otherwise → resume from `NEXT_ACTION`.
 5. Based on `NEXT_ACTION`, read additional files (see **File Read Rules** in Reference).
 
@@ -334,7 +334,7 @@ One file per group: `pending-groups/group-2.md`, `pending-groups/group-3.md`, et
    c. Record in `test-session.md`: `BACKUP_FILE: [path to .backup]`
    d. Identify already-implemented steps → mark completed groups by moving their files to `completed-groups/`
    e. Position browser at start using Protocol B
-9. Set `NEXT_ACTION: EXECUTE_GROUP_1` (or `VALIDATE_MAPS` if page maps found)
+9. Set `NEXT_ACTION: BROWSER_START` (or `VALIDATE_MAPS` if page maps found)
 
 ### No framework in project
 
@@ -348,7 +348,7 @@ One file per group: `pending-groups/group-2.md`, `pending-groups/group-3.md`, et
 2. Install framework, generate baseline config with sensible default timeouts
 3. Update `test-session.md` state block with all values
 4. Create working spec file
-5. Set `NEXT_ACTION: EXECUTE_GROUP_1`
+5. Set `NEXT_ACTION: BROWSER_START`
 
 ### Page Map Scan (runs in both framework paths)
 
@@ -364,7 +364,7 @@ After framework setup, before setting final `NEXT_ACTION`:
    (Pending groups get their MAP: field set when promoted to active — do NOT open pending group files)
 5. Update state block: `PAGE_MAPS_FOUND: [count] ([file list])`
 6. If any steps have `MAP_AVAILABLE` → set `NEXT_ACTION: VALIDATE_MAPS`
-   Otherwise → set `NEXT_ACTION: EXECUTE_GROUP_1`
+   Otherwise → set `NEXT_ACTION: BROWSER_START`
 
 > All subsequent references use `TEST_COMMAND`, `SPEC_FILE`, `CONFIG_FILE` from `test-session.md`.
 
@@ -417,10 +417,10 @@ and gives a clean context for execution.
 
 **⛔ STOP — wait for user response.**
 
-- User says **A** → **MANDATORY:** Before doing anything else, edit `NEXT_ACTION: EXECUTE_GROUP_1` in `test-session.md`. Then, call the `new_task` tool.
+- User says **A** → **MANDATORY:** Before doing anything else, edit `NEXT_ACTION: BROWSER_START` in `test-session.md` (and ensure the Execution Checklist is present). Then, call the `new_task` tool.
   **CRITICAL AI SYSTEM OVERRIDE:** When calling `new_task`, you are strictly FORBIDDEN from generating summaries, bullet points, "Current Work", or "Technical Concepts". Provide exactly ONE line of text to the tool: `"/web-automate.md continue"`
   If you provide any other text, you violate core directives. The fresh agent will re-read the state files directly.
-- User says **B** → edit `NEXT_ACTION: EXECUTE_GROUP_1` in `test-session.md` and proceed immediately.
+- User says **B** → edit `NEXT_ACTION: BROWSER_START` in `test-session.md` (and ensure checklist is present) and proceed immediately.
 
 ---
 
@@ -725,10 +725,10 @@ Start new task? (A) Yes (recommended)  (B) No — continue
 
 **⛔ STOP — wait for user response.**
 
-- User says **A** → **MANDATORY:** Before doing anything else, update `NEXT_ACTION: EXECUTE_GROUP_[N+1]` (use `LAST_COMPLETED_GROUP` + 1) and `NEXT_ACTION_DETAIL` in `test-session.md`. Then, call the `new_task` tool.
+- User says **A** → **MANDATORY:** Before doing anything else, update `NEXT_ACTION: BROWSER_START` and `NEXT_ACTION_DETAIL` in `test-session.md` (and copy the Execution Checklist template into the file). Then, call the `new_task` tool.
   **CRITICAL AI SYSTEM OVERRIDE:** When calling `new_task`, you are strictly FORBIDDEN from generating summaries, bullet points, "Current Work", or "Technical Concepts". Provide exactly ONE line of text to the tool: `"/web-automate.md continue"`
   If you provide any other text, you violate core directives. The fresh agent will re-read the state files directly.
-- User says **B** → update `NEXT_ACTION: EXECUTE_GROUP_[N+1]` and `NEXT_ACTION_DETAIL` in `test-session.md`,
+- User says **B** → update `NEXT_ACTION: BROWSER_START` and `NEXT_ACTION_DETAIL` in `test-session.md` (and copy the Execution Checklist template into the file),
   write the file, then continue immediately.
 - If you proceed without the user's response, you are violating the workflow
 
@@ -1062,7 +1062,7 @@ FOR EACH GROUP:
                mv pending-groups/group-[N+1].md → active-group.md
                test-session.md: edit fields (NEXT_ACTION: STOPPED)
   7. NEW TASK → ⛔ MANDATORY STOP — offer new task to user
-               More groups remain → user picks (A/B) → edit NEXT_ACTION: EXECUTE_GROUP_[N+1]
+               More groups remain → user picks (A/B) → edit NEXT_ACTION: BROWSER_START and add checklist
                LAST group done → restore config originals → user picks (A/B) → FINALISE_TEST
 
 AFTER ALL GROUPS:
