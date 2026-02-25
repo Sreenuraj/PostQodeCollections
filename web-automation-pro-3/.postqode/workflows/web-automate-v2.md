@@ -537,9 +537,6 @@ Write test code for THIS step using the observation you just made:
   - `Step Type: [NAVIGATION | IN_PAGE_ACTION]`
   - `Recommended Timeout: [Nms]`
   - `Status: [x]`
-- **Update `test-session.md`** — mandatory after each step:
-  - `CURRENT_STEP: [N+1]` (next step number)
-  - `LAST_COMPLETED_STEP: [N]`
 
 ##### A3: PageMap (for the CURRENT page only)
 
@@ -586,6 +583,15 @@ If group validation fails on a Path B step:
 - **Attempt 1:** Try alternate locator from the page map.
 - **Attempt 2:** Try locator priority escalation (`getByRole` → `getByLabel` → `getByTestId`).
 - **After 2 failures:** Mark map `MAP_STALE`, fall back to **Path A** for this step (full exploration).
+
+---
+
+#### 🛑 Final Step Action (Mandatory for ALL Paths)
+
+Before moving to the next step in the loop, you MUST update the session tracker.
+- **Edit `test-session.md`:**
+  - `CURRENT_STEP: [N+1]` (next step number)
+  - `LAST_COMPLETED_STEP: [N]` (the step you just finished)
 
 ---
 
