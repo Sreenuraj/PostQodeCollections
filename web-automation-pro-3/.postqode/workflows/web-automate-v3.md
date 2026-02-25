@@ -289,6 +289,7 @@ Mark all rows 1-5 `[x]` with remarks. Move to next `[ ]` row.
 > ```
 > **⛔ STOP — wait for reply.**
 > - A → call `new_task` with exactly: `"/web-automate.md continue"`
+>   **🔥 CRITICAL TOOL WARNING:** When calling the `new_task` tool, you are strictly FORBIDDEN from writing summaries, "Current Work", or bullet points in the Task field. The Task field must contain EXACTLY ONE text string: `"/web-automate.md continue"`. Nothing else!
 > - B → continue immediately
 
 ---
@@ -415,8 +416,10 @@ Mark row `[x]`. Write what changed in Remarks.
 
 ### ROTATE FILES
 
-1. Rename `active-group.md` → `completed-groups/group-N.md`
-2. Rename `pending-groups/group-[N+1].md` → `active-group.md` (skip if last group)
+> **🔥 CRITICAL TOOL WARNING:** You MUST use the terminal `mv` command to rotate files. You are strictly FORBIDDEN from using file-writing tools to rewrite the contents.
+
+1. Execute `mv active-group.md completed-groups/group-N.md` in the terminal.
+2. Execute `mv pending-groups/group-[N+1].md active-group.md` in the terminal (skip if last group).
 
 Mark row `[x]`.
 
@@ -428,8 +431,10 @@ Mark row `[x]`.
 2. If `GROUPING_CONFIRMED = NO` → run Protocol C:
    - Present grouping adjustments based on Group 1 observations
    - **⛔ STOP — wait for user approval.**
-   - After approval: set `GROUPING_CONFIRMED: YES`, write "Confirmed" in Remarks. mark `[x]`.
-   - Re-generate pending groups and the remaining checklist rows if grouping changed.
+   - After approval: set `GROUPING_CONFIRMED: YES`, write "Confirmed" in Remarks.
+   - **MANDATORY:** If the user approved grouping changes, you MUST implement those changes in the `pending-groups/` directory right now.
+   - Re-generate the remaining checklist rows in `test-session.md` to reflect the new groups.
+   - Mark `[x]` ONLY AFTER the pending groups and checklist have been physically updated.
 
 ### OFFER NEW TASK: ⛔ stop and ask user
 
@@ -440,7 +445,8 @@ Next: Group [N+1] ([label]) — [G] groups remaining.
 Start new task? (A) Yes (recommended)  (B) No — continue
 ```
 **⛔ STOP — wait for user.**
-- A → call `new_task` with exactly: `"/web-automate.md continue"`
+- A → call `new_task` with exactly: `"/web-automate.md continue"`.
+  **🔥 CRITICAL TOOL WARNING:** When calling the `new_task` tool, you are strictly FORBIDDEN from writing summaries, "Current Work", or bullet points in the Task field. The Task field must contain EXACTLY ONE text string: `"/web-automate.md continue"`. Nothing else!
 - B → continue immediately
 
 **If LAST group done:**
