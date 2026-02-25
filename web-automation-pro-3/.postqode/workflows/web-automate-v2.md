@@ -319,12 +319,13 @@ One file per group: `pending-groups/group-2.md`, `pending-groups/group-3.md`, et
    **⛔ STOP — wait for user to reply (A) or (B) before proceeding.**
 6. Update `test-session.md` state block: `FRAMEWORK`, `SPEC_FILE`, `CONFIG_FILE`,
    `TEST_COMMAND`, `CONFIG_ACTION_TIMEOUT`, `CONFIG_NAVIGATION_TIMEOUT`, `CONFIG_EXPECT_TIMEOUT`, `MODE`
-7. Create working spec file following project patterns
+7. Create working spec file following project patterns (NEW_TEST mode only)
 8. If EXTEND_EXISTING:
-   a. **Create backup:** `cp [existing-test-file] [existing-test-file].backup`
-   b. Record in `test-session.md`: `BACKUP_FILE: [path to .backup]`
-   c. Identify already-implemented steps → mark completed groups by moving their files to `completed-groups/`
-   d. Position browser at start using Protocol B
+   a. **`SPEC_FILE` = the existing test file** (the one being extended — do NOT create a separate working spec)
+   b. **Create backup:** `cp [existing-test-file] [existing-test-file].backup`
+   c. Record in `test-session.md`: `BACKUP_FILE: [path to .backup]`
+   d. Identify already-implemented steps → mark completed groups by moving their files to `completed-groups/`
+   e. Position browser at start using Protocol B
 9. Set `NEXT_ACTION: EXECUTE_GROUP_1` (or `VALIDATE_MAPS` if page maps found)
 
 ### No framework in project
