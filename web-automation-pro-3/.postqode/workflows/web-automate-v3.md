@@ -23,7 +23,8 @@ description: Unified web automation workflow v3 — checklist-driven execution
 >
 > **NEVER:**
 > - Act on a step from a Pending Group — only Active Group steps
-> - Skip a checklist row — every row must be physically marked `[x]` or `[FAIL]` in `test-session.md` before moving on
+> - Skip a checklist row — every row must be physically marked `[x]` before moving to the next row
+> - **Proceed past a `[FAIL]` row.** If a row evaluates to a failure, mark it `[FAIL]`. You MUST immediately follow the Failure Escalation Protocol. You cannot proceed to the next row until the failure is fixed and the row is updated from `[FAIL]` to `[x]`. If it cannot be fixed, you must trigger a Level 3 Graceful Exit.
 > - Assume browser is open or closed — check `BROWSER_STATUS` in session header
 > - Auto-replay previously completed steps without asking the user (Protocol B)
 > - Close the exploration browser during execution except: all groups done, Level 3 exit, user stop
