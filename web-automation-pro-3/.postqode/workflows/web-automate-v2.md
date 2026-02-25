@@ -202,11 +202,11 @@ This is conversational output, NOT from a file.
 Here is the session plan from your test case. Please review steps, groupings,
 and expected results before I proceed.
 
-| Group | Step | Action | Target | Data | Expected Result | Flag |
-|---|---|---|---|---|---|---|
-| 1 | 1 | Navigate + Login | Login page | User: x, Pass: y | Dashboard loads | — |
-| 1 | 2 | Click module | Work Order link | N/A | Work Order page loads | — |
-| 2 | 3 | Fill form fields | Info tab | ⚠️ UNSPECIFIED | Form populated | ⚠️ NEEDS_DECOMPOSITION |
+| Group | Step | Action | Target | Data | Expected Result | Page | Flag |
+|---|---|---|---|---|---|---|---|
+| 1 | 1 | Navigate + Login | Login page | User: x, Pass: y | Dashboard loads | Login | — |
+| 1 | 2 | Click module | Work Order link | N/A | Work Order page loads | Dashboard | — |
+| 2 | 3 | Fill form fields | Info tab | ⚠️ UNSPECIFIED | Form populated | Work Order | ⚠️ NEEDS_DECOMPOSITION |
 
 Does everything look correct?
 ```
@@ -258,6 +258,7 @@ Create the directory. It starts empty. As each group completes,
 - Target: [element description]
 - Data: [input values or N/A]
 - Expected Result: [what the UI shows after this step]
+- Page: [page name or URL pattern where this step executes]
 - MAP: (none)
 - Step Type:
 - Recommended Timeout:
@@ -281,6 +282,7 @@ Create the directory. It starts empty. As each group completes,
 - Target: [element description]
 - Data: [input values or N/A]
 - Expected Result: [what the UI shows after this step]
+- Page: [page name or URL pattern where this step executes]
 - MAP: (none)
 - Step Type:
 - Recommended Timeout:
@@ -518,9 +520,13 @@ Write test code for THIS step using the observation you just made:
   - `Recommended Timeout: [Nms]`
   - `Status: [x]`
 
-##### A3: PageMap (Only for NAVIGATION steps)
+##### A3: PageMap (for any page without a map)
 
-After code is written, if this step was a `NAVIGATION`:
+After code is written, check: **does the current page have a page map?**
+- Check `page-maps/` for a file matching the current URL or page name.
+- **If a map already exists** → skip. Move to next step.
+- **If NO map exists** → create one now (applies to NAVIGATION destinations AND starting pages):
+
 1. **MANDATORY PAGE MAP SEQUENCE:**
    a. *(Optional)* Run `browser_run_code` for `waitForLoadState('networkidle')` if page may still be loading.
    b. **Run `browser_snapshot`**: Dedicated call. Do NOT use auto-generated snapshot text from other tools.
@@ -529,7 +535,8 @@ After code is written, if this step was a `NAVIGATION`:
 4. **🛑 FINAL CHECK:** Was your last tool call `browser_snapshot`? If NO, call it now. If YES, write `page-maps/<page-name>.json`.
 5. Update `MAP:` field in `active-group.md` to `<filename> (MAP_VALIDATED)`.
 
-> Page map is created **AFTER** code, not during exploration. This is a deliberate sequencing rule.
+> Page map is created **AFTER** code, not during exploration. This ensures the map captures the page in its final state.
+> This applies to ALL pages — starting pages, navigation destinations, and any page the agent interacts with.
 
 ---
 
