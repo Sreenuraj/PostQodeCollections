@@ -320,8 +320,11 @@ One file per group: `pending-groups/group-2.md`, `pending-groups/group-3.md`, et
 6. Update `test-session.md` state block: `FRAMEWORK`, `SPEC_FILE`, `CONFIG_FILE`,
    `TEST_COMMAND`, `CONFIG_ACTION_TIMEOUT`, `CONFIG_NAVIGATION_TIMEOUT`, `CONFIG_EXPECT_TIMEOUT`, `MODE`
 7. Create working spec file following project patterns
-8. If EXTEND_EXISTING: extract reused steps into spec, mark completed groups by moving
-   their files to `completed-groups/`, position browser at start using Protocol B
+8. If EXTEND_EXISTING:
+   a. **Create backup:** `cp [existing-test-file] [existing-test-file].backup`
+   b. Record in `test-session.md`: `BACKUP_FILE: [path to .backup]`
+   c. Identify already-implemented steps → mark completed groups by moving their files to `completed-groups/`
+   d. Position browser at start using Protocol B
 9. Set `NEXT_ACTION: EXECUTE_GROUP_1` (or `VALIDATE_MAPS` if page maps found)
 
 ### No framework in project
@@ -508,7 +511,7 @@ Write test code for THIS step using the observation you just made:
 ```
 - If a page map exists for the current page, use it for locator fallback (intermediate elements, parent scoping).
 - **No inline timeouts — ever.** Timeouts come from config only.
-- Append code to working spec file.
+- Append code to working spec file. For EXTEND_EXISTING: write directly into the existing test file at the insertion point, matching existing patterns.
 - Update `active-group.md` for this step:
   - `Step Type: [NAVIGATION | IN_PAGE_ACTION]`
   - `Recommended Timeout: [Nms]`
@@ -544,7 +547,7 @@ If not already implemented:
 - Read locators from `page-maps/<page>.json` or from the Page Object file (whichever is the source).
 - Write test code using those locators. Same code pattern as A2.
 - If using PO: call existing PO methods where applicable. Wrap new actions in new PO methods if the project uses POM pattern.
-- Append to working spec file (or temp spec for EXTEND_EXISTING mode).
+- Append to working spec file. For EXTEND_EXISTING: write directly into the existing test file at the insertion point (after last existing step, before teardown). Match the file's patterns (imports, fixtures, assertion style).
 - Update `active-group.md`: `Status: [x]`
 - **No browser, no snapshot, no exploration.**
 
@@ -791,16 +794,18 @@ All steps `[x]` or `[❌]`.
 
 ### EXTEND_EXISTING mode
 
-1. Read the existing test file and the working spec file side by side
-2. Identify the insertion point — after the last existing step, before any cleanup/teardown
-3. Check for reusable Page Object methods — if the existing file uses POM, write new steps
-   using the same page objects. Create new POM methods only if no existing method covers the action.
-4. Match the existing file's patterns exactly: imports, fixtures, assertion style, step naming
-5. Copy new steps into the existing file at the insertion point
-6. Remove any duplicate imports or setup code that the existing file already handles
-7. Run the full combined test in headed mode: `[TEST_COMMAND] [existing file] --headed`
-8. Passes → delete the working spec file
-9. Fails → Failure Escalation Protocol (the issue is likely import/fixture mismatch — check those first)
+> In EXTEND_EXISTING, new steps were already written directly into the existing test file during Phase 2.
+> No merge is needed. The file has been running E2E with all steps during group validation.
+
+1. Review the new steps added to the existing file:
+   - Verify patterns match (imports, fixtures, assertion style, naming)
+   - Check for any inline locators that should be in PO methods
+2. If new PO methods were created inline during Phase 2 → extract to PO files matching existing patterns
+3. If new page maps were created → verify they're saved in `page-maps/`
+4. Run full E2E in headed mode: `[TEST_COMMAND] [existing file] --headed`
+5. Passes → delete the `.backup` file, remove `BACKUP_FILE` from `test-session.md`
+6. Fails → Failure Escalation Protocol.
+   **Rollback safety:** If Level 3 exit, restore from `.backup`: `cp [file].backup [file]`
 
 ### NEW_TEST mode
 
@@ -851,15 +856,15 @@ Run the final test file (refactored spec, not the working spec) in headed mode:
    Config: [path] (actionTimeout: Nms, navTimeout: Nms, expectTimeout: Nms)
    ```
 3. Clean up — delete these files:
-   - Working spec file (the flat exploration spec)
+   - Working spec file (the flat exploration spec) — NEW_TEST mode only
+   - `.backup` file if it exists (EXTEND_EXISTING mode)
    - `test-session.md`, `active-group.md`, `completed-groups/` directory, `pending-groups/` directory
    - Any exploration screenshots saved during Phase 2
 4. Do NOT delete:
-   - Final spec file
+   - Final spec file (or the extended existing file)
    - Page object files
    - Fixture files
    - Updated config file
-   - `page-maps/` directory and all `.json` files (reused by future tests)
    - `page-maps/` directory and all `.json` files (reused by future tests)
    - Any utility files created or modified
 
