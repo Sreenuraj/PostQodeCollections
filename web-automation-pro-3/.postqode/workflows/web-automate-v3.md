@@ -179,11 +179,11 @@ GROUPING_CONFIRMED: NO
 | 6 | G1-START | Check/create starting page map | [ ] | |
 | 7 | G1-S1 | EXPLORE: [Step 1 action description] | [ ] | |
 | 8 | G1-S1 | WRITE CODE: Step 1 | [ ] | |
-| 9 | G1-S1 | PAGE MAP: check/create for current page | [ ] | |
+| 9 | G1-S1 | PAGE MAP: check/create for the page that resulted from Step 1 | [ ] | |
 | 10 | G1-S1 | UPDATE: active-group Status=[x], session step++ | [ ] | |
 | 11 | G1-S2 | EXPLORE: [Step 2 action description] | [ ] | |
 | 12 | G1-S2 | WRITE CODE: Step 2 | [ ] | |
-| 13 | G1-S2 | PAGE MAP: check/create for current page | [ ] | |
+| 13 | G1-S2 | PAGE MAP: check/create for the page that resulted from Step 2 | [ ] | |
 | 14 | G1-S2 | UPDATE: active-group Status=[x], session step++ | [ ] | |
 | 15 | G1-END | UPDATE CONFIG: compare timeouts, update if exceeded | [ ] | |
 | 16 | G1-END | RUN VALIDATION: headless, zero retries | [ ] | |
@@ -364,6 +364,8 @@ Mark row `[x]`.
 
 ### PAGE MAP: check/create for current page
 
+**🔥 CRITICAL NAMING INSTRUCTION:** Do NOT blindly use the step description for the page map name (e.g., if step was "Login", the *resulting* page is usually "Dashboard"). Use your intelligence: look at the snapshot, read the `<h1>` header, `<title>`, and URL to determine what page you are actually on, and name the file accordingly (e.g., `dashboard.json`, `work-order-list.json`).
+
 1. Check `page-maps/` for file matching current URL or page name
 2. **If map exists** → mark `[x]`, write "exists: [filename]" in Remarks. Done.
 3. **If NO map exists** → create one:
@@ -372,7 +374,7 @@ Mark row `[x]`.
    c. **If NO** → run `browser_snapshot` now.
    d. Extract ALL interactive elements from the snapshot output.
    e. **Run Stability Checks on EVERY locator** before writing the JSON.
-   f. Write `page-maps/<page-name>.json` and update step's `MAP:` field in `active-group.md`
+   f. Write `page-maps/<intelligent-page-name>.json` and update step's `MAP:` field in `active-group.md`
 
 > [!IMPORTANT]
 > ### Page Map Locator Quality Rule
