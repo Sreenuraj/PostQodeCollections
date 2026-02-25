@@ -23,7 +23,7 @@ description: Unified web automation workflow v3 — checklist-driven execution
 >
 > **NEVER:**
 > - Act on a step from a Pending Group — only Active Group steps
-> - Skip a checklist row — every row must be marked `[x]` or `[FAIL]` before moving on
+> - Skip a checklist row — every row must be physically marked `[x]` or `[FAIL]` in `test-session.md` before moving on
 > - Assume browser is open or closed — check `BROWSER_STATUS` in session header
 > - Auto-replay previously completed steps without asking the user (Protocol B)
 > - Close the exploration browser during execution except: all groups done, Level 3 exit, user stop
@@ -280,7 +280,7 @@ Same structure as active-group, one file per pending group.
    Update checklist: replace `EXPLORE` rows with `CODE FROM MAP` for matched steps
 4. Update header: `PAGE_MAPS_FOUND: [count] ([file list])`
 
-Mark all rows 1-5 `[x]` with remarks. Move to next `[ ]` row.
+**🔥 CRITICAL SAVE INSTRUCTION:** You MUST physically edit `test-session.md` to change the `[ ]` to `[x]` for all SETUP rows. Moving to the next row without saving the file is a violation of the workflow. Move to next `[ ]` row only after the file is saved.
 
 ---
 
@@ -301,6 +301,8 @@ Mark all rows 1-5 `[x]` with remarks. Move to next `[ ]` row.
 ## Execution Reference
 
 > The agent reads checklist rows one at a time and refers to these sections for HOW to execute each action type.
+> 
+> **🔥 CRITICAL SAVE INSTRUCTION:** At the end of EVERY action block below, you will see `Mark row [x]`. This means you MUST use your file-writing tool to physically edit `test-session.md` and replace the `[ ]` with `[x]` for that specific row. You may NOT proceed to the next row until `test-session.md` is successfully saved to disk.
 
 ### EXPLORE: [step description]
 
