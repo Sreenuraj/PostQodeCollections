@@ -34,7 +34,7 @@ description: Unified web automation workflow v2 — context-efficient split sess
 > - 🛑 **NEVER create a page map DURING exploration mid-stream.** Page maps are created AFTER code is written for a NAVIGATION step.
 > - Assert on anything listed as transient (spinners, loading indicators)
 > - Carry locators, timing, or page assumptions from one group into the next
-> - Exceed 3 Level 1 fix attempts — escalate to Level 2 immediately
+> - Exceed 2 Level 1 fix attempts — escalate to Level 2 immediately
 > - Rewrite entire session files — use targeted field edits (edit specific lines, not full rewrites)
 
 ---
@@ -655,7 +655,7 @@ These are restored when transitioning to Phase 3.
 
 ### FIX_AND_RERUN_GROUP_N
 
-Apply Failure Escalation Protocol. Max 3 Level 1 attempts.
+Apply Failure Escalation Protocol. Max 2 Level 1 attempts (report-based fix, then re-explore).
 **Current group MUST pass before proceeding to next group.** No compromise.
 
 For Path B steps that fail: after 2 fix attempts, fall back to Path A (see B3 above).
@@ -754,21 +754,33 @@ Would you like to start a new task before finalising?
 
 ### Failure Escalation Protocol
 
-**Level 1 — Self-fix (3 attempts max, then stop):**
-1. Read all `.postqode/rules/` files relevant to the problem before trying anything
-2. **Consult the page map FIRST:** Read `page-maps/<page>.json` for the failing step's page.
-   Check if a better locator exists in the map, or if the failing locator matches a `FIXED` entry.
-   Try the page map locator as the fix.
-3. If the page map locator also fails → add `waitFor({state:'visible'})` before action.
-   Try locator priority: `getByRole()` with name → `getByLabel()` → `getByTestId()`
-   **Manually try the locator in the open exploration browser** (using `browser_run_code` to test `page.locator(...).count()`) before writing to the file.
-4. If still failing → take ONE DOM **`browser_snapshot`** in the exploration browser to re-examine the DOM structure.
-   **After the snapshot:** compare what you see against `page-maps/<page>.json`.
-   If any locators are missing, changed, or new elements are found → **update the page map file**
-   with the corrected locators (run Stability Checks 1–4 on each). This keeps the map current for future attempts.
-5. **If and ONLY IF the DOM snapshot is insufficient or elements are hidden/ambiguous:** Take a visual **screenshot** as an absolute last resort to understand the visual layout.
+> **⛔ ZERO TOLERANCE FOR TRIAL AND ERROR.**
+> Do NOT guess locators, swap selectors, or try random fixes. Every fix must be based on evidence from the test report or browser re-exploration.
 
-→ After 3 attempts: Level 2. No more variations.
+**Level 1 — Evidence-based fix (2 attempts max):**
+
+1. **READ THE REPORT FIRST — mandatory before any fix attempt:**
+   - Read the test runner's failure output (error message, stack trace, failing line)
+   - Read the failure screenshot/trace if the framework generates one
+   - Identify the **exact failure category:**
+     - Timeout → element not found or page didn't load
+     - Assertion → wrong text, count, or state
+     - Navigation → URL mismatch or redirect
+     - Framework → import error, fixture mismatch, config issue
+
+2. **If cause is CLEAR from the report** (e.g., wrong locator text, import path error, assertion value mismatch):
+   - Fix the specific issue based on what the report says
+   - Re-run. If passes → done. If fails → go to step 3.
+
+3. **If cause is UNCLEAR or first fix didn't work → RE-EXPLORE in the open browser:**
+   - Navigate to the failing step's page in the exploration browser
+   - Take a `browser_snapshot` — examine the actual DOM
+   - Compare what you see against the failing code
+   - If the page map exists → compare against `page-maps/<page>.json` and update if stale
+   - Fix based on what you **actually see**, not what you assume
+   - Re-run. If passes → done. If fails → Level 2.
+
+→ After 2 attempts: Level 2 immediately. Do NOT keep trying variations.
 
 **Level 2 — Ask user:**
 1. **Safety Dump:** Save `test-session.md` state so data is not lost.
@@ -981,7 +993,7 @@ Recommended Config Timeout calculation (done during EXECUTE per-step, stored in 
 | `EXECUTE_GROUP_N` | Per-step loop: Path A (explore→code→pagemap) or Path B (code from map). Record timing. |
 | `UPDATE_CONFIG_GROUP_N` | Read Recommended Timeouts from active-group.md, update config if exceeded |
 | `RUN_AND_VALIDATE_GROUP_N` | Run full cumulative spec (headless, zero retries) |
-| `FIX_AND_RERUN_GROUP_N` | Fix code (max 3 Level 1 attempts), Path B fallback to Path A after 2 |
+| `FIX_AND_RERUN_GROUP_N` | Evidence-based fix (report → re-explore, max 2 attempts), Path B fallback to Path A after 2 |
 | `UPDATE_SESSION_GROUP_N` | File rotation, offer new task |
 | `CHECKPOINT` | Verify completed-groups/ count, run full spec |
 | `FINALISE_TEST` | Phase 3: POM refactoring + Phase 4: final validation and cleanup |
@@ -1018,7 +1030,7 @@ FOR EACH GROUP:
 
   2. CONFIG → read Recommended Timeouts from active-group.md | update config if exceeded
   3. RUN    → headless, zero retries (config snapshot on first run) | full cumulative spec
-  4. FIX    → max 3 Level 1 attempts | Path B → Path A fallback after 2 failures
+  4. FIX    → read report first | re-explore if unclear | max 2 attempts | Path B → Path A fallback
   5. UPDATE → file renames (zero reads):
                mv active-group.md → completed-groups/group-N.md
                mv pending-groups/group-[N+1].md → active-group.md
