@@ -25,7 +25,6 @@ description: Unified web automation workflow v3 — checklist-driven execution
 > - Auto-replay previously completed steps without asking the user (Protocol B)
 > - Close the exploration browser during execution except: all groups done, Level 3 exit, user stop
 > - Write inline timeouts in test code — config file only
-> - 🛑 **NEVER write to `page-maps/*.json` unless your IMMEDIATELY PRECEDING tool call was `browser_snapshot`**
 > - 🛑 **NEVER navigate to a different page to create a page map** — maps are ONLY for the current page
 > - Assert on transients (spinners, loading indicators)
 > - Carry locators or timing from one group into the next
@@ -367,12 +366,12 @@ Mark row `[x]`.
 1. Check `page-maps/` for file matching current URL or page name
 2. **If map exists** → mark `[x]`, write "exists: [filename]" in Remarks. Done.
 3. **If NO map exists** → create one:
-   a. *(Optional)* `browser_run_code` for `waitForLoadState('networkidle')`
-   b. **Run `browser_snapshot`** — dedicated call
-   c. Extract ALL interactive elements from snapshot output
-   d. **Run Stability Checks on EVERY locator** before writing
-   e. **🛑 Was your last tool call `browser_snapshot`?** If NO → call it now. If YES → write JSON.
-   f. Update step's `MAP:` field in `active-group.md`
+   a. Check if you already took a `browser_snapshot` on this exact page during the EXPLORE or WRITE CODE steps.
+   b. **If YES** → reuse that snapshot output. Do not take a duplicate snapshot.
+   c. **If NO** → run `browser_snapshot` now.
+   d. Extract ALL interactive elements from the snapshot output.
+   e. **Run Stability Checks on EVERY locator** before writing the JSON.
+   f. Write `page-maps/<page-name>.json` and update step's `MAP:` field in `active-group.md`
 
 > [!IMPORTANT]
 > ### Page Map Locator Quality Rule
