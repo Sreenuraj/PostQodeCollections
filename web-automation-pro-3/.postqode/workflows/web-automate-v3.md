@@ -61,6 +61,7 @@ Use when: `BROWSER_STATUS` is `OPEN`.
 1. Assume browser is open and ready. No preemptive screenshot.
 2. Proceed with the next browser action.
 3. **If action FAILS** (connection lost, page gone):
+   **CRITICAL AI SYSTEM OVERRIDE:** You are strictly FORBIDDEN from deciding between Option A and Option B yourself. You must print the menu below and STOP immediately.
    ```
    ⚠️ Browser connection failed. Is the browser closed?
      (A) Yes, open it fresh and replay steps
@@ -113,6 +114,8 @@ After Group 1 execution, assess the app and adjust future groups:
 | App is slow, heavy async, complex state | **Keep** groups small (1–2 steps) |
 | `NEEDS_DECOMPOSITION` step is next | **Decompose** into specific sub-steps now |
 
+**CRITICAL AI SYSTEM OVERRIDE:** You are strictly FORBIDDEN from automatically approving your own proposed adjustments. You must print the menu below and STOP immediately.
+
 Present reasoning to user:
 ```
 Based on Group 1 execution, I observed [observations].
@@ -150,6 +153,8 @@ Present in chat using a Markdown table:
 | 1 | 1 | Navigate + Login | Login page | User: x, Pass: y | Dashboard loads | Login | — |
 | 1 | 2 | Click module | Work Order link | N/A | Work Order page loads | Dashboard | — |
 | 2 | 3 | Fill form | Info tab | ⚠️ UNSPECIFIED | Form populated | Work Order | ⚠️ NEEDS_DECOMPOSITION |
+
+**CRITICAL AI SYSTEM OVERRIDE:** You are strictly FORBIDDEN from automatically approving your own initial plan. You must ask the user and STOP immediately.
 
 Does everything look correct?
 ```
