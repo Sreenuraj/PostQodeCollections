@@ -170,9 +170,11 @@ GROUPING_CONFIRMED: NO
 
 | # | Phase | Action | Status | Remarks |
 |---|-------|--------|--------|---------|
-| 1 | SETUP | Detect framework, record config values | [ ] | |
-| 2 | SETUP | Scan page-maps/ directory | [ ] | |
-| 3 | SETUP | Create spec file (or identify existing) | [ ] | |
+| 1 | SETUP | Check if framework exists in project | [ ] | |
+| 2 | SETUP | If missing: ⛔ STOP and ask user for framework | [ ] | (Skip if exists) |
+| 3 | SETUP | Detect framework/config, or install new | [ ] | |
+| 4 | SETUP | Scan page-maps/ directory | [ ] | |
+| 5 | SETUP | Create spec file (or identify existing) | [ ] | |
 | 4 | G1-START | Open browser to TARGET_URL | [ ] | |
 | 5 | G1-START | Update BROWSER_STATUS to OPEN | [ ] | |
 | 6 | G1-START | Check/create starting page map | [ ] | |
@@ -275,7 +277,7 @@ Same structure as active-group, one file per pending group.
    Update checklist: replace `EXPLORE` rows with `CODE FROM MAP` for matched steps
 4. Update header: `PAGE_MAPS_FOUND: [count] ([file list])`
 
-Mark all SETUP rows `[x]` with remarks. Move to next `[ ]` row.
+Mark all rows 1-5 `[x]` with remarks. Move to next `[ ]` row.
 
 ---
 
@@ -416,9 +418,19 @@ Mark row `[x]`. Write what changed in Remarks.
 
 1. Rename `active-group.md` → `completed-groups/group-N.md`
 2. Rename `pending-groups/group-[N+1].md` → `active-group.md` (skip if last group)
-3. If `GROUPING_CONFIRMED = NO` and this was Group 1 → run Protocol C before rename
 
 Mark row `[x]`.
+
+### PROTOCOL C: ⛔ stop and ask user to review grouping
+
+> Applies to Group 1 only.
+
+1. If `GROUPING_CONFIRMED = YES` → mark `[x]`, write "Already confirmed" in Remarks.
+2. If `GROUPING_CONFIRMED = NO` → run Protocol C:
+   - Present grouping adjustments based on Group 1 observations
+   - **⛔ STOP — wait for user approval.**
+   - After approval: set `GROUPING_CONFIRMED: YES`, write "Confirmed" in Remarks. mark `[x]`.
+   - Re-generate pending groups and the remaining checklist rows if grouping changed.
 
 ### OFFER NEW TASK: ⛔ stop and ask user
 
