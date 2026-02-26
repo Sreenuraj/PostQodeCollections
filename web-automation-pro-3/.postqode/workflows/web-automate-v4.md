@@ -320,7 +320,7 @@ Same structure as active-group, one file per pending group.
 
 ---
 
-## Execution Reference
+## Phase 2: Execution Reference
 
 > The agent reads checklist rows one at a time and refers to these sections for HOW to execute each action type.
 > 
