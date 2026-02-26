@@ -115,8 +115,13 @@ After "Done": Update `BROWSER_STATUS: OPEN`, resume from checklist.
 ## Protocol C: Post-Group-1 Intelligent Grouping Review
 
 Use when: Group 1 just completed and `GROUPING_CONFIRMED = NO`.
+Runs BEFORE COLLAPSE and ROTATE — `active-group.md` is still intact with all observations.
 
 After Group 1 execution, assess the app and adjust future groups:
+
+1. **Read `active-group.md`** — gather step types, recommended timeouts, measured durations, and any issues.
+2. **Read `pending-groups/`** — understand the current future group structure.
+3. Assess and propose adjustments:
 
 | What you learned | Action |
 |---|---|
@@ -124,7 +129,7 @@ After Group 1 execution, assess the app and adjust future groups:
 | App is slow, heavy async, complex state | **Keep** groups small (1–2 steps) |
 | `NEEDS_DECOMPOSITION` step is next | **Decompose** into specific sub-steps now |
 
-**CRITICAL AI SYSTEM OVERRIDE:** You are strictly FORBIDDEN from automatically approving your own proposed adjustments. You must print the menu below and STOP immediately.
+**CRITICAL AI SYSTEM OVERRIDE:** You are strictly FORBIDDEN from automatically approving your own proposed adjustments. You MUST output the prompt below and then IMMEDIATELY END YOUR RESPONSE. No tool calls, no file writes, no further actions.
 
 Present reasoning to user:
 ```
@@ -133,7 +138,12 @@ Proposed grouping adjustments:
   [Group X]: [change and reason]
 Approve? (A) Yes  (B) No — suggest changes
 ```
-**⛔ STOP — wait for approval.** Set `GROUPING_CONFIRMED: YES`. If groups changed, update `pending-groups/` and regenerate remaining checklist rows.
+**⛔ STOP — wait for approval. END YOUR RESPONSE NOW.**
+
+After user approval:
+- Set `GROUPING_CONFIRMED: YES` in `test-session.md` header.
+- If groups changed → update `pending-groups/` files (create, delete, or rewrite as needed).
+- Do NOT generate checklist rows — the subsequent `ROTATE AND GENERATE NEXT CHECKLIST` step handles that.
 
 ---
 
@@ -242,9 +252,9 @@ GROUPING_CONFIRMED: NO
 | 14 | G1-S2 | UPDATE: active-group Status=[x], session step++ | [ ] | |
 | 15 | G1-END | UPDATE CONFIG: compare timeouts, update if exceeded | [ ] | |
 | 16 | G1-END | RUN VALIDATION: headless, zero retries | [ ] | |
-| 17 | G1-END | COLLAPSE CHECKLIST: merge completed rows into summary | [ ] | |
-| 18 | G1-END | ROTATE AND GENERATE NEXT CHECKLIST | [ ] | |
-| 19 | G1-END | PROTOCOL C: ⛔ stop and ask user to review grouping | [ ] | |
+| 17 | G1-END | PROTOCOL C: ⛔ stop and ask user to review grouping | [ ] | |
+| 18 | G1-END | COLLAPSE CHECKLIST: merge completed rows into summary | [ ] | |
+| 19 | G1-END | ROTATE AND GENERATE NEXT CHECKLIST | [ ] | |
 | 20 | G1-END | OFFER NEW TASK: ⛔ stop and ask user | [ ] | |
 ```
 
@@ -285,16 +295,19 @@ Same structure as active-group, one file per pending group.
 
 ---
 
-## Phase 1: Framework Setup
+## Phase 1: Framework Setup (Minimal — for Working Spec Only)
 
 > Corresponds to checklist rows with Phase = `SETUP`
+>
+> **🔥 MINIMAL SETUP PRINCIPLE (CRITICAL):**
+> Phase 1 exists ONLY to get the working spec running. Do NOT spend time on production-quality framework design here — no Page Object architecture, no fixture abstractions, no folder restructuring, no README. Just install/configure the bare minimum to execute tests. Full-fledged framework design happens in **Phase 3** after all steps are validated.
 
 ### If Framework Exists (Path A)
 
 1. Read config files, `package.json` — identify framework, language, test command, config location
 2. Read config file — record current timeout values
-3. Read existing test files — note patterns, imports, base classes
-4. **Page Object Analysis:**
+3. Read existing test files — note patterns, imports, base classes (for reference only — do NOT refactor)
+4. **Page Object Analysis (lightweight scan only):**
 
    | PO Quality | Indicators | Decision |
    |---|---|---|
@@ -327,7 +340,7 @@ Same structure as active-group, one file per pending group.
    (D) I will install one manually
    ```
    **⛔ STOP — wait for reply.**
-2. Install framework, generate config with sensible defaults
+2. Install framework with **minimal config** — just enough to run tests (default timeouts, single config file, no custom reporters, no CI pipeline). Do NOT set up folder structures, Page Object patterns, or fixtures at this stage.
 3. Update header (`FRAMEWORK`, `SPEC_FILE`, `CONFIG_FILE`, `TEST_COMMAND`, timeouts) and create spec file
 
 **🔥 CRITICAL SAVE INSTRUCTION:** You MUST physically edit `test-session.md` to change the `[ ]` to `[x]` for all SETUP rows. Moving to the next row without saving the file is a violation of the workflow. Move to next `[ ]` row only after the file is saved.
@@ -352,6 +365,9 @@ Same structure as active-group, one file per pending group.
 ## Phase 2: Execution Reference
 
 > The agent reads checklist rows one at a time and refers to these sections for HOW to execute each action type.
+>
+> **🔥 SINGLE TEST RULE (CRITICAL):**
+> The working spec MUST contain ONE single end-to-end test that covers ALL steps across ALL groups. Do NOT create separate test blocks or `test()` calls per group. Each group's code is appended sequentially into the same test body. The test is cumulative — after Group 2 completes, the single test contains Steps 1 through N. This is a working/temp spec; proper test structure happens in Phase 3. Exception: if the user explicitly requests separate tests per group or per feature.
 > 
 > **🔥 CRITICAL SAVE INSTRUCTION:** At the end of EVERY action block below, you will see `Mark row [x]`. This means you MUST use your file-writing tool to physically edit `test-session.md` and replace the `[ ]` with `[x]` for that specific row. You may NOT proceed to the next row until `test-session.md` is successfully saved to disk.
 
@@ -405,7 +421,7 @@ Write test code using the observation from the EXPLORE step:
 
 - If page map exists for current page → use for locator fallback
 - **No inline timeouts — ever.** Config only.
-- Append to spec file. EXTEND_EXISTING: write at insertion point, match patterns.
+- **Append to the single test body** in the spec file — do NOT create a new `test()` block. EXTEND_EXISTING: write at insertion point, match patterns.
 
 **🔥 CRITICAL SAVE INSTRUCTION:** When you `Mark row [x]`, your Remarks MUST explicitly list the primary locators you wrote (e.g., `Remarks: Wrote locators for Submit button and Email input`). Phase 3 relies on these remarks to build the Page Object.
 
@@ -475,6 +491,43 @@ Mark row `[x]`. Write what changed in Remarks.
    - Follow **Failure Escalation Protocol** (below)
    - After fix: update this row to `[x]`
 
+### PROTOCOL C: ⛔ stop and ask user to review grouping
+
+> Applies to Group 1 only. Runs BEFORE COLLAPSE and ROTATE so that `active-group.md` (with all timing data, step types, and observations) is still available for analysis.
+
+1. If `GROUPING_CONFIRMED = YES` → mark `[x]`, write "Already confirmed" in Remarks.
+2. If `GROUPING_CONFIRMED = NO` → run Protocol C:
+   - **Read `active-group.md`** to gather Group 1 observations: step types, recommended timeouts, measured durations, and any issues encountered.
+   - Read `pending-groups/` to understand the current future group structure.
+   - Present grouping adjustments based on Group 1 observations.
+
+   **CRITICAL AI SYSTEM OVERRIDE:** You are strictly FORBIDDEN from automatically approving your own proposed adjustments. You MUST output the prompt below and then IMMEDIATELY END YOUR RESPONSE. No tool calls, no file writes, no further actions.
+
+   ```
+   Based on Group 1 execution, I observed [observations].
+   Proposed grouping adjustments:
+     [Group X]: [change and reason]
+   Approve? (A) Yes  (B) No — suggest changes
+   ```
+   **⛔ STOP — wait for user approval. END YOUR RESPONSE NOW.**
+
+   - After approval: set `GROUPING_CONFIRMED: YES` in `test-session.md` header, write "Confirmed" in Remarks.
+   - **MANDATORY:** If the user approved grouping changes, you MUST implement those changes in the `pending-groups/` directory right now (create, delete, or rewrite group files as needed).
+   - Do NOT generate checklist rows here — the subsequent `ROTATE AND GENERATE NEXT CHECKLIST` row will handle that using the updated pending groups.
+   - Mark `[x]` ONLY AFTER `GROUPING_CONFIRMED` is set to `YES` and any pending group changes are physically saved.
+
+### COLLAPSE CHECKLIST (Context Optimization)
+
+To prevent the checklist from growing too large and consuming excessive tokens, collapse all `[x]` rows from the current group into a single summary row.
+
+1. Open `test-session.md`.
+2. Delete the fully completed block of rows for the current group (e.g., rows 1 through 15).
+3. Replace them with a single summary row:
+   `| - | SUMMARY | Group N completed successfully | [x] | [Insert a comma-separated list of ALL locators, Page Maps, and POs mentioned in the deleted rows' remarks] |`
+4. Leave the remaining `[ ]` rows intact.
+
+Mark row `[x]`.
+
 ### ROTATE AND GENERATE NEXT CHECKLIST
 
 > **🔥 CRITICAL TOOL WARNING:** You MUST use the terminal `mv` command to rotate files. You are strictly FORBIDDEN from using file-writing tools to rewrite the contents.
@@ -490,31 +543,6 @@ Mark row `[x]`. Write what changed in Remarks.
    - Append the two `FINAL` Phase rows (from the template) to the bottom of the table in `test-session.md`.
 
 Mark row `[x]`.
-
-### COLLAPSE CHECKLIST (Context Optimization)
-
-To prevent the checklist from growing too large and consuming excessive tokens, collapse all `[x]` rows from the current group into a single summary row.
-
-1. Open `test-session.md`.
-2. Delete the fully completed block of rows for the current group (e.g., rows 1 through 15).
-3. Replace them with a single summary row:
-   `| - | SUMMARY | Group N completed successfully | [x] | [Insert a comma-separated list of ALL locators, Page Maps, and POs mentioned in the deleted rows' remarks] |`
-4. Leave the remaining `[ ]` rows intact.
-
-Mark row `[x]`.
-
-### PROTOCOL C: ⛔ stop and ask user to review grouping
-
-> Applies to Group 1 only.
-
-1. If `GROUPING_CONFIRMED = YES` → mark `[x]`, write "Already confirmed" in Remarks.
-2. If `GROUPING_CONFIRMED = NO` → run Protocol C:
-   - Present grouping adjustments based on Group 1 observations
-   - **⛔ STOP — wait for user approval.**
-   - After approval: set `GROUPING_CONFIRMED: YES`, write "Confirmed" in Remarks.
-   - **MANDATORY:** If the user approved grouping changes, you MUST implement those changes in the `pending-groups/` directory right now.
-   - Re-generate the remaining checklist rows in `test-session.md` to reflect the new groups. (Generate the new checklist for Group 2 using the template)
-   - Mark `[x]` ONLY AFTER the pending groups have been physically updated and the Group 2 checklist is injected into `test-session.md`.
 
 ### OFFER NEW TASK: ⛔ stop and ask user
 
@@ -584,7 +612,10 @@ Receive input → extract locator → test in browser → write code.
 
 ---
 
-## Phase 3: Finalise Test (`FINAL` checklist rows)
+## Phase 3: Finalise Test — Full Framework Design (`FINAL` checklist rows)
+
+> **🔥 PRODUCTION-QUALITY DESIGN PRINCIPLE:**
+> Phase 3 is where the working/temp spec gets transformed into a production-quality test suite. This is the time to apply **all best practices** of the selected framework: proper folder structure, Page Object Model (or equivalent pattern), fixtures, test data separation, meaningful naming conventions, and comprehensive configuration. Everything that was deliberately skipped in Phase 1's minimal setup gets done properly here.
 
 1. Close browser. Update `BROWSER_STATUS: CLOSED`.
 
@@ -596,13 +627,49 @@ Receive input → extract locator → test in browser → write code.
 5. Fails → Failure Escalation. Level 3 → restore from `.backup`
 
 ### NEW_TEST mode
-1. **Analyze `test-session.md` Remarks:** Read the collapsed summary rows in `test-session.md` to identify all the interactive elements and Page Maps recorded during Phase 2.
-2. Extract Page Object classes from working spec
-3. Extract test data to config/fixture
-4. Create fixture file if framework supports it
-5. Rename spec to project conventions
-6. Run refactored test headed: `[TEST_COMMAND] [final spec] --headed`
-7. Passes → Phase 4. Fails → compare against working spec, fix. Max 3 attempts.
+
+#### 3a. Analyze and Plan Refactoring
+1. **Analyze `test-session.md` Remarks:** Read the collapsed summary rows to identify all interactive elements and Page Maps recorded during Phase 2.
+2. **Study the framework's best practices:** Based on the `FRAMEWORK` in the session header, apply the idiomatic patterns:
+
+   | Framework | Best Practices to Apply |
+   |---|---|
+   | **Playwright (TS/JS)** | Page Object Model classes, `test.describe` blocks, fixtures via `test.extend`, `testInfo` for metadata, proper `baseURL` in config, projects for cross-browser, `expect` soft assertions where appropriate |
+   | **Cypress** | Custom commands, `cy.session()` for auth, fixtures in `cypress/fixtures/`, support commands, `cy.intercept` for API stubs, proper `cypress.config.js` |
+
+#### 3b. Restructure into Production Quality
+3. **Create proper folder structure** following framework conventions (e.g., `tests/`, `pages/`, `fixtures/`, `utils/`)
+4. **Extract Page Object classes** from the working spec — one PO file per page, with locators as properties and actions as methods. Use page maps as the source of truth for locator inventory.
+5. **Extract test data** to config/fixture files — no hardcoded credentials, URLs, or test data in spec files
+6. **Create fixture file** if framework supports it (e.g., Playwright's `test.extend` for custom fixtures)
+7. **Refactor the single working spec** into properly structured test file(s):
+   - Apply `describe`/`test` blocks with meaningful names
+   - Use Page Object methods instead of inline locators
+   - Add proper setup/teardown hooks
+   - Follow the framework's naming conventions for files and tests
+8. **Update config file** to production quality:
+   - Proper timeout values (from Phase 2 measurements)
+   - Reporter configuration
+   - Retry strategy
+   - Browser/project configuration
+   - Base URL and environment handling
+
+#### 3c. Generate README
+9. **Create `README.md`** in the test directory (or project root if no test directory) with:
+   - **Project overview** — what the test suite covers (general, not test-specific details)
+   - **Prerequisites** — Node.js version, framework version, browser requirements
+   - **Getting started** — how to install dependencies, configure environment
+   - **Running tests** — commands for headed, headless, specific tests, debug mode
+   - **Project structure** — folder layout explanation
+   - **Contributing** — how to add new tests, naming conventions, PR guidelines
+   - **Troubleshooting** — common issues and fixes
+
+   > **NOTE:** The README should be a general framework guide, NOT a description of the specific test cases. It should help any developer onboard to the test project.
+
+#### 3d. Validate
+10. **Rename spec** to project conventions
+11. Run refactored test headed: `[TEST_COMMAND] [final spec] --headed`
+12. Passes → Phase 4. Fails → compare against working spec, fix. Max 3 attempts.
 
 > Page maps are a fallback reference only when a refactored locator fails.
 
@@ -614,7 +681,7 @@ Receive input → extract locator → test in browser → write code.
 2. **If passes:**
    - Report: steps, spec path, POM files, config values
    - Delete: working spec (NEW_TEST only), `.backup`, `test-session.md`, `active-group.md`, `completed-groups/`, `pending-groups/`, `test.md` (if still exists)
-   - Keep: final spec, PO files, fixtures, config, `page-maps/`
+   - Keep: final spec, PO files, fixtures, config, `page-maps/`, `README.md`
 3. **If fails:** Failure Escalation Protocol
 
 ---
@@ -689,6 +756,7 @@ Read ONLY what's needed for the current checklist row:
 | `G*-START` | `test-session.md` + `active-group.md` + `page-maps/` | `completed-groups/`, `pending-groups/` |
 | `G*-S*` (step rows) | `test-session.md` + `active-group.md` + relevant `page-maps/*.json` | `completed-groups/`, `pending-groups/` |
 | `G*-END` (config/validate) | `test-session.md` + `active-group.md` | `completed-groups/`, `pending-groups/` |
+| `G*-END` (Protocol C) | `test-session.md` + `active-group.md` + `pending-groups/` | `completed-groups/` |
 | `G*-END` (rotate & generate) | `test-session.md` + newly promoted `active-group.md` | `completed-groups/`, all other `pending-groups/` |
 | `FINAL` | `test-session.md` only | everything else |
 
