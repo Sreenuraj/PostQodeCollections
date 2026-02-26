@@ -186,29 +186,33 @@ GROUPING_CONFIRMED: NO
 
 | # | Phase | Action | Status | Remarks |
 |---|-------|--------|--------|---------|
-| 1 | SETUP | Check if framework exists in project | [ ] | |
-| 2 | SETUP | If missing: ⛔ STOP and ask user for framework | [ ] | (Skip if exists) |
-| 3 | SETUP | Detect framework/config, or install new | [ ] | |
-| 4 | SETUP | Scan page-maps/ directory | [ ] | |
-| 5 | SETUP | Create spec file (or identify existing) | [ ] | |
-| 6 | G1-START | Open browser to TARGET_URL | [ ] | |
-| 7 | G1-START | Update BROWSER_STATUS to OPEN | [ ] | |
-| 8 | G1-START | Check/create starting page map | [ ] | |
-| 9 | G1-S1 | EXPLORE: [Step 1 action description] | [ ] | |
-| 10 | G1-S1 | WRITE CODE: Step 1 | [ ] | |
-| 11 | G1-S1 | PAGE MAP: check/create for the page that resulted from Step 1 | [ ] | |
-| 12 | G1-S1 | UPDATE: active-group Status=[x], session step++ | [ ] | |
-| 13 | G1-S2 | EXPLORE: [Step 2 action description] | [ ] | |
-| 14 | G1-S2 | WRITE CODE: Step 2 | [ ] | |
-| 15 | G1-S2 | PAGE MAP: check/create for the page that resulted from Step 2 | [ ] | |
-| 16 | G1-S2 | UPDATE: active-group Status=[x], session step++ | [ ] | |
-| 17 | G1-END | UPDATE CONFIG: compare timeouts, update if exceeded | [ ] | |
-| 18 | G1-END | RUN VALIDATION: headless, zero retries | [ ] | |
-| 19 | G1-END | ROTATE FILES: mv active→completed, promote next | [ ] | |
-| 20 | G1-END | COLLAPSE CHECKLIST: merge completed rows 1-20 | [ ] | |
-| 21 | G1-END | ROTATE AND GENERATE NEXT CHECKLIST | [ ] | |
-| 22 | G1-END | PROTOCOL C: ⛔ stop and ask user to review grouping | [ ] | |
-| 23 | G1-END | OFFER NEW TASK: ⛔ stop and ask user | [ ] | |
+*(If Framework Exists):*
+| 1 | SETUP | Read configs, identify spec locations | [ ] | |
+| 2 | SETUP | Scan page-maps/ directory | [ ] | |
+| 3 | SETUP | Create working spec (NEW_TEST) or backup (EXTEND) | [ ] | |
+*(OR If No Framework Exists):*
+| 1 | SETUP | ⛔ STOP and ask user for framework preference | [ ] | |
+| 2 | SETUP | Install framework and configure defaults | [ ] | |
+| 3 | SETUP | Create initial spec file | [ ] | |
+*(Then append Group 1 rows, continuing numbering from 4):*
+| 4 | G1-START | Open browser to TARGET_URL | [ ] | |
+| 5 | G1-START | Update BROWSER_STATUS to OPEN | [ ] | |
+| 6 | G1-START | Check/create starting page map | [ ] | |
+| 7 | G1-S1 | EXPLORE: [Step 1 action description] | [ ] | |
+| 8 | G1-S1 | WRITE CODE: Step 1 | [ ] | |
+| 9 | G1-S1 | PAGE MAP: check/create for the page that resulted from Step 1 | [ ] | |
+| 10 | G1-S1 | UPDATE: active-group Status=[x], session step++ | [ ] | |
+| 11 | G1-S2 | EXPLORE: [Step 2 action description] | [ ] | |
+| 12 | G1-S2 | WRITE CODE: Step 2 | [ ] | |
+| 13 | G1-S2 | PAGE MAP: check/create for the page that resulted from Step 2 | [ ] | |
+| 14 | G1-S2 | UPDATE: active-group Status=[x], session step++ | [ ] | |
+| 15 | G1-END | UPDATE CONFIG: compare timeouts, update if exceeded | [ ] | |
+| 16 | G1-END | RUN VALIDATION: headless, zero retries | [ ] | |
+| 17 | G1-END | ROTATE FILES: mv active→completed, promote next | [ ] | |
+| 18 | G1-END | COLLAPSE CHECKLIST: merge completed rows 1-18 | [ ] | |
+| 19 | G1-END | ROTATE AND GENERATE NEXT CHECKLIST | [ ] | |
+| 20 | G1-END | PROTOCOL C: ⛔ stop and ask user to review grouping | [ ] | |
+| 21 | G1-END | OFFER NEW TASK: ⛔ stop and ask user | [ ] | |
 ```
 
 > **🔥 STATELESS CHECKLIST RULE (CRITICAL):**
@@ -250,7 +254,7 @@ Same structure as active-group, one file per pending group.
 
 > Corresponds to checklist rows with Phase = `SETUP`
 
-### Framework exists in project
+### If Framework Exists (Path A)
 
 1. Read config files, `package.json` — identify framework, language, test command, config location
 2. Read config file — record current timeout values
@@ -263,20 +267,21 @@ Same structure as active-group, one file per pending group.
    | **Thin** | Few locators, generic CSS, minimal methods | Set `MAP: (none)`. Create page maps during exploration. |
    | **None** | No PO files | Standard exploration. |
 
-5. Check if steps already implemented → ask:
+5. Check if `page-maps/` exists. If exists → match maps to steps using `urlPattern` or `pageName`. Set `MAP: <file> (MAP_AVAILABLE)` in active-group.md. Update header: `PAGE_MAPS_FOUND: [count]`.
+6. Check if steps already implemented → ask:
    ```
    Steps [X, Y] appear implemented. Prefer:
      (A) Add to existing test file  (B) Create separate new test
    ```
    **⛔ STOP — wait for reply.**
-6. Update `test-session.md` header: `FRAMEWORK`, `SPEC_FILE`, `CONFIG_FILE`, `TEST_COMMAND`, timeouts, `MODE`
-7. If EXTEND_EXISTING:
+7. Update `test-session.md` header: `FRAMEWORK`, `SPEC_FILE`, `CONFIG_FILE`, `TEST_COMMAND`, timeouts, `MODE`
+8. If EXTEND_EXISTING:
    a. SPEC_FILE = the existing file (no separate working spec)
    b. Create backup: `cp [file] [file].backup`
    c. Identify already-implemented steps → mark completed
-8. Create working spec file (NEW_TEST only)
+9. Create working spec file (NEW_TEST only)
 
-### No framework in project
+### If No Framework Exists (Path B)
 
 1. Stop and ask user for framework:
    ```
@@ -287,16 +292,8 @@ Same structure as active-group, one file per pending group.
    (D) I will install one manually
    ```
    **⛔ STOP — wait for reply.**
-2. Install, generate config with sensible defaults
-3. Update header, create spec file
-
-### Page Map Scan
-
-1. Check if `page-maps/` exists
-2. If exists → match maps to steps using `urlPattern` (primary) or `pageName`/`pageTitle` (fallback)
-3. If match → set `MAP: <file> (MAP_AVAILABLE)` in active-group.md
-   Update checklist: replace `EXPLORE` rows with `CODE FROM MAP` for matched steps
-4. Update header: `PAGE_MAPS_FOUND: [count] ([file list])`
+2. Install framework, generate config with sensible defaults
+3. Update header (`FRAMEWORK`, `SPEC_FILE`, `CONFIG_FILE`, `TEST_COMMAND`, timeouts) and create spec file
 
 **🔥 CRITICAL SAVE INSTRUCTION:** You MUST physically edit `test-session.md` to change the `[ ]` to `[x]` for all SETUP rows. Moving to the next row without saving the file is a violation of the workflow. Move to next `[ ]` row only after the file is saved.
 
