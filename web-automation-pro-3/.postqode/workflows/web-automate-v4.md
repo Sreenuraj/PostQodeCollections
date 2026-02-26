@@ -1,5 +1,5 @@
 ---
-description: Unified web automation workflow v4 — JIT checklist execution
+description: Unified web automation workflow — stateless execution
 ---
 
 # /web-automate
@@ -186,28 +186,33 @@ GROUPING_CONFIRMED: NO
 
 | # | Phase | Action | Status | Remarks |
 |---|-------|--------|--------|---------|
-| 1 | G1-START | Open browser to TARGET_URL | [ ] | |
-| 2 | G1-START | Update BROWSER_STATUS to OPEN | [ ] | |
-| 3 | G1-START | Check/create starting page map | [ ] | |
-| 4 | G1-S1 | EXPLORE: [Step 1 action description] | [ ] | |
-| 5 | G1-S1 | WRITE CODE: Step 1 | [ ] | |
-| 6 | G1-S1 | PAGE MAP: check/create for the page that resulted from Step 1 | [ ] | |
-| 7 | G1-S1 | UPDATE: active-group Status=[x], session step++ | [ ] | |
-| 8 | G1-S2 | EXPLORE: [Step 2 action description] | [ ] | |
-| 9 | G1-S2 | WRITE CODE: Step 2 | [ ] | |
-| 10 | G1-S2 | PAGE MAP: check/create for the page that resulted from Step 2 | [ ] | |
-| 11 | G1-S2 | UPDATE: active-group Status=[x], session step++ | [ ] | |
-| 12 | G1-END | UPDATE CONFIG: compare timeouts, update if exceeded | [ ] | |
-| 13 | G1-END | RUN VALIDATION: headless, zero retries | [ ] | |
-| 14 | G1-END | ROTATE FILES: mv active→completed, promote next | [ ] | |
-| 15 | G1-END | COLLAPSE CHECKLIST: merge completed rows 1-15 | [ ] | |
-| 16 | G1-END | ROTATE AND GENERATE NEXT CHECKLIST | [ ] | |
-| 17 | G1-END | PROTOCOL C: ⛔ stop and ask user to review grouping | [ ] | |
-| 18 | G1-END | OFFER NEW TASK: ⛔ stop and ask user | [ ] | |
+| 1 | SETUP | Check if framework exists in project | [ ] | |
+| 2 | SETUP | If missing: ⛔ STOP and ask user for framework | [ ] | (Skip if exists) |
+| 3 | SETUP | Detect framework/config, or install new | [ ] | |
+| 4 | SETUP | Scan page-maps/ directory | [ ] | |
+| 5 | SETUP | Create spec file (or identify existing) | [ ] | |
+| 6 | G1-START | Open browser to TARGET_URL | [ ] | |
+| 7 | G1-START | Update BROWSER_STATUS to OPEN | [ ] | |
+| 8 | G1-START | Check/create starting page map | [ ] | |
+| 9 | G1-S1 | EXPLORE: [Step 1 action description] | [ ] | |
+| 10 | G1-S1 | WRITE CODE: Step 1 | [ ] | |
+| 11 | G1-S1 | PAGE MAP: check/create for the page that resulted from Step 1 | [ ] | |
+| 12 | G1-S1 | UPDATE: active-group Status=[x], session step++ | [ ] | |
+| 13 | G1-S2 | EXPLORE: [Step 2 action description] | [ ] | |
+| 14 | G1-S2 | WRITE CODE: Step 2 | [ ] | |
+| 15 | G1-S2 | PAGE MAP: check/create for the page that resulted from Step 2 | [ ] | |
+| 16 | G1-S2 | UPDATE: active-group Status=[x], session step++ | [ ] | |
+| 17 | G1-END | UPDATE CONFIG: compare timeouts, update if exceeded | [ ] | |
+| 18 | G1-END | RUN VALIDATION: headless, zero retries | [ ] | |
+| 19 | G1-END | ROTATE FILES: mv active→completed, promote next | [ ] | |
+| 20 | G1-END | COLLAPSE CHECKLIST: merge completed rows 1-20 | [ ] | |
+| 21 | G1-END | ROTATE AND GENERATE NEXT CHECKLIST | [ ] | |
+| 22 | G1-END | PROTOCOL C: ⛔ stop and ask user to review grouping | [ ] | |
+| 23 | G1-END | OFFER NEW TASK: ⛔ stop and ask user | [ ] | |
 ```
 
-> **🔥 JIT CHECKLIST RULE (CRITICAL):**
-> In V4, we use Just-In-Time (JIT) checklist generation to keep context size perfectly lean. During Phase 0, you **ONLY** generate the checklist rows for Group 1. You do NOT write the rows for Group 2 or beyond. Future groups will have their rows generated dynamically when `ROTATE AND GENERATE NEXT CHECKLIST` is executed.
+> **🔥 STATELESS CHECKLIST RULE (CRITICAL):**
+> We use dynamic checklist generation to keep context size perfectly lean. During Phase 0, you **ONLY** generate the checklist rows for the `SETUP` phase and Group 1. You do NOT write the rows for Group 2 or beyond. Future groups will have their rows generated dynamically when `ROTATE AND GENERATE NEXT CHECKLIST` is executed.
 
 #### `active-group.md`
 ```
@@ -241,9 +246,57 @@ Same structure as active-group, one file per pending group.
 
 ---
 
+## Phase 1: Framework Setup
+
+> Corresponds to checklist rows with Phase = `SETUP`
+
+### Framework exists in project
+
+1. Read config files, `package.json` — identify framework, language, test command, config location
+2. Read config file — record current timeout values
+3. Read existing test files — note patterns, imports, base classes
+4. **Page Object Analysis:**
+
+   | PO Quality | Indicators | Decision |
+   |---|---|---|
+   | **Rich** | Detailed locators, descriptive methods, good coverage | Set `MAP: PO:<file> (PO_AVAILABLE)`. No page maps needed. |
+   | **Thin** | Few locators, generic CSS, minimal methods | Set `MAP: (none)`. Create page maps during exploration. |
+   | **None** | No PO files | Standard exploration. |
+
+5. Check if steps already implemented → ask:
+   ```
+   Steps [X, Y] appear implemented. Prefer:
+     (A) Add to existing test file  (B) Create separate new test
+   ```
+   **⛔ STOP — wait for reply.**
+6. Update `test-session.md` header: `FRAMEWORK`, `SPEC_FILE`, `CONFIG_FILE`, `TEST_COMMAND`, timeouts, `MODE`
+7. If EXTEND_EXISTING:
+   a. SPEC_FILE = the existing file (no separate working spec)
+   b. Create backup: `cp [file] [file].backup`
+   c. Identify already-implemented steps → mark completed
+8. Create working spec file (NEW_TEST only)
+
+### No framework in project
+
+1. Ask user for framework preference
+2. Install, generate config with sensible defaults
+3. Update header, create spec file
+
+### Page Map Scan
+
+1. Check if `page-maps/` exists
+2. If exists → match maps to steps using `urlPattern` (primary) or `pageName`/`pageTitle` (fallback)
+3. If match → set `MAP: <file> (MAP_AVAILABLE)` in active-group.md
+   Update checklist: replace `EXPLORE` rows with `CODE FROM MAP` for matched steps
+4. Update header: `PAGE_MAPS_FOUND: [count] ([file list])`
+
+**🔥 CRITICAL SAVE INSTRUCTION:** You MUST physically edit `test-session.md` to change the `[ ]` to `[x]` for all SETUP rows. Moving to the next row without saving the file is a violation of the workflow. Move to next `[ ]` row only after the file is saved.
+
+---
+
 > [!IMPORTANT]
-> ## PHASE BOUNDARY — PLANNING → EXECUTION
-> Phase 0 is complete. The workspace is initialized, framework configured, and the execution ledger is ready.
+> ## PHASE BOUNDARY — SETUP → EXECUTE
+> Phase 0 + 1 complete. The workspace is initialized, framework configured, and the execution ledger is ready.
 > Offer new task:
 > ```
 > ✅ Setup complete. Ready for Group Execution.
@@ -391,10 +444,10 @@ Mark row `[x]`. Write what changed in Remarks.
    **If YES:**
    - Execute `mv pending-groups/group-[N+1].md active-group.md` in the terminal.
    - Read the newly promoted `active-group.md` to see how many steps it has.
-   - Use the **JIT Checklist Generation Template** (in the Reference section) to write exactly the required rows for Group N+1 to the bottom of the table in `test-session.md`.
+   - Use the **Next Group Checklist Template** (in the Reference section) to write exactly the required rows for Group N+1 to the bottom of the table in `test-session.md`.
    **If NO (Last group just finished):**
    - Skip promotion. 
-   - Append the two `FINAL` Phase rows (from the JIT template) to the bottom of the table in `test-session.md`.
+   - Append the two `FINAL` Phase rows (from the template) to the bottom of the table in `test-session.md`.
 
 Mark row `[x]`.
 
@@ -420,7 +473,7 @@ Mark row `[x]`.
    - **⛔ STOP — wait for user approval.**
    - After approval: set `GROUPING_CONFIRMED: YES`, write "Confirmed" in Remarks.
    - **MANDATORY:** If the user approved grouping changes, you MUST implement those changes in the `pending-groups/` directory right now.
-   - Re-generate the remaining checklist rows in `test-session.md` to reflect the new groups. *(In V4, this just means generating the new JIT checklist for Group 2)*
+   - Re-generate the remaining checklist rows in `test-session.md` to reflect the new groups. (Generate the new checklist for Group 2 using the template)
    - Mark `[x]` ONLY AFTER the pending groups have been physically updated and the Group 2 checklist is injected into `test-session.md`.
 
 ### OFFER NEW TASK: ⛔ stop and ask user
@@ -601,7 +654,7 @@ Read ONLY what's needed for the current checklist row:
 
 ---
 
-### JIT Checklist Generation Template
+### Next Group Checklist Template
 
 When instructed to `ROTATE AND GENERATE NEXT CHECKLIST`, read the newly promoted `active-group.md` and append exactly this block of rows to the bottom of the table in `test-session.md`. Number the rows continuously from the last existing row (e.g., if the summary was row N, these start at N+1).
 
