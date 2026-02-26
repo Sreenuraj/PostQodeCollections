@@ -166,7 +166,7 @@ Does everything look correct?
 
 ### 5. Generate session files
 
-After approval → install framework if missing, create workspace folders, and write all files:
+After approval → create workspace folders and write all files:
 
 #### `test-session.md` — header + execution checklist
 
@@ -278,7 +278,15 @@ Same structure as active-group, one file per pending group.
 
 ### No framework in project
 
-1. Ask user for framework preference
+1. Stop and ask user for framework:
+   ```
+   No testing framework detected. Please choose:
+   (A) Playwright (TypeScript) - Recommended
+   (B) Playwright (JavaScript)
+   (C) Cypress
+   (D) I will install one manually
+   ```
+   **⛔ STOP — wait for reply.**
 2. Install, generate config with sensible defaults
 3. Update header, create spec file
 
