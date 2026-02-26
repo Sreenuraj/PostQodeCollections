@@ -170,7 +170,7 @@ Please review the proposed plan in `test.md`. Does everything look correct?
 
 ### 5. Generate session files
 
-After approval → delete the temporary `test.md` file, create workspace folders, and write all execution files:
+After approval → create workspace folders, and write all execution files:
 
 #### `test-session.md` — header + execution checklist
 
@@ -251,6 +251,8 @@ GROUPING_CONFIRMED: NO
 Same structure as active-group, one file per pending group.
 
 #### `completed-groups/` — empty directory
+
+**Cleanup:** After all execution files are successfully generated, delete the temporary `test.md` file.
 
 ---
 
