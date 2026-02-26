@@ -232,6 +232,7 @@ GROUPING_CONFIRMED: NO
 - [ ] Each step code written
 - [ ] Config updated if timeouts exceeded
 - [ ] Group validation passed (headless)
+- [ ] Next group checklist generated and appended to test-session.md
 ```
 
 #### `pending-groups/group-N.md`
