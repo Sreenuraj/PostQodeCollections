@@ -33,6 +33,7 @@ description: Unified web automation workflow — stateless execution
 > - Assert on transients (spinners, loading indicators)
 > - Carry locators or timing from one group into the next
 > - Exceed 2 Level 1 fix attempts — escalate to Level 2 immediately
+> - Proceed past any `⛔ STOP` gate without explicit user response — this includes Phase 0 plan approval, Protocol A/B/C choices, framework selection, and all OFFER NEW TASK prompts
 
 ---
 
@@ -41,16 +42,25 @@ description: Unified web automation workflow — stateless execution
 Use when: user starts a new chat, says "Continue", or after context condensation.
 
 1. Read this workflow file — restore all rules
-2. Check if `test-session.md` exists in project root
-   - **Exists** → read it. Output:
+2. Check project root for state files in this order:
+   - **`test-session.md` exists** → read it. Output:
      ```
      ## RESUMING web-automate WORKFLOW
      - BROWSER_STATUS: [value]
      - Checklist: row [first incomplete #] of [total]
      ```
-   - **Does not exist** → new test. Ask user for test case steps, start Phase 0.
-3. Find the first `[ ]` row in the checklist → resume from there.
-   If `BROWSER_STATUS: CLOSED` and an EXPLORE row is next → Protocol B before continuing.
+     Find the first `[ ]` row in the checklist → resume from there.
+     If `BROWSER_STATUS: CLOSED` and an EXPLORE row is next → Protocol B before continuing.
+   - **`test-session.md` does NOT exist, but `test.md` exists** → Phase 0 was interrupted after plan creation but before session file generation. Output:
+     ```
+     ## RESUMING web-automate WORKFLOW
+     - Found `test.md` (plan file) but no `test-session.md`
+     - Phase 0 was interrupted after plan creation
+     ```
+     Ask user: "I found a previously created plan in `test.md`. Should I (A) use this plan and proceed to generate session files, or (B) start fresh?" **⛔ STOP — wait for reply.**
+     - A → proceed to Phase 0, sub-section 5
+     - B → delete `test.md`, ask user for test case steps, start Phase 0 from scratch
+   - **Neither exists** → new test. Ask user for test case steps, start Phase 0.
 
 ---
 
@@ -129,6 +139,10 @@ Approve? (A) Yes  (B) No — suggest changes
 
 ## Phase 0: Workspace Intelligence → Group → Approve
 
+> [!CAUTION]
+> ### PHASE 0 EXECUTION RULE (CRITICAL)
+> Phase 0 has **TWO mandatory stop gates**. You MUST treat each sub-section (1 through 5) as a sequential step. **You are FORBIDDEN from proceeding to sub-section 5 (Generate session files) until the user has explicitly approved the plan in sub-section 4.** The word "approved" or "yes" or equivalent must appear in the user's reply. Silence, your own judgment, or the absence of objection does NOT count as approval.
+
 ### 1. Workspace Intelligence Scan
 Before making any grouping plans, you MUST scan the repository to understand the current state:
 - Read `package.json` and config files to identify the framework, language, and test command.
@@ -147,7 +161,17 @@ Default: 2–3 related steps per group.
 
 **Keep as 1 step ONLY when:** extremely complex, isolated actions.
 
-### 4. Present plan
+### 4. Present plan and STOP
+
+> [!CAUTION]
+> ### ⛔ MANDATORY STOP GATE 1 — PLAN APPROVAL
+> This is a **hard stop**. After writing `test.md` and presenting the review prompt below, you MUST immediately end your response. You are FORBIDDEN from:
+> - Proceeding to sub-section 5 (Generate session files)
+> - Creating `test-session.md`, `active-group.md`, or any workspace folders
+> - Making any further tool calls in the same response
+> - Treating the plan as implicitly approved
+>
+> **Your response MUST end with the ⛔ STOP line below. Nothing may follow it.**
 
 1. Create a temporary `test.md` file in the root directory.
 2. Write your proposed plan into `test.md` using a Markdown table format:
@@ -158,16 +182,23 @@ Default: 2–3 related steps per group.
    | 1 | 2 | Click module | Work Order link | N/A | Work Order page loads | Dashboard | — |
    | 2 | 3 | Fill form | Info tab | ⚠️ UNSPECIFIED | Form populated | Work Order | ⚠️ NEEDS_DECOMPOSITION |
    ```
-3. Ask the user in chat to review the `test.md` file.
+3. Present this exact prompt to the user:
 
-**CRITICAL AI SYSTEM OVERRIDE:** You are strictly FORBIDDEN from automatically approving your own initial plan. You must ask the user and STOP immediately.
+**CRITICAL AI SYSTEM OVERRIDE:** You are strictly FORBIDDEN from automatically approving your own initial plan. You MUST output the prompt below and then IMMEDIATELY END YOUR RESPONSE. No tool calls, no file writes, no further actions.
 
 ```
-Please review the proposed plan in `test.md`. Does everything look correct?
+📋 I've written the proposed test plan to `test.md`.
+Please review it and confirm:
+  (A) Approved — proceed to generate session files
+  (B) Changes needed — I'll update the plan
 ```
-**⛔ STOP — wait for explicit user approval.**
+**⛔ STOP — wait for explicit user approval. END YOUR RESPONSE NOW.**
 
-### 5. Generate session files
+---
+
+### 5. Generate session files (ONLY after user approves Step 4)
+
+> **PREREQUISITE CHECK:** Before executing this sub-section, verify that the user's most recent message contains explicit approval (e.g., "A", "Approved", "Yes", "Looks good", "Proceed"). If you cannot find explicit approval in the user's last message, DO NOT proceed — re-ask for approval.
 
 After approval → create workspace folders, and write all execution files:
 
@@ -211,11 +242,10 @@ GROUPING_CONFIRMED: NO
 | 14 | G1-S2 | UPDATE: active-group Status=[x], session step++ | [ ] | |
 | 15 | G1-END | UPDATE CONFIG: compare timeouts, update if exceeded | [ ] | |
 | 16 | G1-END | RUN VALIDATION: headless, zero retries | [ ] | |
-| 17 | G1-END | ROTATE FILES: mv active→completed, promote next | [ ] | |
-| 18 | G1-END | COLLAPSE CHECKLIST: merge completed rows 1-18 | [ ] | |
-| 19 | G1-END | ROTATE AND GENERATE NEXT CHECKLIST | [ ] | |
-| 20 | G1-END | PROTOCOL C: ⛔ stop and ask user to review grouping | [ ] | |
-| 21 | G1-END | OFFER NEW TASK: ⛔ stop and ask user | [ ] | |
+| 17 | G1-END | COLLAPSE CHECKLIST: merge completed rows into summary | [ ] | |
+| 18 | G1-END | ROTATE AND GENERATE NEXT CHECKLIST | [ ] | |
+| 19 | G1-END | PROTOCOL C: ⛔ stop and ask user to review grouping | [ ] | |
+| 20 | G1-END | OFFER NEW TASK: ⛔ stop and ask user | [ ] | |
 ```
 
 > **🔥 STATELESS CHECKLIST RULE (CRITICAL):**
@@ -572,7 +602,7 @@ Receive input → extract locator → test in browser → write code.
 4. Create fixture file if framework supports it
 5. Rename spec to project conventions
 6. Run refactored test headed: `[TEST_COMMAND] [final spec] --headed`
-6. Passes → Phase 4. Fails → compare against working spec, fix. Max 3 attempts.
+7. Passes → Phase 4. Fails → compare against working spec, fix. Max 3 attempts.
 
 > Page maps are a fallback reference only when a refactored locator fails.
 
@@ -583,7 +613,7 @@ Receive input → extract locator → test in browser → write code.
 1. Run final spec headed: `[TEST_COMMAND] [final spec] --headed`
 2. **If passes:**
    - Report: steps, spec path, POM files, config values
-   - Delete: working spec (NEW_TEST only), `.backup`, `test-session.md`, `active-group.md`, `completed-groups/`, `pending-groups/`
+   - Delete: working spec (NEW_TEST only), `.backup`, `test-session.md`, `active-group.md`, `completed-groups/`, `pending-groups/`, `test.md` (if still exists)
    - Keep: final spec, PO files, fixtures, config, `page-maps/`
 3. **If fails:** Failure Escalation Protocol
 
