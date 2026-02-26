@@ -149,24 +149,28 @@ Default: 2–3 related steps per group.
 
 ### 4. Present plan
 
-Present in chat using a Markdown table:
-```
-| Group | Step | Action | Target | Data | Expected Result | Page | Flag |
-|---|---|---|---|---|---|---|---|
-| 1 | 1 | Navigate + Login | Login page | User: x, Pass: y | Dashboard loads | Login | — |
-| 1 | 2 | Click module | Work Order link | N/A | Work Order page loads | Dashboard | — |
-| 2 | 3 | Fill form | Info tab | ⚠️ UNSPECIFIED | Form populated | Work Order | ⚠️ NEEDS_DECOMPOSITION |
+1. Create a temporary `test.md` file in the root directory.
+2. Write your proposed plan into `test.md` using a Markdown table format:
+   ```markdown
+   | Group | Step | Action | Target | Data | Expected Result | Page | Flag |
+   |---|---|---|---|---|---|---|---|
+   | 1 | 1 | Navigate + Login | Login page | User: x, Pass: y | Dashboard loads | Login | — |
+   | 1 | 2 | Click module | Work Order link | N/A | Work Order page loads | Dashboard | — |
+   | 2 | 3 | Fill form | Info tab | ⚠️ UNSPECIFIED | Form populated | Work Order | ⚠️ NEEDS_DECOMPOSITION |
+   ```
+3. Ask the user in chat to review the `test.md` file.
 
 **CRITICAL AI SYSTEM OVERRIDE:** You are strictly FORBIDDEN from automatically approving your own initial plan. You must ask the user and STOP immediately.
 
-Does everything look correct?
+```
+Please review the proposed plan in `test.md`. Does everything look correct?
 ```
 **⛔ STOP — wait for explicit user approval.**
 *(Note: If no automation framework was found in the workspace during Step 1, you must ask the user for their framework preference as part of this approval block).*
 
 ### 5. Generate session files
 
-After approval → create workspace folders and write all files:
+After approval → delete the temporary `test.md` file, create workspace folders, and write all execution files:
 
 #### `test-session.md` — header + execution checklist
 
