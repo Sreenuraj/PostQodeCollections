@@ -166,7 +166,6 @@ Default: 2–3 related steps per group.
 Please review the proposed plan in `test.md`. Does everything look correct?
 ```
 **⛔ STOP — wait for explicit user approval.**
-*(Note: If no automation framework was found in the workspace during Step 1, you must ask the user for their framework preference as part of this approval block).*
 
 ### 5. Generate session files
 
