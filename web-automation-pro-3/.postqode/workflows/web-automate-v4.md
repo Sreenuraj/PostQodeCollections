@@ -127,24 +127,27 @@ Approve? (A) Yes  (B) No — suggest changes
 
 ---
 
-## Phase 0: Parse → Group → Checklist → Approve
+## Phase 0: Workspace Intelligence → Group → Approve
 
-### 1. Parse and decompose
+### 1. Workspace Intelligence Scan
+Before making any grouping plans, you MUST scan the repository to understand the current state:
+- Read `package.json` and config files to identify the framework, language, and test command.
+- Scan existing test spec files to see if any of the user's requested steps are already coded.
+- Scan the `page-maps/` directory to see what maps already exist.
 
+### 2. Parse and decompose
 Parse every step: exact action, target element, data, expected result.
 **Do NOT repeat the user's input.** Break into discrete UI interactions. Infer expected results if not provided.
+**Flag vague steps** → mark `⚠️ NEEDS_DECOMPOSITION`.
 
-**Flag vague steps** ("fill all required fields") → mark `⚠️ NEEDS_DECOMPOSITION`. Decomposed in Protocol C after Group 1.
-
-### 2. Group
-
+### 3. Code-Aware Grouping
 Default: 2–3 related steps per group.
 
-**Group together when:** sequential logical actions flowing through the app. Page transitions within a group are EXPECTED (e.g., Navigate → Login → Dashboard = one group). Max 4 steps.
+**CODE-AWARE BATCHING (CRITICAL):** If your Workspace Scan revealed that a sequence of steps (e.g., Steps 1-5 for logging in and navigating) is *already fully implemented* in an existing spec file, **batch them together into a single large group** (e.g., "Group 1: Execute existing login flow"). Do not isolate them.
 
-**Keep as 1 step ONLY when:** extremely complex, isolated actions (file uploads, heavy async map widgets, complex drag-and-drop).
+**Keep as 1 step ONLY when:** extremely complex, isolated actions.
 
-### 3. Present plan
+### 4. Present plan
 
 Present in chat using a Markdown table:
 ```
@@ -159,10 +162,11 @@ Present in chat using a Markdown table:
 Does everything look correct?
 ```
 **⛔ STOP — wait for explicit user approval.**
+*(Note: If no automation framework was found in the workspace during Step 1, you must ask the user for their framework preference as part of this approval block).*
 
-### 4. Generate session files
+### 5. Generate session files
 
-After approval → create workspace and write all files:
+After approval → install framework if missing, create workspace folders, and write all files:
 
 #### `test-session.md` — header + execution checklist
 
@@ -182,33 +186,28 @@ GROUPING_CONFIRMED: NO
 
 | # | Phase | Action | Status | Remarks |
 |---|-------|--------|--------|---------|
-| 1 | SETUP | Check if framework exists in project | [ ] | |
-| 2 | SETUP | If missing: ⛔ STOP and ask user for framework | [ ] | (Skip if exists) |
-| 3 | SETUP | Detect framework/config, or install new | [ ] | |
-| 4 | SETUP | Scan page-maps/ directory | [ ] | |
-| 5 | SETUP | Create spec file (or identify existing) | [ ] | |
-| 4 | G1-START | Open browser to TARGET_URL | [ ] | |
-| 5 | G1-START | Update BROWSER_STATUS to OPEN | [ ] | |
-| 6 | G1-START | Check/create starting page map | [ ] | |
-| 7 | G1-S1 | EXPLORE: [Step 1 action description] | [ ] | |
-| 8 | G1-S1 | WRITE CODE: Step 1 | [ ] | |
-| 9 | G1-S1 | PAGE MAP: check/create for the page that resulted from Step 1 | [ ] | |
-| 10 | G1-S1 | UPDATE: active-group Status=[x], session step++ | [ ] | |
-| 11 | G1-S2 | EXPLORE: [Step 2 action description] | [ ] | |
-| 12 | G1-S2 | WRITE CODE: Step 2 | [ ] | |
-| 13 | G1-S2 | PAGE MAP: check/create for the page that resulted from Step 2 | [ ] | |
-| 14 | G1-S2 | UPDATE: active-group Status=[x], session step++ | [ ] | |
-| 15 | G1-END | UPDATE CONFIG: compare timeouts, update if exceeded | [ ] | |
-| 16 | G1-END | RUN VALIDATION: headless, zero retries | [ ] | |
-| 17 | G1-END | ROTATE FILES: mv active→completed, promote next | [ ] | |
-| 19 | G1-END | COLLAPSE CHECKLIST: merge completed rows 1-19 | [ ] | |
-| 20 | G1-END | ROTATE AND GENERATE NEXT CHECKLIST | [ ] | |
-| 21 | G1-END | PROTOCOL C: ⛔ stop and ask user to review grouping | [ ] | |
-| 22 | G1-END | OFFER NEW TASK: ⛔ stop and ask user | [ ] | |
+| 1 | G1-START | Open browser to TARGET_URL | [ ] | |
+| 2 | G1-START | Update BROWSER_STATUS to OPEN | [ ] | |
+| 3 | G1-START | Check/create starting page map | [ ] | |
+| 4 | G1-S1 | EXPLORE: [Step 1 action description] | [ ] | |
+| 5 | G1-S1 | WRITE CODE: Step 1 | [ ] | |
+| 6 | G1-S1 | PAGE MAP: check/create for the page that resulted from Step 1 | [ ] | |
+| 7 | G1-S1 | UPDATE: active-group Status=[x], session step++ | [ ] | |
+| 8 | G1-S2 | EXPLORE: [Step 2 action description] | [ ] | |
+| 9 | G1-S2 | WRITE CODE: Step 2 | [ ] | |
+| 10 | G1-S2 | PAGE MAP: check/create for the page that resulted from Step 2 | [ ] | |
+| 11 | G1-S2 | UPDATE: active-group Status=[x], session step++ | [ ] | |
+| 12 | G1-END | UPDATE CONFIG: compare timeouts, update if exceeded | [ ] | |
+| 13 | G1-END | RUN VALIDATION: headless, zero retries | [ ] | |
+| 14 | G1-END | ROTATE FILES: mv active→completed, promote next | [ ] | |
+| 15 | G1-END | COLLAPSE CHECKLIST: merge completed rows 1-15 | [ ] | |
+| 16 | G1-END | ROTATE AND GENERATE NEXT CHECKLIST | [ ] | |
+| 17 | G1-END | PROTOCOL C: ⛔ stop and ask user to review grouping | [ ] | |
+| 18 | G1-END | OFFER NEW TASK: ⛔ stop and ask user | [ ] | |
 ```
 
 > **🔥 JIT CHECKLIST RULE (CRITICAL):**
-> In V4, we use Just-In-Time (JIT) checklist generation to keep context size perfectly lean. During Phase 0, you **ONLY** generate the checklist rows for the SETUP phase and Group 1. You do NOT write the rows for Group 2 or beyond. Future groups will have their rows generated dynamically when `ROTATE AND GENERATE NEXT CHECKLIST` is executed.
+> In V4, we use Just-In-Time (JIT) checklist generation to keep context size perfectly lean. During Phase 0, you **ONLY** generate the checklist rows for Group 1. You do NOT write the rows for Group 2 or beyond. Future groups will have their rows generated dynamically when `ROTATE AND GENERATE NEXT CHECKLIST` is executed.
 
 #### `active-group.md`
 ```
@@ -242,57 +241,10 @@ Same structure as active-group, one file per pending group.
 
 ---
 
-## Phase 1: Framework Setup
-
-> Corresponds to checklist rows with Phase = `SETUP`
-
-### Framework exists in project
-
-1. Read config files, `package.json` — identify framework, language, test command, config location
-2. Read config file — record current timeout values
-3. Read existing test files — note patterns, imports, base classes
-4. **Page Object Analysis:**
-
-   | PO Quality | Indicators | Decision |
-   |---|---|---|
-   | **Rich** | Detailed locators, descriptive methods, good coverage | Set `MAP: PO:<file> (PO_AVAILABLE)`. No page maps needed. |
-   | **Thin** | Few locators, generic CSS, minimal methods | Set `MAP: (none)`. Create page maps during exploration. |
-   | **None** | No PO files | Standard exploration. |
-
-5. Check if steps already implemented → ask:
-   ```
-   Steps [X, Y] appear implemented. Prefer:
-     (A) Add to existing test file  (B) Create separate new test
-   ```
-   **⛔ STOP — wait for reply.**
-6. Update `test-session.md` header: `FRAMEWORK`, `SPEC_FILE`, `CONFIG_FILE`, `TEST_COMMAND`, timeouts, `MODE`
-7. If EXTEND_EXISTING:
-   a. SPEC_FILE = the existing file (no separate working spec)
-   b. Create backup: `cp [file] [file].backup`
-   c. Identify already-implemented steps → mark completed
-8. Create working spec file (NEW_TEST only)
-
-### No framework in project
-
-1. Ask user for framework preference
-2. Install, generate config with sensible defaults
-3. Update header, create spec file
-
-### Page Map Scan
-
-1. Check if `page-maps/` exists
-2. If exists → match maps to steps using `urlPattern` (primary) or `pageName`/`pageTitle` (fallback)
-3. If match → set `MAP: <file> (MAP_AVAILABLE)` in active-group.md
-   Update checklist: replace `EXPLORE` rows with `CODE FROM MAP` for matched steps
-4. Update header: `PAGE_MAPS_FOUND: [count] ([file list])`
-
-**🔥 CRITICAL SAVE INSTRUCTION:** You MUST physically edit `test-session.md` to change the `[ ]` to `[x]` for all SETUP rows. Moving to the next row without saving the file is a violation of the workflow. Move to next `[ ]` row only after the file is saved.
-
----
-
 > [!IMPORTANT]
-> ## PHASE BOUNDARY — SETUP → EXECUTE
-> Phase 0 + 1 complete. Offer new task:
+> ## PHASE BOUNDARY — PLANNING → EXECUTION
+> Phase 0 is complete. The workspace is initialized, framework configured, and the execution ledger is ready.
+> Offer new task:
 > ```
 > ✅ Setup complete. Ready for Group Execution.
 > Start new task? (A) Yes (recommended)  (B) No — continue
@@ -448,10 +400,10 @@ Mark row `[x]`.
 
 ### COLLAPSE CHECKLIST (Context Optimization)
 
-To prevent the checklist from growing too large and consuming excessive tokens, collapse all `[x]` rows from the current group and any previous `SETUP` rows into a single summary row.
+To prevent the checklist from growing too large and consuming excessive tokens, collapse all `[x]` rows from the current group into a single summary row.
 
 1. Open `test-session.md`.
-2. Delete the fully completed block of rows for the current group (e.g., rows 4 through 18).
+2. Delete the fully completed block of rows for the current group (e.g., rows 1 through 15).
 3. Replace them with a single summary row:
    `| - | SUMMARY | Group N completed successfully | [x] | [Insert a comma-separated list of ALL locators, Page Maps, and POs mentioned in the deleted rows' remarks] |`
 4. Leave the remaining `[ ]` rows intact.
@@ -641,7 +593,6 @@ Read ONLY what's needed for the current checklist row:
 
 | Checklist Phase | Read | Do NOT read |
 |---|---|---|
-| `SETUP` | `test-session.md` header | `completed-groups/`, `pending-groups/` |
 | `G*-START` | `test-session.md` + `active-group.md` + `page-maps/` | `completed-groups/`, `pending-groups/` |
 | `G*-S*` (step rows) | `test-session.md` + `active-group.md` + relevant `page-maps/*.json` | `completed-groups/`, `pending-groups/` |
 | `G*-END` (config/validate) | `test-session.md` + `active-group.md` | `completed-groups/`, `pending-groups/` |
