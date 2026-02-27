@@ -551,8 +551,10 @@ Mark row `[x]`.
 3. **If UNCLEAR or first fix failed → RE-EXPLORE:**
    - Navigate to failing step's page in browser
    - `browser_snapshot` — examine actual DOM
-   - Compare against failing code and component map
-   - Fix based on what you **see**, not assumptions
+   - Compare what you **see** against the failing code and the originating `component-maps/*.json` file.
+   - **Check Scope:** Did the element move outside the Component `rootLocator`? If so, the component boundary is wrong.
+   - Fix based on what you **see**, not assumptions.
+   - **🔥 CRITICAL PCM UPDATE:** If you fix a locator during re-exploration, you MUST immediately update that locator in the corresponding `component-maps/*.json` file and mark its `stabilityCheck` as `FIXED`. The Component Map is the source of truth for Phase 3.
    - Re-run. If fails → Level 2.
 
 → After 2 attempts: Level 2 immediately.
