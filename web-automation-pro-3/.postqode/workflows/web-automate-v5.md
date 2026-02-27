@@ -209,7 +209,7 @@ GROUPING_CONFIRMED: NO
 | 3 | SETUP | Create working spec (NEW_TEST) or backup (EXTEND) | [ ] | |
 *(OR If No Framework Exists):*
 | 1 | SETUP | ⛔ STOP and ask user for framework preference | [ ] | |
-| 2 | SETUP | Install framework and configure defaults | [ ] | |
+| 2 | SETUP | Install framework and configure defaults (incl. EXPLORATION_VIEWPORT) | [ ] | |
 | 3 | SETUP | Create initial spec file | [ ] | |
 *(Then append Group 1 rows, continuing numbering from 4):*
 | 4 | G1-START | Open browser to TARGET_URL | [ ] | |
@@ -278,7 +278,8 @@ Same structure as active-group, one file per pending group.
 ### If Framework Exists (Path A)
 
 1. Read config files, `package.json` — identify framework, language, test command, config location
-2. Read config file — record current timeout values
+2. Read config file — record current timeout values and viewport settings.
+   - If the framework's configured viewport differs from `EXPLORATION_VIEWPORT`, update the config file to match `EXPLORATION_VIEWPORT` to prevent test flakiness.
 3. Read existing test files — note patterns, imports, base classes (for reference only — do NOT refactor)
 4. **Page Object Analysis (lightweight scan only):**
 
@@ -314,6 +315,7 @@ Same structure as active-group, one file per pending group.
    ```
    **⛔ STOP — wait for reply.**
 2. Install framework with **minimal config** — just enough to run tests (default timeouts, single config file, no custom reporters, no CI pipeline). Do NOT set up folder structures, Page Object patterns, or fixtures at this stage.
+   - **Crucial:** Set the globally configured viewport to match `EXPLORATION_VIEWPORT` in the generated config (e.g. `playwright.config.ts`).
 3. Update header (`FRAMEWORK`, `SPEC_FILE`, `CONFIG_FILE`, `TEST_COMMAND`, timeouts) and create spec file
 
 ---
@@ -800,7 +802,7 @@ When instructed to `ROTATE AND GENERATE NEXT CHECKLIST`, read the newly promoted
 | `P3-BUILD` | Create Page classes composing Components |
 | `P3-BUILD` | Create fixture/test-data files |
 | `P3-BUILD` | Refactor spec into structured test file(s) using POs |
-| `P3-BUILD` | Update config to production quality |
+| `P3-BUILD` | Update config to production quality and sync EXPLORATION_VIEWPORT |
 | `P3-VALIDATE` | RUN VALIDATION: refactored spec, headed |
 | `P3-BUILD` | Generate README.md |
 | `P3-VALIDATE` | RUN FINAL VALIDATION: full suite headed |
