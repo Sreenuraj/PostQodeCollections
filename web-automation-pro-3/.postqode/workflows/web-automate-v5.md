@@ -211,24 +211,20 @@ GROUPING_CONFIRMED: NO
 | 1 | SETUP | ⛔ STOP and ask user for framework preference | [ ] | |
 | 2 | SETUP | Install framework and configure defaults (incl. EXPLORATION_VIEWPORT) | [ ] | |
 | 3 | SETUP | Create initial spec file | [ ] | |
-*(Then append Group 1 rows, continuing numbering from 4):*
+*(Then append Group 1 rows, continuing numbering from 4. The S[X] block must be generated for EVERY step in the group):*
 | 4 | G1-START | Open browser to TARGET_URL | [ ] | |
 | 5 | G1-START | Update BROWSER_STATUS to OPEN | [ ] | |
 | 6 | G1-START | Check/create starting component map | [ ] | |
 | 7 | G1-S1 | EXPLORE: [Step 1 action description] | [ ] | |
-| 8 | G1-S1 | WRITE CODE: Step 1 | [ ] | |
-| 9 | G1-S1 | COMPONENT MAP: check/create for the component interacted with | [ ] | |
+| 8 | G1-S1 | COMPONENT MAP: check/create for the component interacted with | [ ] | |
+| 9 | G1-S1 | WRITE CODE: Step 1 | [ ] | |
 | 10 | G1-S1 | UPDATE: active-group Status=[x], session step++ | [ ] | |
-| 11 | G1-S2 | EXPLORE: [Step 2 action description] | [ ] | |
-| 12 | G1-S2 | WRITE CODE: Step 2 | [ ] | |
-| 13 | G1-S2 | COMPONENT MAP: check/create for the component interacted with | [ ] | |
-| 14 | G1-S2 | UPDATE: active-group Status=[x], session step++ | [ ] | |
-| 15 | G1-END | UPDATE CONFIG: compare timeouts, update if exceeded | [ ] | |
-| 16 | G1-END | RUN VALIDATION: headless, zero retries | [ ] | |
-| 17 | G1-END | PROTOCOL C: ⛔ stop and ask user to review grouping | [ ] | |
-| 18 | G1-END | COLLAPSE CHECKLIST: merge completed rows into summary | [ ] | |
-| 19 | G1-END | ROTATE AND GENERATE NEXT CHECKLIST | [ ] | |
-| 20 | G1-END | OFFER NEW TASK: ⛔ stop and ask user | [ ] | |
+*(Generate identical 4-row blocks for G1-S2, G1-S3, etc., based on how many steps are in Group 1)*
+| [N] | G1-END | RUN VALIDATION: config override, headless, zero retries | [ ] | |
+| [N+1] | G1-END | PROTOCOL C: ⛔ stop and ask user to review grouping | [ ] | |
+| [N+2] | G1-END | COLLAPSE CHECKLIST: merge completed rows into summary | [ ] | |
+| [N+3] | G1-END | ROTATE AND GENERATE NEXT CHECKLIST | [ ] | |
+| [N+4] | G1-END | OFFER NEW TASK: ⛔ stop and ask user | [ ] | |
 ```
 
 > **🔥 STATELESS CHECKLIST RULE (CRITICAL):**
@@ -236,7 +232,7 @@ GROUPING_CONFIRMED: NO
 
 #### `active-group.md`
 ```
-## Active Group — Group 1 (Steps 1–2): [label]
+## Active Group — Group 1 (Steps 1–[N]): [label]
 
 ### Step 1
 - Action: [exact action]
@@ -249,8 +245,7 @@ GROUPING_CONFIRMED: NO
 - Recommended Timeout:
 - Status: [ ]
 
-### Step 2
-[same structure]
+*(Repeat the Step block above for Step 2, Step 3, etc. for EVERY step in the group)*
 
 ### Group Success Criteria
 - [ ] Each step code written
@@ -377,38 +372,6 @@ Same structure as active-group, one file per pending group.
 
 Mark row `[x]`. Write timing and anchor in Remarks.
 
-### WRITE CODE: Step N
-
-Write test code using the observation from the EXPLORE step. **The locator must be chained to the Component's root locator.**
-```
-// Step [N]: [description]
-// Measured: [duration]ms | Type: [Step Type] | Component: [Component Wrapper]
-[component root locator].[action using element locator]
-// Example: page.locator('#login-form').locator('button[type="submit"]').click()
-[transient wait — if you waited for a spinner to disappear during exploration, write an explicit wait for it to be hidden HERE]
-[wait — Stable Anchor Locator, no inline timeout]
-[assertion — targets Stable Anchor, not the trigger]
-```
-
-- If component map exists for current step → use for locator fallback (scoped to rootLocator)
-- **COORDINATE FALLBACK:** If an element is unlocatable (e.g. canvas, chart) and you MUST use X/Y coordinates, you MUST consult and strictly follow `.postqode/rules/coordinate-fallback.md`.
-- **Inline Timeouts:** Use extended timeouts ONLY on specific assertions if the measured duration was exceptionally long (> 15s). Otherwise, omit them.
-- **Append to the single test body** in the spec file — do NOT create a new `test()` block. EXTEND_EXISTING: write at insertion point, match patterns.
-
-- If PO: call existing methods, wrap new actions in new methods
-
-Mark row `[x]`.
-
-### CODE FROM MAP: Step N
-
-Use when step has `MAP_VALIDATED` or `PO_AVAILABLE`:
-- Read locators from `component-maps/<component>.json` or PO file
-- Write code using those locators (same pattern as WRITE CODE, applying component scope if a map is used)
-- No browser, no snapshot, no exploration
-- If PO: call existing methods, wrap new actions in new methods
-
-Mark row `[x]`.
-
 ### COMPONENT MAP: check/create for current component
 
 **🔥 CRITICAL COMPONENT MODEL INSTRUCTION:** We do NOT map entire pages. We map individual UI Components (e.g., `<form id="login">`, `<nav class="sidebar">`, `<div class="data-grid">`). The goal is to encapsulate UI sections into modular blocks.
@@ -434,6 +397,37 @@ Mark row `[x]`.
 
 Mark row `[x]`. Write filename or "skipped (exists)" in Remarks.
 
+### WRITE CODE: Step N
+
+**🔥 CRITICAL PCM PATTERN:** Because you just ensured a Component Map exists in the previous row, you **MUST** write the test code by chaining the Component's `rootLocator` to the inner element locator.
+
+Write test code using the observation from the EXPLORE step and the Component Map:
+```
+// Step [N]: [description]
+// Measured: [duration]ms | Type: [Step Type] | Component: [Component Wrapper]
+[component root locator].[action using inner element locator]
+// Example: page.locator('#login-form').getByRole('button', { name: 'Submit' }).click()
+[transient wait — if you waited for a spinner to disappear during exploration, write an explicit wait for it to be hidden HERE]
+[wait — Stable Anchor Locator, with explicit timeout IF measured > framework default (e.g. 5000ms)]
+[assertion — targets Stable Anchor, not the trigger]
+```
+
+- **COORDINATE FALLBACK:** If an element is unlocatable (e.g. canvas, chart) and you MUST use X/Y coordinates, you MUST consult and strictly follow `.postqode/rules/coordinate-fallback.md`.
+- **Inline Timeouts:** If the `Recommended Timeout` calculated during EXPLORE is greater than the framework's default timeout (usually 5000ms), you MUST pass the recommended timeout directly into the assertion or wait action (e.g. `await expect(loc).toBeVisible({ timeout: 15000 })`). Do NOT rely on global configuration changes for slow elements.
+- **Append to the single test body** in the spec file — do NOT create a new `test()` block. EXTEND_EXISTING: write at insertion point, match patterns.
+
+**🔥 CRITICAL SAVE INSTRUCTION:** When you `Mark row [x]`, your Remarks MUST explicitly list the primary locators you wrote (e.g., `Remarks: Wrote locators for Submit button and Email input`). Phase 3 relies on these remarks to build the Page Object.
+
+### CODE FROM MAP: Step N
+
+Use when step has `MAP_VALIDATED` or `PO_AVAILABLE`:
+- Read locators from `component-maps/<component>.json` or PO file
+- Write code using those locators (same pattern as WRITE CODE, applying component scope if a map is used)
+- No browser, no snapshot, no exploration
+- If PO: call existing methods, wrap new actions in new methods
+
+Mark row `[x]`.
+
 ### UPDATE: active-group + session
 
 - Update `active-group.md` for this step:
@@ -444,23 +438,15 @@ Mark row `[x]`. Write filename or "skipped (exists)" in Remarks.
 
 Mark row `[x]`.
 
-### UPDATE CONFIG: compare timeouts
+### RUN VALIDATION: config override, headless, zero retries
 
-1. For each step in group, read `Recommended Timeout` and `Step Type` from `active-group.md`
-2. Map to config keys: NAVIGATION → `navigationTimeout`, IN_PAGE_ACTION → `actionTimeout` + `expectTimeout`
-3. Take maximum per config key. If exceeds current → update config file + header.
-4. **Config Snapshot (first group only):** Before first validation, override:
+1. **Config Snapshot (first group only):** Before the first validation, override specific framework configs to ensure fast, stable validation:
    - `retries` → 0
-   - `headed` → headless
+   - `headed` → headless (or entirely remove headed flags if present)
    - Store originals in header: `ORIGINAL_RETRIES`, `ORIGINAL_HEADED`
-
-Mark row `[x]`. Write what changed in Remarks.
-
-### RUN VALIDATION: headless, zero retries
-
-1. Run: `[TEST_COMMAND] [SPEC_FILE]`
-2. This runs the **full cumulative spec** (all groups coded so far)
-3. **If PASSES** → mark `[x]`, write "PASSED" in Remarks
+2. Run: `[TEST_COMMAND] [SPEC_FILE]`
+3. This runs the **full cumulative spec** (all groups coded so far)
+4. **If PASSES** → mark `[x]`, write "PASSED" in Remarks
 4. **If FAILS** → mark `[FAIL]`, write error summary in Remarks
    - Follow **Failure Escalation Protocol** (below)
    - After fix: update this row to `[x]`
@@ -780,10 +766,9 @@ When instructed to `ROTATE AND GENERATE NEXT CHECKLIST`, read the newly promoted
 | `G[N]-START` | Check browser state (Protocol A if OPEN) |
 | `G[N]-START` | Check/create starting component map |
 | `G[N]-S[X]` | EXPLORE: [exact step action description] | *(repeat next 4 rows for every step in active-group.md)* |
-| `G[N]-S[X]` | WRITE CODE: Step [X] |
 | `G[N]-S[X]` | COMPONENT MAP: check/create for the component interacted with |
+| `G[N]-S[X]` | WRITE CODE: Step [X] |
 | `G[N]-S[X]` | UPDATE: active-group Status=[x], session step++ |
-| `G[N]-END` | UPDATE CONFIG: compare timeouts, update if exceeded |
 | `G[N]-END` | RUN VALIDATION: headless, zero retries |
 | `G[N]-END` | COLLAPSE CHECKLIST: merge completed rows |
 | `G[N]-END` | ROTATE AND GENERATE NEXT CHECKLIST |
