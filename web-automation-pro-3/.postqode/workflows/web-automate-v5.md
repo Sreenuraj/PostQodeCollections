@@ -477,10 +477,11 @@ Mark row `[x]`.
    ```
    **⛔ STOP — wait for user approval. END YOUR RESPONSE NOW.**
 
-   - After approval: set `GROUPING_CONFIRMED: YES` in `test-session.md` header, write "Confirmed" in Remarks.
-   - **MANDATORY:** If the user approved grouping changes, you MUST implement those changes in the `pending-groups/` directory right now (create, delete, or rewrite group files as needed).
-   - Do NOT generate checklist rows here — the subsequent `ROTATE AND GENERATE NEXT CHECKLIST` row will handle that using the updated pending groups.
-   - Mark `[x]` ONLY AFTER `GROUPING_CONFIRMED` is set to `YES` and any pending group changes are physically saved.
+3. **AFTER USER APPROVAL (CRITICAL EXECUTION STEP):**
+   - **Step A: Apply the changes.** If the user approved grouping adjustments, you MUST physically modify the files in the `pending-groups/` directory *immediately*. Use your file editing tools to create, merge, delete, or rewrite the `group-*.md` files to perfectly match the newly approved structure.
+   - **Step B: Update header.** Set `GROUPING_CONFIRMED: YES` in the `test-session.md` header.
+   - **Step C: Mark complete.** Mark this checklist row `[x]` and write "Confirmed and files rearranged" in Remarks.
+   - *Note: Do NOT generate the new checklist rows here. The next row (`ROTATE AND GENERATE NEXT CHECKLIST`) will automatically pick up your newly rearranged groups.*
 
 ### COLLAPSE CHECKLIST (Context Optimization)
 
