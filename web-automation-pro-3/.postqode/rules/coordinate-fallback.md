@@ -50,12 +50,15 @@ await page.mouse.up();
 
 #### Option B: Locked Viewport
 
-Set viewport to the recorded screen size, then use mouse.click(x, y).
+When hardcoded X/Y coordinates are unavoidable, the test MUST be locked to the exact viewport size used during exploration. Do not use inline viewport setting as it can be flaky or conflict with browser context. Apply it at the test or suite level.
 
 ```typescript
-// Playwright
-await page.setViewportSize({ width: 1280, height: 800 });
-await page.mouse.click(450, 320);
+// Playwright (Top of spec file or describe block)
+test.use({ viewport: { width: 1280, height: 800 } });
+
+test('clicks exact canvas coordinates', async ({ page }) => {
+  await page.mouse.click(450, 320);
+});
 ```
 
 #### Option C: Image-Based Locator

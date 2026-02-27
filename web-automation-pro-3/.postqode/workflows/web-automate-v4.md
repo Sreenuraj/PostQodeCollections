@@ -21,14 +21,19 @@ description: Unified web automation workflow — stateless execution
 > BROWSER ACTION: [action] — [reason]
 > ```
 >
+> **🔥 SAVE RULE:** Every `Mark row [x]` instruction means: physically edit `test-session.md`, replace `[ ]` with `[x]` for that row, and save to disk. You may NOT proceed to the next row until the file is saved. Remarks MUST include the key artifacts (locators written, page maps created/reused).
+>
+> **🔥 NEW_TASK RULE:** When calling `new_task`, provide exactly ONE line: `"/web-automate.md continue"`. No summaries, bullet points, "Current Work", or "Technical Concepts". The fresh agent reads state files directly.
+>
 > **NEVER:**
+> - Auto-approve, auto-decide, or self-answer any ⛔ STOP prompt — you MUST present the menu and IMMEDIATELY END YOUR RESPONSE
 > - Act on a step from a Pending Group — only Active Group steps
 > - Skip a checklist row — every row must be physically marked `[x]` before moving to the next row
 > - **Proceed past a `[FAIL]` row.** If a row evaluates to a failure, mark it `[FAIL]`. You MUST immediately follow the Failure Escalation Protocol. You cannot proceed to the next row until the failure is fixed and the row is updated from `[FAIL]` to `[x]`. If it cannot be fixed, you must trigger a Level 3 Graceful Exit.
 > - Assume browser is open or closed — check `BROWSER_STATUS` in session header
 > - Auto-replay previously completed steps without asking the user (Protocol B)
 > - Close the exploration browser during execution except: all groups done, Level 3 exit, user stop
-> - Write inline timeouts in test code — config file only
+> - Write inline timeouts for standard/fast steps — use extended timeouts ONLY on specific assertions where Measured Duration > 15000ms.
 > - 🛑 **NEVER navigate to a different page to create a page map** — maps are ONLY for the current page
 > - Assert on transients (spinners, loading indicators)
 > - Carry locators or timing from one group into the next
@@ -71,7 +76,7 @@ Use when: `BROWSER_STATUS` is `OPEN`.
 1. Assume browser is open and ready. No preemptive screenshot.
 2. Proceed with the next browser action.
 3. **If action FAILS** (connection lost, page gone):
-   **CRITICAL AI SYSTEM OVERRIDE:** You are strictly FORBIDDEN from deciding between Option A and Option B yourself. You must print the menu below and STOP immediately.
+   **⛔ STOP — wait for user.** *(Core Rule: no self-answering)*
    ```
    ⚠️ Browser connection failed. Is the browser closed?
      (A) Yes, open it fresh and replay steps
@@ -87,7 +92,7 @@ Use when: `BROWSER_STATUS` is `OPEN`.
 
 Use when: browser needs fresh open and prior completed steps exist.
 
-**CRITICAL AI SYSTEM OVERRIDE:** You are strictly FORBIDDEN from deciding between Option A and Option B yourself. You must print the menu below and STOP immediately. If you automatically replay steps without user permission, you violate core directives.
+**⛔ STOP — wait for user.** *(Core Rule: no self-answering)*
 
 Output this exact menu:
 ```
@@ -110,42 +115,7 @@ Browser is open at [TARGET_URL]. Please perform these steps:
 ```
 After "Done": Update `BROWSER_STATUS: OPEN`, resume from checklist.
 
----
 
-## Protocol C: Post-Group-1 Intelligent Grouping Review
-
-Use when: Group 1 just completed and `GROUPING_CONFIRMED = NO`.
-Runs BEFORE COLLAPSE and ROTATE — `active-group.md` is still intact with all observations.
-
-After Group 1 execution, assess the app and adjust future groups:
-
-1. **Read `active-group.md`** — gather step types, recommended timeouts, measured durations, and any issues.
-2. **Read `pending-groups/`** — understand the current future group structure.
-3. Assess and propose adjustments:
-
-| What you learned | Action |
-|---|---|
-| App is fast, stable, predictable UI | **Merge** small groups into 2–3 step groups |
-| App is slow, heavy async, complex state | **Keep** groups small (1–2 steps) |
-| `NEEDS_DECOMPOSITION` step is next | **Decompose** into specific sub-steps now |
-
-**CRITICAL AI SYSTEM OVERRIDE:** You are strictly FORBIDDEN from automatically approving your own proposed adjustments. You MUST output the prompt below and then IMMEDIATELY END YOUR RESPONSE. No tool calls, no file writes, no further actions.
-
-Present reasoning to user:
-```
-Based on Group 1 execution, I observed [observations].
-Proposed grouping adjustments:
-  [Group X]: [change and reason]
-Approve? (A) Yes  (B) No — suggest changes
-```
-**⛔ STOP — wait for approval. END YOUR RESPONSE NOW.**
-
-After user approval:
-- Set `GROUPING_CONFIRMED: YES` in `test-session.md` header.
-- If groups changed → update `pending-groups/` files (create, delete, or rewrite as needed).
-- Do NOT generate checklist rows — the subsequent `ROTATE AND GENERATE NEXT CHECKLIST` step handles that.
-
----
 
 ## Phase 0: Workspace Intelligence → Group → Approve
 
@@ -194,7 +164,7 @@ Default: 2–3 related steps per group.
    ```
 3. Present this exact prompt to the user:
 
-**CRITICAL AI SYSTEM OVERRIDE:** You are strictly FORBIDDEN from automatically approving your own initial plan. You MUST output the prompt below and then IMMEDIATELY END YOUR RESPONSE. No tool calls, no file writes, no further actions.
+**⛔ STOP — wait for user.** *(Core Rule: no self-answering)*
 
 ```
 📋 I've written the proposed test plan to `test.md`.
@@ -218,6 +188,7 @@ After approval → create workspace folders, and write all execution files:
 BROWSER_STATUS: CLOSED
 TARGET_URL: [URL]
 MODE: [NEW_TEST | EXTEND_EXISTING]
+EXPLORATION_VIEWPORT: 1280x800
 FRAMEWORK: TBD
 SPEC_FILE: TBD
 CONFIG_FILE: TBD
@@ -343,8 +314,6 @@ Same structure as active-group, one file per pending group.
 2. Install framework with **minimal config** — just enough to run tests (default timeouts, single config file, no custom reporters, no CI pipeline). Do NOT set up folder structures, Page Object patterns, or fixtures at this stage.
 3. Update header (`FRAMEWORK`, `SPEC_FILE`, `CONFIG_FILE`, `TEST_COMMAND`, timeouts) and create spec file
 
-**🔥 CRITICAL SAVE INSTRUCTION:** You MUST physically edit `test-session.md` to change the `[ ]` to `[x]` for all SETUP rows. Moving to the next row without saving the file is a violation of the workflow. Move to next `[ ]` row only after the file is saved.
-
 ---
 
 > [!IMPORTANT]
@@ -357,7 +326,6 @@ Same structure as active-group, one file per pending group.
 > ```
 > **⛔ STOP — wait for reply.**
 > - A → call `new_task` with exactly: `"/web-automate.md continue"`
->   **CRITICAL AI SYSTEM OVERRIDE:** When calling the `new_task` tool, you are strictly FORBIDDEN from generating summaries, bullet points, "Current Work", or "Technical Concepts". Provide exactly ONE line of text to the tool: `"/web-automate.md continue"`. If you provide any other text, you violate core directives. The fresh agent will read the state files directly.
 > - B → continue immediately
 
 ---
@@ -368,8 +336,6 @@ Same structure as active-group, one file per pending group.
 >
 > **🔥 SINGLE TEST RULE (CRITICAL):**
 > The working spec MUST contain ONE single end-to-end test that covers ALL steps across ALL groups. Do NOT create separate test blocks or `test()` calls per group. Each group's code is appended sequentially into the same test body. The test is cumulative — after Group 2 completes, the single test contains Steps 1 through N. This is a working/temp spec; proper test structure happens in Phase 3. Exception: if the user explicitly requests separate tests per group or per feature.
-> 
-> **🔥 CRITICAL SAVE INSTRUCTION:** At the end of EVERY action block below, you will see `Mark row [x]`. This means you MUST use your file-writing tool to physically edit `test-session.md` and replace the `[ ]` with `[x]` for that specific row. You may NOT proceed to the next row until `test-session.md` is successfully saved to disk.
 
 ### EXPLORE: [step description]
 
@@ -382,6 +348,7 @@ Same structure as active-group, one file per pending group.
 
 - **If NAVIGATION or major state change:**
   - Wait for stability: Stable Anchor visible, transients cleared
+  - **CRITICAL: If you waited for a transient (spinner, skeleton, progress bar) to DISAPPEAR, you MUST record its locator.**
   - **Record `Stable Timestamp`**
   - Identify **Stable Anchor Locator**
   - Run Stability Checks (see table below)
@@ -391,9 +358,7 @@ Same structure as active-group, one file per pending group.
   - Record `Stable Timestamp` as ~100ms after Action Timestamp
 
 - **Calculate `Measured Duration`** = Stable Timestamp - Action Timestamp (ms)
-- **Calculate `Recommended Timeout`:**
-  - NAVIGATION: Measured Duration × 2, minimum 15000ms, **maximum 60000ms**
-  - IN_PAGE_ACTION: Measured Duration × 2, minimum 5000ms, **maximum 30000ms**
+- **Calculate `Recommended Timeout`:** Calculate timeouts per **Reference > Timeout Calculation**
 
 - **Stability Checks (for NAVIGATION anchors):**
 
@@ -415,15 +380,19 @@ Write test code using the observation from the EXPLORE step:
 // Step [N]: [description]
 // Measured: [duration]ms | Type: [Step Type]
 [action using locator from exploration]
+[transient wait — if you waited for a spinner to disappear during exploration, write an explicit wait for it to be hidden HERE]
 [wait — Stable Anchor Locator, no inline timeout]
 [assertion — targets Stable Anchor, not the trigger]
 ```
 
 - If page map exists for current page → use for locator fallback
-- **No inline timeouts — ever.** Config only.
+- **COORDINATE FALLBACK:** If an element is unlocatable (e.g. canvas, chart) and you MUST use X/Y coordinates, you MUST consult and strictly follow `.postqode/rules/coordinate-fallback.md`.
+- **Inline Timeouts:** Use extended timeouts ONLY on specific assertions if the measured duration was exceptionally long (> 15s). Otherwise, omit them.
 - **Append to the single test body** in the spec file — do NOT create a new `test()` block. EXTEND_EXISTING: write at insertion point, match patterns.
 
-**🔥 CRITICAL SAVE INSTRUCTION:** When you `Mark row [x]`, your Remarks MUST explicitly list the primary locators you wrote (e.g., `Remarks: Wrote locators for Submit button and Email input`). Phase 3 relies on these remarks to build the Page Object.
+- If PO: call existing methods, wrap new actions in new methods
+
+Mark row `[x]`.
 
 ### CODE FROM MAP: Step N
 
@@ -448,8 +417,6 @@ Mark row `[x]`.
    d. Extract ALL interactive elements from the snapshot output.
    e. **Run Stability Checks on EVERY locator** before writing the JSON.
    f. Write `page-maps/<intelligent-page-name>.json` and update step's `MAP:` field in `active-group.md`
-
-**🔥 CRITICAL SAVE INSTRUCTION:** When you `Mark row [x]`, your Remarks MUST explicitly state the name of the file you created or reused (e.g., `Remarks: Created target-dashboard.json`). Phase 3 uses this history.
 
 > [!IMPORTANT]
 > ### Page Map Locator Quality Rule
@@ -499,9 +466,15 @@ Mark row `[x]`. Write what changed in Remarks.
 2. If `GROUPING_CONFIRMED = NO` → run Protocol C:
    - **Read `active-group.md`** to gather Group 1 observations: step types, recommended timeouts, measured durations, and any issues encountered.
    - Read `pending-groups/` to understand the current future group structure.
-   - Present grouping adjustments based on Group 1 observations.
+   - Assess and propose adjustments based on Group 1 observations:
 
-   **CRITICAL AI SYSTEM OVERRIDE:** You are strictly FORBIDDEN from automatically approving your own proposed adjustments. You MUST output the prompt below and then IMMEDIATELY END YOUR RESPONSE. No tool calls, no file writes, no further actions.
+   | What you learned | Action |
+   |---|---|
+   | App is fast, stable, predictable UI | **Merge** small groups into 2–3 step groups |
+   | App is slow, heavy async, complex state | **Keep** groups small (1–2 steps) |
+   | `NEEDS_DECOMPOSITION` step is next | **Decompose** into specific sub-steps now |
+
+   **⛔ STOP — wait for user.** *(Core Rule: no self-answering)*
 
    ```
    Based on Group 1 execution, I observed [observations].
@@ -554,7 +527,6 @@ Start new task? (A) Yes (recommended)  (B) No — continue
 ```
 **⛔ STOP — wait for user.**
 - A → call `new_task` tool.
-  **CRITICAL AI SYSTEM OVERRIDE:** When calling `new_task`, you are strictly FORBIDDEN from generating summaries, bullet points, "Current Work", or "Technical Concepts" in the Task field. Provide exactly ONE line of text to the tool: `"/web-automate.md continue"`. If you provide any other text, you violate core directives. The fresh agent will read the state files directly.
 - B → continue immediately
 
 **If LAST group done:**
@@ -617,72 +589,103 @@ Receive input → extract locator → test in browser → write code.
 > **🔥 PRODUCTION-QUALITY DESIGN PRINCIPLE:**
 > Phase 3 is where the working/temp spec gets transformed into a production-quality test suite. This is the time to apply **all best practices** of the selected framework: proper folder structure, Page Object Model (or equivalent pattern), fixtures, test data separation, meaningful naming conventions, and comprehensive configuration. Everything that was deliberately skipped in Phase 1's minimal setup gets done properly here.
 
-1. Close browser. Update `BROWSER_STATUS: CLOSED`.
-
-### EXTEND_EXISTING mode
-1. Review new steps: verify patterns match existing file
-2. Extract inline PO methods to PO files if applicable
-3. Run full E2E headed: `[TEST_COMMAND] [file] --headed`
-4. Passes → delete `.backup`
-5. Fails → Failure Escalation. Level 3 → restore from `.backup`
-
-### NEW_TEST mode
-
-#### 3a. Analyze and Plan Refactoring
-1. **Analyze `test-session.md` Remarks:** Read the collapsed summary rows to identify all interactive elements and Page Maps recorded during Phase 2.
-2. **Study the framework's best practices:** Based on the `FRAMEWORK` in the session header, apply the idiomatic patterns:
-
-   | Framework | Best Practices to Apply |
-   |---|---|
-   | **Playwright (TS/JS)** | Page Object Model classes, `test.describe` blocks, fixtures via `test.extend`, `testInfo` for metadata, proper `baseURL` in config, projects for cross-browser, `expect` soft assertions where appropriate |
-   | **Cypress** | Custom commands, `cy.session()` for auth, fixtures in `cypress/fixtures/`, support commands, `cy.intercept` for API stubs, proper `cypress.config.js` |
+**Framework Best Practices to Apply (Read during P3-SETUP):**
+| Framework | Best Practices to Apply |
+|---|---|
+| **Playwright (TS/JS)** | Page Object Model classes, `test.describe` blocks, fixtures via `test.extend`, `testInfo` for metadata, proper `baseURL` in config, projects for cross-browser, `expect` soft assertions where appropriate |
+| **Cypress** | Custom commands, `cy.session()` for auth, fixtures in `cypress/fixtures/`, support commands, `cy.intercept` for API stubs, proper `cypress.config.js` |
+   - Log test context for easy debugging (`testInfo` equivalent where applicable).
 
 #### 3b. Restructure into Production Quality
 3. **Create proper folder structure** following framework conventions (e.g., `tests/`, `pages/`, `fixtures/`, `utils/`)
-4. **Extract Page Object classes** from the working spec — one PO file per page, with locators as properties and actions as methods. Use page maps as the source of truth for locator inventory.
-5. **Extract test data** to config/fixture files — no hardcoded credentials, URLs, or test data in spec files
-6. **Create fixture file** if framework supports it (e.g., Playwright's `test.extend` for custom fixtures)
-7. **Refactor the single working spec** into properly structured test file(s):
-   - Apply `describe`/`test` blocks with meaningful names
-   - Use Page Object methods instead of inline locators
-   - Add proper setup/teardown hooks
-   - Follow the framework's naming conventions for files and tests
-8. **Update config file** to production quality:
-   - Proper timeout values (from Phase 2 measurements)
-   - Reporter configuration
-   - Retry strategy
-   - Browser/project configuration
-   - Base URL and environment handling
 
-#### 3c. Generate README
-9. **Create `README.md`** in the test directory (or project root if no test directory) with:
-   - **Project overview** — what the test suite covers (general, not test-specific details)
-   - **Prerequisites** — Node.js version, framework version, browser requirements
-   - **Getting started** — how to install dependencies, configure environment
-   - **Running tests** — commands for headed, headless, specific tests, debug mode
-   - **Project structure** — folder layout explanation
-   - **Contributing** — how to add new tests, naming conventions, PR guidelines
-   - **Troubleshooting** — common issues and fixes
+### P3-SETUP: ANALYZE AND PLAN
+1. Close browser. Update `BROWSER_STATUS: CLOSED`.
+2. **Read `completed-groups/group-*.md`** files — these contain full step details: locators, step types, recommended timeouts, measured durations, and page references. These are the primary source of truth for refactoring. Collapsed summary rows in `test-session.md` are a secondary reference only.
+3. Read `page-maps/*.json` to get the full locator inventory.
+4. If NEW_TEST, read the working spec to identify inline locators and hardcoded data against the framework's best practices (e.g., Playwright POM/fixtures or Cypress custom commands).
+5. If EXTEND_EXISTING, read the specific new steps added and verify patterns match the existing file.
 
-   > **NOTE:** The README should be a general framework guide, NOT a description of the specific test cases. It should help any developer onboard to the test project.
+### P3-PLAN: FOLDER STRUCTURE APPROVAL (NEW_TEST ONLY)
+Present proposed structure to user:
+```
+📁 Proposed production structure:
+  tests/
+    pages/
+      login.page.ts
+      dashboard.page.ts
+    fixtures/
+      test-data.ts
+    specs/
+      work-order-flow.spec.ts
+  playwright.config.ts
+  README.md
 
-#### 3d. Validate
-10. **Rename spec** to project conventions
-11. Run refactored test headed: `[TEST_COMMAND] [final spec] --headed`
-12. Passes → Phase 4. Fails → compare against working spec, fix. Max 3 attempts.
+Approve? (A) Yes  (B) Changes needed
+```
+**⛔ STOP — wait for approval.** *(Core Rule: no self-answering)*
 
-> Page maps are a fallback reference only when a refactored locator fails.
+### P3-BUILD: CREATE PAGE OBJECTS (NEW_TEST)
+1. Read `completed-groups/group-*.md` — extract all locators used on this page
+2. Read `page-maps/<page>.json` — get full locator inventory  
+3. Cross-reference: locators in completed groups not in page map → add them
+4. Generate PO class:
+   - Class name: PascalCase of page name (e.g., DashboardPage)
+   - Constructor: accept page object
+   - Locators: as readonly properties or getter methods
+   - Actions: one method per user action (e.g., clickWorkOrder(), fillSearchField(query))
+   - Assertions: helper methods for common checks (e.g., expectLoaded() using Stable Anchor)
+5. Naming: `<page-name>.page.ts` (Playwright) or `<page-name>.page.js` (Cypress)
+
+### P3-BUILD: EXTRACT INLINE PO METHODS (EXTEND_EXISTING)
+1. Read newly completed groups to find new locators.
+2. Locate the existing PO file that corresponds to the page.
+3. Append new locators as properties/getters.
+4. Wrap new actions in methods following the existing file's patterns.
+
+### P3-BUILD: REFACTOR SPEC (NEW_TEST)
+1. Read working spec — identify logical test boundaries:
+   - Login + navigation = setup/beforeAll
+   - Each feature flow = separate `test()` block
+   - Cleanup/logout = afterAll
+2. Replace ALL inline locators with PO method calls
+3. Replace ALL hardcoded data with fixture references
+4. Add meaningful test names: `test('should create work order with valid data', ...)`
+5. Add `test.describe` blocks for logical grouping
+6. Convert any long, temporary Phase 2 waits into localized, extended assertions inside the Page Object methods (e.g., `await expect(loc).toBeVisible({ timeout: 30000 })`). Do NOT rely on global config for extreme outliers.
+7. If any step relies on hardcoded X/Y coordinates (from `coordinate-fallback.md` Option B), you MUST enforce the `EXPLORATION_VIEWPORT` for this specific test block using framework-level overrides (e.g., Playwright `test.use({ viewport: ... })`). Do NOT rely on temporary inline `page.setViewportSize()`.
+8. CRITICAL: Do NOT change operation order or remove waits — the working spec's sequence was validated. Only change HOW locators are referenced and format them into proper framework assertions.
+
+### P3-BUILD: GENERATE README (NEW_TEST)
+Create `README.md` containing Project overview, Prerequisites, Getting started, Running tests, Project structure, Contributing, and Troubleshooting. Describe the framework, NOT the specific test cases.
+
+### P3-VALIDATE: RUN VALIDATION
+1. Run headed: `[TEST_COMMAND] [refactored spec / final spec] --headed`
+2. **If PASSES** → proceed to Cleanup
+3. **If FAILS** → compare failing line against working spec:
+   - Locator mismatch → fix PO file, not the test
+   - Timing issue → check no waits were accidentally removed
+   - Import/reference error → fix path/naming
+4. **Graceful Degradation (if refactored code fails 3 times):**
+   - Keep the working spec as the primary test file (it's validated and passing)
+   - Keep PO files as importable utilities for future use
+   - Note in README which POs are validated vs. draft
+   - Do NOT delete the working spec in cleanup
 
 ---
 
-## Phase 4: Validate and Clean Up
+## Phase 3: Validate and Clean Up (P3-CLEANUP)
+10. **Rename spec** to project conventions
+11. Run refactored test headed: `[TEST_COMMAND] [final spec] --headed`
+12. **If passes:**
+    - Report: steps, spec path, POM files, config values
+    - Delete: working spec (NEW_TEST only), `.backup`, `test-session.md`, `active-group.md`, `completed-groups/`, `pending-groups/`, `test.md` (if still exists)
+    - Keep: final spec, PO files, fixtures, config, `page-maps/`, `README.md`
+13. **If fails:** compare against working spec, fix. Max 3 attempts.
+    - Dependent steps → mark `[❌]`, dependents `⏭️ SKIPPED`, stop
+    - Independent steps → mark `[❌]`, comment out code, continue
 
-1. Run final spec headed: `[TEST_COMMAND] [final spec] --headed`
-2. **If passes:**
-   - Report: steps, spec path, POM files, config values
-   - Delete: working spec (NEW_TEST only), `.backup`, `test-session.md`, `active-group.md`, `completed-groups/`, `pending-groups/`, `test.md` (if still exists)
-   - Keep: final spec, PO files, fixtures, config, `page-maps/`, `README.md`
-3. **If fails:** Failure Escalation Protocol
+> Page maps are a fallback reference only when a refactored locator fails.
 
 ---
 
@@ -758,7 +761,11 @@ Read ONLY what's needed for the current checklist row:
 | `G*-END` (config/validate) | `test-session.md` + `active-group.md` | `completed-groups/`, `pending-groups/` |
 | `G*-END` (Protocol C) | `test-session.md` + `active-group.md` + `pending-groups/` | `completed-groups/` |
 | `G*-END` (rotate & generate) | `test-session.md` + newly promoted `active-group.md` | `completed-groups/`, all other `pending-groups/` |
-| `FINAL` | `test-session.md` only | everything else |
+| `P3-SETUP` | `test-session.md` + `completed-groups/*.md` + `page-maps/*.json` + working spec | `pending-groups/`, `active-group.md` |
+| `P3-PLAN` | `test-session.md` + `completed-groups/*.md` + `page-maps/*.json` + existing PO/fixture files | `pending-groups/`, `active-group.md` |
+| `P3-BUILD` | `test-session.md` + relevant `completed-groups/group-*.md` + relevant `page-maps/*.json` | other completed groups |
+| `P3-VALIDATE` | `test-session.md` + refactored spec + working spec & PO files (if debugging failure) | everything else |
+| `P3-CLEANUP` | `test-session.md` only | everything else |
 
 ---
 
@@ -780,6 +787,29 @@ When instructed to `ROTATE AND GENERATE NEXT CHECKLIST`, read the newly promoted
 | `G[N]-END` | ROTATE AND GENERATE NEXT CHECKLIST |
 | `G[N]-END` | OFFER NEW TASK: ⛔ stop and ask user |
 
-*(If there are NO remaining pending groups after the current one finishes, the final two rows become `FINAL` Phase rows instead:)*
-| `FINAL` | ROTATE AND GENERATE NEXT CHECKLIST (Skip promotion) |
-| `FINAL` | OFFER NEW TASK: ⛔ stop, then Phase 3 |
+*(If there are NO remaining pending groups after the current one finishes, check MODE in header and generate the Phase 3 checklist below instead:)*
+
+**If MODE is NEW_TEST:**
+| Phase | Action |
+|-------|--------|
+| `P3-SETUP` | Close browser, update BROWSER_STATUS: CLOSED |
+| `P3-SETUP` | Read completed-groups/*.md + page-maps/*.json — inventory all locators and pages |
+| `P3-SETUP` | Read working spec — identify inline locators and hardcoded data |
+| `P3-PLAN` | Design folder structure + PO plan — ⛔ STOP for user approval |
+| `P3-BUILD` | Create Page Object files (1 per page) |
+| `P3-BUILD` | Create fixture/test-data files |
+| `P3-BUILD` | Refactor spec into structured test file(s) using POs |
+| `P3-BUILD` | Update config to production quality |
+| `P3-VALIDATE` | RUN VALIDATION: refactored spec, headed |
+| `P3-BUILD` | Generate README.md |
+| `P3-VALIDATE` | RUN FINAL VALIDATION: full suite headed |
+| `P3-CLEANUP` | Delete working files, report results |
+
+**If MODE is EXTEND_EXISTING:**
+| Phase | Action |
+|-------|--------|
+| `P3-SETUP` | Close browser, update BROWSER_STATUS: CLOSED |
+| `P3-SETUP` | Read new steps in spec — verify patterns match existing file conventions |
+| `P3-BUILD` | Extract inline PO methods to existing PO files (if applicable) |
+| `P3-VALIDATE` | RUN VALIDATION: full E2E headed — [TEST_COMMAND] [file] --headed |
+| `P3-CLEANUP` | If passes → delete .backup. If fails → Failure Escalation; Level 3 → restore from .backup |
