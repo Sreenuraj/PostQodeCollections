@@ -134,8 +134,10 @@ Parse every step: exact action, target element, data, expected result.
 **Do NOT repeat the user's input.** Break into discrete UI interactions. Infer expected results if not provided.
 **Flag vague steps** → mark `⚠️ NEEDS_DECOMPOSITION`.
 
-### 3. Code-Aware Grouping
+### 3. Component-Aware Grouping
 Default: 2–3 related steps per group.
+
+**COMPONENT BATCHING (PCM Focus):** Group steps together when they interact with the same logical UI component or encapsulate a single cohesive user flow (e.g., "Fill out Login Form", "Configure Data Grid table"). A group should ideally focus on a single dominant component so a Component Map can be created once and reused for the remaining steps in that group.
 
 **CODE-AWARE BATCHING (CRITICAL):** If your Workspace Scan revealed that a sequence of steps (e.g., Steps 1-5 for logging in and navigating) is *already fully implemented* in an existing spec file, **batch them together into a single large group** (e.g., "Group 1: Execute existing login flow"). Do not isolate them.
 
