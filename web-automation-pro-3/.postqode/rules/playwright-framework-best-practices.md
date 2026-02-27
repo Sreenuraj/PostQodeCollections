@@ -2,10 +2,10 @@
 Guidelines for building maintainable, scalable Playwright test automation frameworks. These rules apply to all Playwright-based test projects to ensure consistency, reusability, and reliability.
 
 ## Framework Structure
-- Use a clear folder structure: `config/`, `fixtures/`, `pages/`, `utils/`
-- Create an `index.ts` in `pages/` for centralized Page Object exports
+- Use a clear folder structure: `config/`, `fixtures/`, `pages/`, `components/` (if using PCM), `utils/`
+- Create an `index.ts` in `pages/` (and `components/`) for centralized exports
 - Keep configuration in one place (`config/test.config.ts`)
-- Separate concerns: Page Objects handle interactions, fixtures handle setup, utils handle common operations
+- Separate concerns: Page Objects / Components handle interactions, fixtures handle setup, utils handle common operations
 
 ## Configuration Management
 - Centralize all timeouts in `TEST_CONFIG.timeouts` object
@@ -14,10 +14,11 @@ Guidelines for building maintainable, scalable Playwright test automation framew
 - Use helper functions like `getTimeout()` for optional timeout overrides
 - Define viewport settings in config for consistent test execution
 
-## Page Object Model (POM) Guidelines
-- One Page Object per major page/screen
-- Expose locators as `readonly` properties
-- Create high-level methods that combine multiple actions
+## Page Object Model (POM) & Page Component Model (PCM) Guidelines
+- **Traditional POM:** One Page Object per major page/screen.
+- **Component Model (PCM):** One Component per logical UI block. Page Objects compose Components.
+- Expose locators as `readonly` properties or getter methods
+- Create high-level methods that combine multiple actions within the Page or Component
 - Include wait logic within methods, not in test code
 - Document methods with JSDoc comments
 - Use fallback strategies for flaky operations (e.g., visualization loading)
@@ -100,4 +101,4 @@ Implement retries at three levels for maximum resilience:
 - Follow existing framework patterns when extending
 - Use TypeScript for type safety
 - Import from index files: `import { LoginPage, DashboardPage } from '../pages'`
-- Keep locators scoped to their Page Object context
+- Keep locators scoped to their Page Object or Component context
