@@ -712,18 +712,22 @@ COMPONENT statuses in `active-group.md`:
 
 ---
 
-### Anchor Type Reference
+### Anchor Type Reference & Timeout Syntax
 
-| Anchor Type | When to use | Wait code | Config setting |
+If `Recommended Timeout` > Framework Default (e.g., > 5000ms), you MUST inject it using the exact syntax below. Do NOT use `page.waitForTimeout()`.
+
+| Anchor Type | When to use | Wait code (Fast) | Wait code (Slow / with Timeout) |
 |---|---|---|---|
-| `URL_CHANGE` | New URL | `waitForURL('**/path**')` | `navigationTimeout` |
-| `ELEMENT_TEXT` | Specific stable text | `expect(loc).toHaveText('text')` | `actionTimeout` + `expect` |
-| `ELEMENT_VISIBLE` | Element appeared | `loc.waitFor({state:'visible'})` | `actionTimeout` + `expect` |
-| `ELEMENT_ENABLED` | Button became active | `expect(loc).toBeEnabled()` | `actionTimeout` + `expect` |
-| `ELEMENT_COUNT` | Stable item count | `expect(loc).toHaveCount(N)` | `actionTimeout` + `expect` |
-| `NETWORK_IDLE` | No requests 500ms+ | `waitForLoadState('networkidle')` | `navigationTimeout` |
+| `URL_CHANGE` | New URL | `waitForURL('**/path**')` | `waitForURL('**/path**', { timeout: N })` |
+| `ELEMENT_TEXT` | Specific stable text | `expect(loc).toHaveText('text')` | `expect(loc).toHaveText('text', { timeout: N })` |
+| `ELEMENT_VISIBLE` | Element appeared | `expect(loc).toBeVisible()` | `expect(loc).toBeVisible({ timeout: N })` |
+| `ELEMENT_ENABLED` | Button became active | `expect(loc).toBeEnabled()` | `expect(loc).toBeEnabled({ timeout: N })` |
+| `ELEMENT_COUNT` | Stable item count | `expect(loc).toHaveCount(count)` | `expect(loc).toHaveCount(count, { timeout: N })` |
+| `NETWORK_IDLE` | No requests 500ms+ | `waitForLoadState('networkidle')` | *(Not recommended - rely on visual elements)* |
 
-Selection order: `URL_CHANGE → ELEMENT_TEXT → ELEMENT_VISIBLE → ELEMENT_ENABLED → ELEMENT_COUNT → NETWORK_IDLE`
+*(If using Cypress, apply timeouts via options object: `cy.get(loc, { timeout: N }).should('be.visible')`)*
+
+Selection order: `URL_CHANGE → ELEMENT_TEXT → ELEMENT_VISIBLE → ELEMENT_ENABLED → ELEMENT_COUNT`
 
 ### Timeout Calculation
 
