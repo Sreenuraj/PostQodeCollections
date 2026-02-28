@@ -4,6 +4,10 @@ description: Web automation setup workflow — workspace intelligence, planning,
 
 # /web-automate-setup
 
+> **Workflow Overview — Part 1 of 3:**
+> `/web-automate-setup` → `/web-automate-explore` → `/web-automate-final`
+> This file handles Phase 0 (planning) and Phase 1 (framework setup). When complete, hand off to `/web-automate-explore`.
+
 > [!CAUTION]
 > ## CORE RULES — APPLY TO EVERY ACTION
 >
@@ -35,7 +39,13 @@ Use when: user starts a new chat, says "Continue", or after context condensation
 1. Read this workflow file — restore all rules
 2. Check project root for state files in this order:
    - **`test-session.md` exists** → read it.
-     - If all `SETUP` rows are marked `[x]` → Setup is already complete. Output:
+     - If `G*` (group execution) or `P3-*` (Phase 3) rows are present in the checklist → this workflow's scope is already complete. Output:
+       ```
+       ## Setup already complete
+       Group execution or Phase 3 rows are present. Please invoke `/web-automate-explore.md` or `/web-automate-final.md` as appropriate.
+       ```
+       **⛔ STOP — wait for user.**
+     - If all `SETUP` rows are marked `[x]` (and no G*/P3* rows) → Setup is already complete. Output:
        ```
        ## Setup already complete
        All SETUP rows are done. Please invoke `/web-automate-explore.md` to begin group execution.
@@ -133,6 +143,8 @@ After approval → create workspace folders, and write all execution files:
 BROWSER_STATUS: CLOSED
 TARGET_URL: [URL]
 MODE: [NEW_TEST | EXTEND_EXISTING]
+TEST_MODE: SINGLE_TEST
+FINALIZED_GROUPS: 0
 EXPLORATION_VIEWPORT: 1280x800
 FRAMEWORK: TBD
 SPEC_FILE: TBD

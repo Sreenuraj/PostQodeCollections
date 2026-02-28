@@ -36,7 +36,7 @@ description: Web automation execution workflow — group-based exploration, comp
 > - Assume browser state — check `BROWSER_STATUS`
 > - Auto-replay without asking (Protocol B)
 > - Close exploration browser except: all groups done, Level 3 exit, user stop
-> - Use hard-coded delays (`waitForTimeout`, `cy.wait(ms)`) in generated test code — ALL waits in test code must be condition-based
+> - Use hard-coded delays (`waitForTimeout`, `cy.wait(ms)`) **in generated test code** — ALL waits in generated test code must be condition-based. *(The `browser_wait_for` used inside TIP during exploration is agent-side only and is never written into test code.)*
 > - Use `waitForLoadState('networkidle')` / `cy.wait('@alias')` without specific intercept — unreliable
 > - Write inline timeouts for `INSTANT` tier — framework default handles it
 > - Invent waits not supported by evidence or skip waits that ARE supported
@@ -80,20 +80,21 @@ When `BROWSER_STATUS` is `OPEN`: proceed with next action. If action fails (conn
 
 When browser needs fresh open and prior steps exist:
 ```
-Browser needs fresh open. [N] steps need replay.
-(A) I replay automatically  (B) You perform manually
+Browser needs fresh open. [N] completed steps need replay.
+(A) I replay automatically
+(B) Open browser to start URL — I will list the steps for you to perform
 ```
 **⛔ STOP — wait for user.**
 - A → Update `BROWSER_STATUS: OPEN` in `test-session.md`. Run spec headed, snapshot to verify.
-- B → **You (the agent) MUST open the browser for the user** using `browser_navigate` to `TARGET_URL`. Update `BROWSER_STATUS: OPEN` in `test-session.md`. Then list the steps the user needs to perform manually in that browser. Output:
+- B → Use `browser_navigate` to open `TARGET_URL`. Update `BROWSER_STATUS: OPEN` in `test-session.md`. Then output the replay steps and stop:
   ```
   Browser is open at [TARGET_URL]. Please perform these steps:
-  1. [Action from Step 1]
-  2. [Action from Step 2]
+  1. [Action from completed Step 1]
+  2. [Action from completed Step 2]
   ...
-  ⛔ Waiting for you to complete the steps above. Reply "Done".
+  ⛔ Reply "Done" when complete.
   ```
-  After user replies "Done": resume from checklist.
+  **⛔ STOP — wait for user reply "Done".** Then resume from checklist.
 
 ---
 
@@ -137,19 +138,21 @@ Output `BROWSER ACTION:` declaration, then execute the **Transition Intelligence
   - Record frame context: `MAIN_FRAME` | `FRAME:<identifier>` (e.g., `FRAME:payment-iframe`, `FRAME:[name=editor]`)
   - This frame context is persisted in the component map's `access` field so future steps skip re-detection
 
-**Step 2 — Action + Network Capture:**
+**Step 2 — Action + Immediate Network Capture:**
 - Perform the action (click, fill, select, etc.)
-- **Immediately** call `browser_network_requests` (MANDATORY for every action)
-- Record Network Fingerprint:
-  ```
-  Requests triggered: [count NEW since action]
-  Key endpoints: [API URL patterns]
-  Navigation: [YES | NO | NONE]
-  ```
+- **Immediately** call `browser_network_requests` → record as `IMMEDIATE_CAPTURE` (catches fast/synchronous requests)
 - To identify NEW requests: compare against pre-action baseline. First action on page = all requests are baseline.
 
-**Step 3 — Post-Action Evidence:**
-- `browser_wait_for` with `time: 3` (let page settle)
+**Step 3 — Post-Action Settle + Settled Network Capture:**
+- `browser_wait_for` with `time: 3`
+  > **Exploration-only:** This wait lets the page settle before capturing post-action state. It is NOT written into generated test code. Test code uses evidence-based condition waits derived from the Transition Evidence Record.
+- Call `browser_network_requests` again → record as `SETTLED_CAPTURE` (catches deferred/debounced requests that fired during the 3s window)
+- **Network Fingerprint** = SETTLED_CAPTURE minus pre-action baseline:
+  ```
+  Requests triggered: [count NEW in SETTLED_CAPTURE vs baseline]
+  Key endpoints: [API URL patterns from SETTLED_CAPTURE]
+  Navigation: [YES | NO | NONE]
+  ```
 - `browser_snapshot` → post-action DOM state
 - **Diff Analysis** (compare Step 1 vs Step 3 snapshots):
 
@@ -228,7 +231,59 @@ We map individual UI Components, NOT entire pages.
    - All locators scoped/relative to `rootLocator`, written in the framework's native syntax
    - **Persist Access Context:** If the EXPLORE step detected any access complexity (frame, shadow DOM, dynamic container, deep nesting), record it in the component map's `access` field.
    - Run Stability Checks on every locator
-   - Write `component-maps/<name>.json`, update `COMPONENT:` in `active-group.md`
+   - **🔥 LOCATOR VERIFICATION PROTOCOL (LVP — MANDATORY before writing JSON):**
+     Run ONE `browser_run_code` call that count-verifies the `rootLocator` and every element locator before the JSON is saved. The verification MUST use the correct access context (frame, shadow, or main).
+
+     **Build the verification script based on access context:**
+
+     | Access Context | Verification root chain |
+     |---|---|
+     | `MAIN_FRAME` | `page.locator(rootLocator)` |
+     | `FRAMED` | `page.frameLocator(access.frame).locator(rootLocator)` |
+     | `SHADOW_DOM` | `page.locator(access.shadowHost).locator(rootLocator)` (using shadow-piercing) |
+     | `DYNAMIC_CONTAINER` | Scroll container into view first via `browser_evaluate`, then `page.locator(rootLocator)` |
+     | `NESTED` | Chain access layers in declared order |
+
+     **Verification script pattern (adapt to actual locators):**
+     ```javascript
+     // ONE browser_run_code call per component — verifies root + all elements
+     const root = [access-chain].locator('[rootLocator]');
+     const results = {
+       rootCount:    await root.count(),
+       [el1Name]:    await root.locator('[el1Locator]').count(),
+       [el2Name]:    await root.locator('[el2Locator]').count(),
+       // ...one entry per element
+     };
+     console.log(JSON.stringify(results));
+     ```
+
+     **Interpret results — fix BEFORE writing JSON:**
+
+     | Count | Meaning | Action |
+     |---|---|---|
+     | `rootCount = 0` | rootLocator broken — ALL elements will fail | Re-derive rootLocator. Do NOT proceed until root = 1 |
+     | `rootCount > 1` | rootLocator ambiguous — wrong component scope | Add distinguishing attribute (index, parent, data-testid) until = 1 |
+     | `elementCount = 0` | Locator doesn't match in live DOM | Re-derive from snapshot. If element is in dynamic container — scroll first, re-count |
+     | `elementCount > 1` | Locator ambiguous | Scope to nth, add aria-label or role context, re-count |
+     | All counts = 1 | ✅ Verified | Mark `stabilityCheck: "PASS"` |
+     | Fixed after retry | Element needed correction | Mark `stabilityCheck: "FIXED"`, record corrected locator |
+
+     > **What LVP catches:** Wrong locators (0), ambiguous locators (>1), broken rootLocator scope, incorrect iframe/shadow paths, access context mismatches, elements not yet rendered in dynamic containers (count=0 triggers scroll + retry).
+     >
+     > **What LVP does NOT catch:** Locators containing dynamic data that works NOW but changes next run (e.g. session-specific IDs). These are caught by Stability Checks (text pattern analysis). LVP + Stability Checks are complementary — together they cover both runtime and future-run failures.
+
+     **LVP Retry and Escalation:**
+     - Per failing locator: max **2 re-derive attempts** (re-snapshot, re-derive, re-count). If count = 1 on any attempt → FIXED, continue.
+     - If count ≠ 1 after 2 attempts: escalate — ask user (Level 2):
+       ```
+       ⚠️ LVP FAILED: Cannot verify locator for "[elementName]" in [ComponentName].
+       After 2 attempts: count = [N] (expected 1).
+       Please provide: (A) outerHTML of the element  (B) result of document.querySelectorAll('[selector]')
+       ```
+       **⛔ STOP — wait for user.** Use the user's input to correct the locator, then re-run LVP once more.
+     - If still failing after user input: mark element locator as `stabilityCheck: "UNVERIFIED"`, save the best available locator, and add a warning comment in the JSON. Do NOT block the entire component map — skip only the unverifiable element.
+
+   - Write `component-maps/<name>.json` — ONLY after LVP passes for all locators
    - **🔥 UPDATE COMPONENT REGISTRY:** Append a new row to the `## Component Registry` table in `test-session.md`:
      ```
      | [ComponentName] | [filename].json | [Access Context, e.g., MAIN_FRAME or FRAMED:iframe[name='payment']] |
@@ -368,10 +423,17 @@ Update `active-group.md`: Step Type, Wait Strategy, Timeout Tier, Transition Seq
 To prevent the checklist from growing too large and consuming excessive tokens, collapse all `[x]` rows from the current group into a single summary row.
 
 1. Open `test-session.md`.
-2. Delete the fully completed block of rows for the current group (e.g., rows 4 through 15).
-3. Replace them with a single summary row:
-   `| - | SUMMARY | Group N completed successfully | [x] | [Insert a comma-separated list of ALL locators, Component Maps, and POs mentioned in the deleted rows' remarks] |`
-4. Leave the remaining `[ ]` rows intact.
+2. Identify the first and last row numbers of the completed group block (e.g., rows 4 through 15).
+3. Delete that entire block of completed rows.
+4. Insert a single summary row in their place using this **exact format**:
+   ```
+   | [first#]-[last#] | G[N]-DONE | Group [N] complete: [step_count] steps validated | [x] | Steps: [step numbers]. Maps: [component map filenames created or reused]. Result: PASSED |
+   ```
+   **Example:**
+   ```
+   | 4-15 | G1-DONE | Group 1 complete: 3 steps validated | [x] | Steps: 1-3. Maps: login-form.json (created), sidebar-nav.json (reused). Result: PASSED |
+   ```
+5. Leave all remaining `[ ]` rows intact.
 
 Mark row `[x]`.
 
@@ -380,40 +442,42 @@ Mark row `[x]`.
 > **🔥 CRITICAL TOOL WARNING:** You MUST use the terminal `mv` command to rotate files. You are strictly FORBIDDEN from using file-writing tools to rewrite the contents.
 
 1. Execute `mv active-group.md completed-groups/group-N.md` in the terminal.
-2. Check if a `pending-groups/group-[N+1].md` exists.
-   **If YES:**
-   - Execute `mv pending-groups/group-[N+1].md active-group.md` in the terminal.
-   - Read the newly promoted `active-group.md` to see how many steps it has.
-   - Use the **Next Group Checklist Template** (in the Reference section) to write exactly the required rows for Group N+1 to the bottom of the table in `test-session.md`.
-   **If NO (Last group just finished):**
-   - Skip promotion. No more groups to execute.
-   - Read `MODE` from `test-session.md` header (`NEW_TEST` or `EXTEND_EXISTING`).
-   - Append the appropriate **Phase 3 Checklist Template** rows (from the Reference section) to the bottom of the table in `test-session.md`. These `P3-*` rows will be executed by `/web-automate-final.md`.
+2. **Do NOT promote the next pending group yet.** Do NOT generate any checklist rows yet. Promotion and checklist generation happen in OFFER NEW TASK based on the user's choice.
 
 Mark row `[x]`.
 
 ### OFFER NEW TASK: ⛔ stop and ask user
 
-More groups:
-```
-✅ Group [N] complete — [X] steps passing.
-Next: Group [N+1] ([label]) — [G] groups remaining.
-Start new task? (A) Yes (recommended)  (B) No — continue
-```
-**⛔ STOP — wait for user.**
-- A → call `new_task` tool with exactly: `"/web-automate-explore.md continue"`
-- B → continue immediately
+**Check whether `pending-groups/` has any files remaining:**
 
-Last group:
-```
-✅ All groups complete — [X] steps passing.
-Config restored. Next: Phase 3 — Finalise Test.
-Start new task? (A) Yes  (B) No — continue to Phase 3
-```
-Restore `ORIGINAL_RETRIES` and `ORIGINAL_HEADED` to config. Remove `ORIGINAL_*` from header.
-**⛔ STOP — wait for user.**
-- A → call `new_task` tool with exactly: `"/web-automate-final.md continue"`
-- B → continue immediately
+**More groups remain:**
+1. Present to user:
+   ```
+   ✅ Group [N] complete — [X] steps passing.
+   Next: Group [N+1] ([label]) — [G] groups remaining.
+
+   (A) New task — continue to Group [N+1]
+   (B) New task — run partial final for completed groups, then continue
+   (C) No new task — continue immediately to Group [N+1]
+   ```
+   **⛔ STOP — wait for user.**
+2. Based on reply:
+   - **(A) or (C):** Promote next group — `mv pending-groups/group-[N+1].md active-group.md`. Read it. Write Group [N+1] checklist rows using the **Next Group Checklist Template** to `test-session.md`.
+     - A → call `new_task` tool with exactly: `"/web-automate-explore.md continue"`
+     - C → continue immediately
+   - **(B):** **Do NOT promote the next pending group.** Read `MODE` from header. Append the **PARTIAL Phase 3 Checklist Template** rows to `test-session.md`. Then call `new_task` tool with exactly: `"/web-automate-final.md continue"`
+
+**Last group (no pending groups remain):**
+1. **Restore config FIRST:** Revert `ORIGINAL_RETRIES` and `ORIGINAL_HEADED` values in the framework config. Remove `ORIGINAL_*` keys from the `test-session.md` header. Save both files.
+2. Then output:
+   ```
+   ✅ All groups complete — [X] steps passing.
+   Config restored to original values. Next: Phase 3 — Finalise Test.
+   Start new task? (A) Yes  (B) No — continue to Phase 3
+   ```
+   **⛔ STOP — wait for user.**
+   - A → Read `MODE` from header. Append the appropriate **Full Phase 3 Checklist Template** rows to `test-session.md`. Then call `new_task` tool with exactly: `"/web-automate-final.md continue"`
+   - B → Read `MODE` from header. Append appropriate **Full Phase 3 Checklist Template** rows. Continue immediately.
 
 Mark row `[x]`.
 
@@ -636,13 +700,15 @@ Escalation: `data-testid` → `id`/`aria-label`/`role` → stable parent + scope
 │  1. browser_snapshot       → baseline + URL         │
 │  1a. DETECT frame/shadow/dynamic context            │
 │  2. Perform action         → click/fill/select      │
-│  3. browser_network_requests → network fingerprint  │
-│  4. browser_wait_for(3s)   → let page settle        │
-│  4a. browser_tabs          → check for new tabs     │
+│  3. browser_network_requests → IMMEDIATE_CAPTURE    │
+│  4. browser_wait_for(3s)   → settle [explore only]  │
+│  4a. browser_network_requests → SETTLED_CAPTURE     │
+│  4b. browser_tabs          → check for new tabs     │
 │  5. browser_snapshot       → post-action state      │
 │  6. DIFF #1 vs #5          → classify changes       │
-│  7. BUILD Transition Evidence Record (incl. access) │
-│  8. CLASSIFY Timeout Tier from evidence             │
+│  7. Network Fingerprint = SETTLED_CAPTURE - baseline│
+│  8. BUILD Transition Evidence Record (incl. access) │
+│  9. CLASSIFY Timeout Tier from evidence             │
 ├─────────────────────────────────────────────────────┤
 │  CODE GENERATION (per step)                         │
 │  1. Pre-Action Wait (prev NAV/HEAVY/EXTREME)        │
@@ -674,12 +740,34 @@ Escalation: `data-testid` → `id`/`aria-label`/`role` → stable parent + scope
 | `G[N]-END` | OFFER NEW TASK: ⛔ stop and ask user |
 
 *(Repeat S[X] block for every step in active-group.md)*
+*(Protocol C only runs for Group 1 — it is intentionally absent from this template for Group 2 onwards)*
 
-*(If there are NO remaining pending groups after the current one finishes, do NOT use this template. Instead, check `MODE` in header and generate the Phase 3 checklist below:)*
+*(The OFFER NEW TASK step generates the correct checklist template based on user choice. Use the templates below:)*
 
-### Phase 3 Checklist Template
+---
+
+### PARTIAL Phase 3 Checklist Template (ONE group, Component classes only)
+
+Append these rows when user picks option (B) and more groups are still pending.
+
+> **🔥 BROWSER RULE:** Do NOT close the browser in PARTIAL mode. The exploration browser is still live and will be used by the next group's explore task. Component class generation reads JSON files only — no browser needed.
+
+**NEW_TEST and EXTEND_EXISTING:**
+
+| Phase | Action |
+|-------|---------|
+| `P3-SETUP` | Inventory unfinalized completed-groups + component-maps (browser stays open) |
+| `P3-BUILD` | Create/extend Component classes from unfinalized component-maps |
+| `P3-CLEANUP` | Mark processed groups as finalized — rename to `.finalized.md`. Increment `FINALIZED_GROUPS` in header. |
+| `P3-DONE` | Promote next pending group, generate its checklist — redirect to explore |
+
+---
+
+### Full Phase 3 Checklist Template (all groups complete)
 
 **NEW_TEST:**
+
+> If `FINALIZED_GROUPS > 0` in header: skip `Create BaseComponent` and `Create Component files` rows — those classes were already built during partial finals.
 
 | Phase | Action |
 |-------|--------|
@@ -691,13 +779,16 @@ Escalation: `data-testid` → `id`/`aria-label`/`role` → stable parent + scope
 | `P3-BUILD` | Create BaseComponent with locator resilience |
 | `P3-BUILD` | Create Component files from component-maps |
 | `P3-BUILD` | Create Page classes composing Components |
+| `P3-BUILD` | Create SmartRetry utility + wire steps in spec |
 | `P3-BUILD` | Create fixture/test-data files |
 | `P3-BUILD` | Refactor spec using PCM |
 | `P3-BUILD` | Update config + sync EXPLORATION_VIEWPORT |
 | `P3-BUILD` | Configure reporting — ⛔ STOP |
 | `P3-VALIDATE` | RUN VALIDATION: refactored spec, headed |
+| `P3-VALIDATE` | RUN VALIDATION: refactored spec, headless (CI compatibility check) |
 | `P3-BUILD` | Generate README.md |
 | `P3-VALIDATE` | RUN FINAL VALIDATION: full suite headed |
+| `P3-VALIDATE` | RUN FINAL VALIDATION: full suite headless |
 | `P3-CLEANUP` | Delete working files, report results |
 
 **EXTEND_EXISTING:**
