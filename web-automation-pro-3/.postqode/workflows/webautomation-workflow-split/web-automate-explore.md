@@ -79,8 +79,11 @@ When `BROWSER_STATUS` is `OPEN`: proceed with next action. If action fails (conn
 ## Protocol B: Replay Choice
 
 When browser needs fresh open and prior steps exist:
+
+> **PRE-CODED STEP AWARENESS:** If `PRE_CODED_STEPS` is set in the session header (not `NONE`), the isolation spec already contains the pre-coded steps. Any replay (automatic or manual) includes these steps. The count shown below should be: `[pre-coded] + [completed new] steps`.
+
 ```
-Browser needs fresh open. [N] completed steps need replay.
+Browser needs fresh open. [N] steps need replay ([P] pre-coded + [C] completed new).
 (A) I replay automatically
 (B) Open browser to start URL — I will list the steps for you to perform
 ```
@@ -89,8 +92,11 @@ Browser needs fresh open. [N] completed steps need replay.
 - B → Use `browser_navigate` to open `TARGET_URL`. Update `BROWSER_STATUS: OPEN` in `test-session.md`. Then output the replay steps and stop:
   ```
   Browser is open at [TARGET_URL]. Please perform these steps:
-  1. [Action from completed Step 1]
-  2. [Action from completed Step 2]
+  *(If pre-coded steps exist, list them first:)*
+  1. [Pre-coded Step 1 action]
+  2. [Pre-coded Step 2 action]
+  *(Then completed new steps:)*
+  3. [Action from completed new Step 1]
   ...
   ⛔ Reply "Done" when complete.
   ```

@@ -92,9 +92,53 @@ Default: 2–3 related steps per group.
 
 **COMPONENT BATCHING (PCM Focus):** Group steps together when they interact with the same logical UI component or encapsulate a single cohesive user flow (e.g., "Fill out Login Form", "Configure Data Grid table"). A group should ideally focus on a single dominant component so a Component Map can be created once and reused for the remaining steps in that group.
 
-**CODE-AWARE BATCHING (CRITICAL):** If your Workspace Scan revealed that a sequence of steps (e.g., Steps 1-5 for logging in and navigating) is *already fully implemented* in an existing spec file, **batch them together into a single large group** (e.g., "Group 1: Execute existing login flow"). Do not isolate them.
+**CODE-AWARE BATCHING (CRITICAL):** If your Workspace Scan revealed that a sequence of steps (e.g., Steps 1-5 for logging in and navigating) is *already fully implemented* in an existing spec file, **batch them together into a single large group** (e.g., "Group 0: Pre-Coded Steps"). Do not isolate them. These pre-coded steps will be handled by sub-section 3b below.
 
 **Keep as 1 step ONLY when:** extremely complex, isolated actions.
+
+### 3b. Already-Implemented Step Detection
+
+If your Workspace Intelligence Scan (sub-section 1) detected an existing framework AND existing spec files, check if any of the user's requested steps are already coded:
+
+**CASE A — No steps match existing code:**
+Skip this sub-section entirely. Proceed to sub-section 4.
+
+**CASE B — Some steps match existing code:**
+
+**⛔ STOP — wait for user.** *(Core Rule: no self-answering)*
+```
+🔍 My workspace scan found that steps [X, Y, Z] appear implemented in `[spec-file]`.
+
+How would you like to handle the already-coded steps?
+  (A) EXTEND — Add new steps to the existing test file
+  (B) SEPARATE — Create a new isolated test file
+
+In both cases:
+- I will create an isolation temp spec that includes the pre-coded steps
+- The checklist will ONLY contain explore/write rows for the NEW steps
+- Pre-coded steps will be replayed automatically to reach the correct page state
+```
+**⛔ STOP — wait for reply.**
+
+Record the user's choice and store for sub-sections 4 and 5:
+- `IMPLEMENTED_STEPS: [step numbers]`
+- `IMPLEMENTED_SOURCE: [spec-file path]`
+- User choice: EXTEND (A) or SEPARATE (B)
+
+**CASE C — ALL steps match existing code (edge case):**
+
+**⛔ STOP — wait for user.** *(Core Rule: no self-answering)*
+```
+🔍 All requested steps appear to already be implemented in `[spec-file]`.
+
+  (A) Re-validate — Run the existing test to confirm it passes
+  (B) Duplicate — Create a separate test (e.g., for different test data)
+  (C) Cancel — Nothing to do
+```
+**⛔ STOP — wait for reply.**
+- (A): Skip exploration entirely → Phase 1 just runs validation on existing spec, then proceed to Phase 3 finalization
+- (B): Treat as `NEW_TEST` — all steps get full explore/write rows (user wants fresh implementation, likely different data)
+- (C): End workflow
 
 ### 4. Present plan and STOP
 
@@ -109,13 +153,16 @@ Default: 2–3 related steps per group.
 > **Your response MUST end with the ⛔ STOP line below. Nothing may follow it.**
 
 1. Create a temporary `test.md` file in the root directory.
-2. Write your proposed plan into `test.md` using a Markdown table format:
+2. Write your proposed plan into `test.md` using a Markdown table format.
+   **If pre-coded steps exist (from sub-section 3b):** Flag them with `✅ PRE-CODED` and batch into Group 0. New steps start from Group 1.
+   **If no pre-coded steps:** Normal grouping starting from Group 1.
    ```markdown
    | Group | Step | Action | Target | Data | Expected Result | Page | Flag |
    |---|---|---|---|---|---|---|---|
-   | 1 | 1 | Navigate + Login | Login page | User: x, Pass: y | Dashboard loads | Login | — |
-   | 1 | 2 | Click module | Work Order link | N/A | Work Order page loads | Dashboard | — |
-   | 2 | 3 | Fill form | Info tab | ⚠️ UNSPECIFIED | Form populated | Work Order | ⚠️ NEEDS_DECOMPOSITION |
+   | 0 | 1 | Navigate + Login | Login page | User: x, Pass: y | Dashboard loads | Login | ✅ PRE-CODED |
+   | 0 | 2 | Click module | Work Order link | N/A | Work Order page loads | Dashboard | ✅ PRE-CODED |
+   | 1 | 3 | Fill form | Info tab | Name: Alpha | Form populated | Work Order | — |
+   | 1 | 4 | Click Save | Save button | N/A | Success toast | Work Order | — |
    ```
 3. Present this exact prompt to the user:
 
@@ -155,6 +202,8 @@ CONFIG_NAVIGATION_TIMEOUT: TBD
 CONFIG_EXPECT_TIMEOUT: TBD
 COMPONENT_MAPS_DIR: component-maps
 GROUPING_CONFIRMED: NO
+PRE_CODED_STEPS: [comma-separated step numbers, or NONE]
+PRE_CODED_SOURCE: [original spec file path, or NONE]
 
 ## Component Registry
 | Component | Map File | Access Context |
@@ -163,15 +212,42 @@ GROUPING_CONFIRMED: NO
 
 | # | Phase | Action | Status | Remarks |
 |---|-------|--------|--------|---------|
-*(If Framework Exists):*
+```
+
+**Checklist generation depends on TWO conditions: framework existence AND pre-coded steps.**
+
+**Path 1 — Framework Exists, PRE-CODED steps exist:**
+```
+| 1 | SETUP | Read configs, identify spec locations | [ ] | |
+| 2 | SETUP | Scan component-maps/ directory | [ ] | |
+| 3 | SETUP | Create isolation temp spec with pre-coded steps | [ ] | |
+*(Then Group 1 rows for the FIRST group of NEW steps only — with modified G1-START):*
+| 4 | G1-START | Open browser to TARGET_URL | [ ] | |
+| 5 | G1-START | Run pre-coded steps (isolation spec, headed) to reach starting state | [ ] | |
+| 6 | G1-START | Snapshot: verify page state matches expected starting point | [ ] | |
+| 7 | G1-START | Update BROWSER_STATUS to OPEN | [ ] | |
+| 8 | G1-START | Check/create starting component map | [ ] | |
+| 9 | G1-S1 | EXPLORE: [first NEW step action description] | [ ] | |
+| 10 | G1-S1 | COMPONENT MAP: check/create for the component interacted with | [ ] | |
+| 11 | G1-S1 | WRITE CODE: Step [first new step #] | [ ] | |
+| 12 | G1-S1 | UPDATE: active-group Status=[x], session step++ | [ ] | |
+*(Generate identical 4-row blocks for remaining NEW steps in Group 1)*
+| [N] | G1-END | RUN VALIDATION: config override, headless, zero retries | [ ] | |
+| [N+1] | G1-END | PROTOCOL C: ⛔ stop and ask user to review grouping | [ ] | |
+| [N+2] | G1-END | COLLAPSE CHECKLIST: merge completed rows into summary | [ ] | |
+| [N+3] | G1-END | ROTATE AND GENERATE NEXT CHECKLIST | [ ] | |
+| [N+4] | G1-END | OFFER NEW TASK: ⛔ stop and ask user | [ ] | |
+```
+
+> **🔥 PRE-CODED STEP RULE (CRITICAL):**
+> Do NOT generate EXPLORE, COMPONENT MAP, or WRITE CODE rows for pre-coded steps. Pre-coded steps are handled entirely by the isolation temp spec replay during `G1-START`. The checklist only contains explore/write rows for NEW steps that need to be implemented.
+
+**Path 2 — Framework Exists, NO pre-coded steps (standard flow):**
+```
 | 1 | SETUP | Read configs, identify spec locations | [ ] | |
 | 2 | SETUP | Scan component-maps/ directory | [ ] | |
 | 3 | SETUP | Create working spec (NEW_TEST) or backup (EXTEND) | [ ] | |
-*(OR If No Framework Exists):*
-| 1 | SETUP | ⛔ STOP and ask user for framework preference | [ ] | |
-| 2 | SETUP | Install framework and configure defaults (incl. EXPLORATION_VIEWPORT) | [ ] | |
-| 3 | SETUP | Create initial spec file | [ ] | |
-*(Then append Group 1 rows, continuing numbering from 4. The S[X] block must be generated for EVERY step in the group):*
+*(Then standard Group 1 rows):*
 | 4 | G1-START | Open browser to TARGET_URL | [ ] | |
 | 5 | G1-START | Update BROWSER_STATUS to OPEN | [ ] | |
 | 6 | G1-START | Check/create starting component map | [ ] | |
@@ -179,12 +255,20 @@ GROUPING_CONFIRMED: NO
 | 8 | G1-S1 | COMPONENT MAP: check/create for the component interacted with | [ ] | |
 | 9 | G1-S1 | WRITE CODE: Step 1 | [ ] | |
 | 10 | G1-S1 | UPDATE: active-group Status=[x], session step++ | [ ] | |
-*(Generate identical 4-row blocks for G1-S2, G1-S3, etc., based on how many steps are in Group 1)*
+*(Generate identical 4-row blocks for G1-S2, G1-S3, etc.)*
 | [N] | G1-END | RUN VALIDATION: config override, headless, zero retries | [ ] | |
 | [N+1] | G1-END | PROTOCOL C: ⛔ stop and ask user to review grouping | [ ] | |
 | [N+2] | G1-END | COLLAPSE CHECKLIST: merge completed rows into summary | [ ] | |
 | [N+3] | G1-END | ROTATE AND GENERATE NEXT CHECKLIST | [ ] | |
 | [N+4] | G1-END | OFFER NEW TASK: ⛔ stop and ask user | [ ] | |
+```
+
+**Path 3 — No Framework Exists (always no pre-coded steps):**
+```
+| 1 | SETUP | ⛔ STOP and ask user for framework preference | [ ] | |
+| 2 | SETUP | Install framework and configure defaults (incl. EXPLORATION_VIEWPORT) | [ ] | |
+| 3 | SETUP | Create initial spec file | [ ] | |
+*(Then standard Group 1 rows — same as Path 2, starting from row 4)*
 ```
 
 > **🔥 STATELESS CHECKLIST RULE (CRITICAL):**
@@ -249,18 +333,41 @@ Same structure as active-group, one file per pending group.
    | **None** | No PO files | Standard exploration. |
 
 5. Check if `component-maps/` exists. If exists → match maps to steps using `componentName` or contextual matching. Set `COMPONENT: <file> (MAP_AVAILABLE)` in active-group.md. Update header: `COMPONENT_MAPS_FOUND: [count]`.
-6. Check if steps already implemented → ask:
-   ```
-   Steps [X, Y] appear implemented. Prefer:
-     (A) Add to existing test file  (B) Create separate new test
-   ```
-   **⛔ STOP — wait for reply.**
+6. **Apply pre-coded step decision (from Phase 0, sub-section 3b):**
+   - **If no pre-coded steps** → skip to step 7.
+   - **If EXTEND (A):**
+     a. Set `MODE: EXTEND_EXISTING`
+     b. `SPEC_FILE` = the existing file
+     c. Create backup: `cp [file] [file].backup`
+     d. Create isolation temp spec:
+        - Copy the already-implemented code from the source spec into a new temp spec file
+        - Add a marker comment at the insertion point: `// === NEW STEPS START HERE ===`
+        - The explore phase will append new step code after this marker
+     e. Run the isolation spec once (**headed**) to verify pre-coded steps still pass:
+        - **If PASSES** → mark `[x]`, proceed
+        - **If FAILS** → ⛔ STOP, present error:
+          ```
+          ⚠️ Pre-coded steps failed validation:
+          [error summary]
+          (A) I'll fix the existing code first — then retry
+          (B) Skip pre-coded steps — treat all as new (re-explore everything)
+          (C) Cancel workflow
+          ```
+          **⛔ STOP — wait for reply.**
+          - (A): Fix code, re-run. Max 2 attempts → if still failing, escalate to user
+          - (B): Clear `PRE_CODED_STEPS`, set `MODE: NEW_TEST`, regenerate checklist with ALL steps
+          - (C): End workflow
+   - **If SEPARATE (B):**
+     a. Set `MODE: NEW_TEST`
+     b. Create isolation temp spec with pre-coded steps copied in (same as EXTEND step d above)
+     c. Run validation same as EXTEND step e above
+     d. Mark already-implemented steps as `PRE-CODED` in `active-group.md`
 7. Update `test-session.md` header: `FRAMEWORK`, `SPEC_FILE`, `CONFIG_FILE`, `TEST_COMMAND`, timeouts, `MODE`
-8. If EXTEND_EXISTING:
+8. If EXTEND_EXISTING (and no pre-coded steps — legacy path):
    a. SPEC_FILE = the existing file (no separate working spec)
    b. Create backup: `cp [file] [file].backup`
    c. Identify already-implemented steps → mark completed
-9. Create working spec file (NEW_TEST only)
+9. Create working spec file (NEW_TEST only, and no pre-coded steps — legacy path)
    - **🔥 SINGLE TEST RULE:** The spec MUST contain exactly ONE `test()` / `it()` block. ALL steps across ALL groups will be appended sequentially into this single test body. Do NOT create multiple test blocks, describe blocks, or separate tests per group. Example structure:
      ```
      test('e2e workflow', async ({ page }) => {
