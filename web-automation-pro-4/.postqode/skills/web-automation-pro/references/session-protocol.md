@@ -17,7 +17,7 @@ FRAMEWORK: [name, or TBD if not yet selected]
 SPEC_FILE: [path to test spec file, or TBD]
 CONFIG_FILE: [path to framework config, or TBD]
 TEST_COMMAND: [run command, or TBD]
-TURBO: ON | OFF
+TURBO: OFF (Default)
 MILESTONE_INTERVAL: [auto — agent-decided]
 FINALIZED_GROUPS: [count]
 EXPLORATION_VIEWPORT: [e.g. 1280x800]
@@ -74,7 +74,7 @@ The target application may have changed since then.
 | `EXECUTING` | Active group step-by-step in progress | Tell user to run `/automate` to resume |
 | `VALIDATING` | Validation command is pending | Tell user to run `/automate` to resume |
 | `ROTATING` | Group completed; rotating to next | Tell user to run `/automate` to resume |
-| `MILESTONE` | Milestone gate triggered; waiting for user | Show milestone menu to user |
+| `MILESTONE` | Milestone gate triggered; waiting for user | ⛔ CRITICAL STOP — Show milestone menu and wait for user |
 | `FINALIZING` | All groups done; POM generation in progress | Tell user to run `/finalize` to resume |
 | `COMPLETE` | All done | Workspace is clean; tell user to run `/finalize` if not done |
 
@@ -122,7 +122,7 @@ Use at the start of every `/automate` session:
    EXECUTING    → Find first [ ] row in active group → resume from there
    VALIDATING   → Re-run validation command (read from TEST_COMMAND header)
    ROTATING     → Resume rotation: collapse → rotate → generate next group rows
-   MILESTONE    → Show milestone menu
+   MILESTONE    → ⛔ CRITICAL STOP: Show milestone menu and ask user for permission to proceed. Do NOT proceed automatically.
    FINALIZING   → Tell user to run /finalize
    COMPLETE     → Tell user everything is done; suggest /finalize if POM not yet done
 ```

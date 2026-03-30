@@ -40,7 +40,7 @@ Before any browser action or planning, determine intent:
 | Automation / tests | **Recording Mode** | Full lifecycle: spec → plan → explore → code → validate |
 | One-time task | **Exploration Mode** | Standard browser interaction only; no spec or test generation |
 
-**If the user directly asks to "generate tests", "automate this", or provides a test case → activate Recording Mode immediately without asking.**
+**If the user directly asks to "generate tests", "automate this", or provides a test case → acknowledge their request, but you MUST NOT skip the state routing in Step 1. You still must check if `SPEC.md` is missing and show the welcome message first.**
 
 ---
 
@@ -68,7 +68,7 @@ Read the session state to determine which workflow to direct the user to.
       /finalize  → Generate production architecture (after automate)
       /debug     → Fix failing tests
 
-  → ⛔ STOP
+  → ⛔ **CRITICAL STOP:** You must output EXACTLY the welcome message above and NOTHING ELSE. Do NOT open the browser. Do NOT explore the URL. Wait for the user to explicitly type `/spec-gen`.
 
 SPEC.md missing but test-session.md exists?
   → Orphaned session — warn user and suggest /spec-gen
@@ -94,6 +94,25 @@ test-session.md exists?
 | `/automate` | SPEC.md is locked. Runs planning → setup → group execution. Resume anytime. |
 | `/finalize` | All groups complete. User chooses COM/POM/Flat architecture, generates it, validates. |
 | `/debug` | A test is failing outside normal execution. Diagnose and fix. |
+
+---
+
+## Executing `/automate` (STRICT PROTOCOL)
+
+When the user types `/automate`, you MUST follow this exact sequence without exception:
+
+1. **Load `references/session-protocol.md`** to route the state.
+2. **If PHASE = SPEC_READY (Phase 0 Planning)**: 
+   - Load `references/grouping-algorithm.md`.
+   - **CRITICAL**: You MUST physically create the `active-group.md` and the `pending-groups/` directory as specified. Do NOT proceed to execution until the user explicitly approves the plan.
+3. **If PHASE = SETUP (Phase 1)**:
+   - Generate framework rules.
+   - Execute setup tasks.
+4. **If PHASE = EXECUTING (Phase 2)**:
+   - Follow the `test-session.md` Checklist Format specified in `session-protocol.md`. DO NOT invent a custom summarized checklist.
+   - **CRITICAL**: You MUST NOT write code for future groups. Only work on the current `active-group.md`.
+   - **CRITICAL**: After completing an active group, you MUST trigger the **Reviewer** persona and run the rubric.
+   - **CRITICAL**: Default `TURBO` mode to `OFF`. You MUST stop at the MILESTONE gate and wait for user approval before rotating to the next group.
 
 ---
 
