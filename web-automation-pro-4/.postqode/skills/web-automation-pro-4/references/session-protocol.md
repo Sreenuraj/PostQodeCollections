@@ -23,7 +23,7 @@ FINALIZED_GROUPS: [count]
 EXPLORATION_VIEWPORT: [e.g. 1280x800]
 PRE_CODED_STEPS: [step numbers or NONE]
 PRE_CODED_SOURCE: [file path or NONE]
-COMPONENT_MAPS_DIR: component-maps
+ELEMENT_MAPS_DIR: element-maps
 GROUPING_CONFIRMED: YES | NO
 ```
 
@@ -106,7 +106,7 @@ Use at the start of every `/automate` session:
 | 2 | SETUP | [action] | [ ] | |
 | 3 | G1-START | Open browser to TARGET_URL | [ ] | |
 | 4 | G1-S1 | EXPLORE: [step description] | [ ] | |
-| 5 | G1-S1 | COMPONENT MAP: [component] | [ ] | |
+| 5 | G1-S1 | ELEMENT MAP: [block] | [ ] | |
 | 6 | G1-S1 | WRITE CODE: Step 1 | [ ] | |
 | 7 | G1-S1 | UPDATE: mark active-group step [x] | [ ] | |
 | ... | ... | ... | ... | |
@@ -126,11 +126,11 @@ Use at the start of every `/automate` session:
 When all rows for Group N are marked `[x]`:
 
 1. Read all `[x]` rows for Group N from the checklist
-2. Extract key artifacts: spec file path, component maps created/updated, locators written
+2. Extract key artifacts: spec file path, element maps created/updated, locators written
 3. Replace ALL Group N rows with ONE summary row:
 
 ```
-| [SUMMARY] | G[N]-DONE | Group [N] complete — [N] steps coded, [M] component maps: [list] | [x] | [key locators/artifacts] |
+| [SUMMARY] | G[N]-DONE | Group [N] complete — [N] steps coded, [M] element maps: [list] | [x] | [key locators/artifacts] |
 ```
 
 4. Save test-session.md
@@ -148,7 +148,7 @@ After COLLAPSE CHECKLIST:
 3. Read new `active-group.md`
 4. Generate Group [N+1] checklist rows and APPEND to test-session.md:
    - G[N+1]-START rows
-   - G[N+1]-S[1..M] rows (4 rows per step: EXPLORE, COMPONENT MAP, WRITE CODE, UPDATE)
+   - G[N+1]-S[1..M] rows (4 rows per step: EXPLORE, ELEMENT MAP, WRITE CODE, UPDATE)
    - G[N+1]-END rows (VALIDATION, REVIEWER, COLLAPSE, ROTATE, MILESTONE)
 5. Update PHASE to EXECUTING in header
 6. Save test-session.md

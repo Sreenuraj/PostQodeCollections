@@ -128,6 +128,6 @@ Cleanup: Debug injection removed, debug-context/ deleted
 
 Suggested follow-up:
   • Update .postqode/spec/SPEC.md if the expected behavior changed
-  • Update component-maps/[component].json if the UI structure changed
+  • Update element-maps/[page]__[block].json if the UI structure changed
   • Consider running /finalize if this fix reveals a POM-level issue
 ```

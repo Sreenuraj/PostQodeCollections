@@ -18,7 +18,7 @@ Always prefer locators in this order (most resilient → least resilient):
 | 5 | Unique CSS selector (ID or scoped class) | Fragile to styling changes — last resort |
 | ❌ | XPath, index-based, auto-generated class names | Never use as primary — too brittle |
 
-**Always capture at least 2 locator strategies per element.** Use the primary; record the fallback in component maps.
+**Always capture at least 2 locator strategies per element.** Use the primary; record the fallback in element maps.
 
 ---
 
@@ -61,23 +61,41 @@ Credentials, tokens, and environment-specific values MUST be placed in config ob
 
 ---
 
-## Component Mapping Principles
+## Element Mapping Principles
 
-### What is a Component Map?
-A JSON file in `component-maps/` that captures the structure of a UI component:
-- The logical name of the component (e.g., `login-form`, `data-grid`, `vote-slider`)
-- All interactive elements within it
-- The locator strategies for each element
-- The component's page/URL context
+### What is an Element Map?
+A JSON file in `element-maps/` that captures the locator intelligence gathered during exploration. Element maps are **raw exploration artifacts** — they record what elements exist on the page, their locator strategies, and their context. They are NOT architecture decisions.
 
-### When to Create a Map
-- First time interacting with a new logical UI component in any group
-- One map per logical UI component (not per page)
+The architecture decision (POM vs COM vs Flat) happens later during `/finalize`, where the **Architect persona** analyzes these maps and asks the user.
+
+### What an Element Map Captures
+- The page/URL where the element was found
+- The logical UI block it belongs to (e.g., `login-form`, `data-grid`)
+- All interactive elements within that block
+- Primary + fallback locator strategies for each element
+- Whether the same block appears on other pages (reuse signal for COM)
+
+### When to Create/Update a Map
+- After each EXPLORE step, when TIP evidence is captured
+- One map per **logical UI block per page** (e.g., `login-page__login-form.json`)
+- If a later group interacts with the same block on the same page → update the existing map with any new elements discovered
 - Maps persist across sessions and are reused by later groups
 
 ### Map Naming Convention
-`component-maps/[component-name].json`
-Example: `component-maps/login-form.json`, `component-maps/vote-slider.json`
+`element-maps/[page-name]__[block-name].json`
+Example: `element-maps/login-page__login-form.json`, `element-maps/dashboard__vote-slider.json`
+
+### Reuse Signals (For /finalize Architecture Decision)
+During exploration, if the Engineer notices the same UI block on a different page (e.g., a shared header, a reused data table), note it in the map:
+```json
+{
+  "block": "header-nav",
+  "page": "dashboard",
+  "reuse_signal": ["also seen on: settings-page", "also seen on: reports-page"],
+  "elements": [...]
+}
+```
+These reuse signals are what the Architect uses to recommend COM over POM during `/finalize`.
 
 ---
 
@@ -120,13 +138,15 @@ This file is created ONCE during setup and persists. If it already exists, read 
 - ✅ Generate waits based on TIP evidence, not guesswork
 - ✅ Run headless validation after every group (zero retries)
 - ✅ Assert every expected outcome from SPEC.md
-- ✅ Create/update component maps after each component interaction
+- ✅ Create/update element maps after each step's exploration
+- ✅ Note reuse signals when the same UI block appears on multiple pages
 - ✅ Store credentials in config, not inline
 
 **DON'T:**
 - ❌ Use arbitrary sleep() or fixed-time waits
 - ❌ Use index-based or auto-generated CSS class locators as primary
 - ❌ Generate code for multiple steps before validating
-- ❌ Skip component map creation — maps are the memory of the system
+- ❌ Skip element map creation — maps are the memory of the system
+- ❌ Make architecture decisions (POM/COM) during execution — that's for /finalize
 - ❌ Hardcode environment-specific values in test code
 - ❌ Write assertions like "element exists" — verify the actual data/state

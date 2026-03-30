@@ -109,9 +109,9 @@ Do not blindly map one user action (click/type) to one step in the spec. Group l
 ✅ Good: "The data grid shows a new row with name 'Alpha'"
 
 ### Component Column
-The `Component` column names the logical UI block containing the target element. This drives component map creation:
-- `login-form` → `component-maps/login-form.json`
-- `vote-slider` → `component-maps/vote-slider.json`
+The `Component` column names the logical UI block containing the target element. This drives element map creation during exploration:
+- `login-form` → `element-maps/login-page__login-form.json`
+- `vote-slider` → `element-maps/vote-page__vote-slider.json`
 - Leave blank if the interaction has no distinct component (e.g., page navigation)
 
 ---

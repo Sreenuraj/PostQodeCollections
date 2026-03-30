@@ -105,6 +105,7 @@ Six specialized personas are used across the lifecycle. Each workflow phase acti
 | `references/tip-protocol.md` | Engineer is about to write a step |
 | `references/grouping-algorithm.md` | Strategist is grouping steps (Phase 0) |
 | `references/recovery-protocol.md` | Test validation fails |
+| `references/architecture-patterns.md` | /finalize — choosing POM vs COM vs Flat |
 
 ---
 
@@ -125,7 +126,7 @@ Six specialized personas are used across the lifecycle. Each workflow phase acti
 - ✅ Use `browser_snapshot` for analysis; `browser_take_screenshot` for visual evidence
 - ✅ Follow TIP protocol for every step (see `references/tip-protocol.md`)
 - ✅ Trust TURBO MODE — it only auto-continues when conditions are safe
-- ✅ Check component maps before creating new ones — reuse what exists
+- ✅ Check element maps before creating new ones — reuse what exists
 
 **DON'T:**
 - ❌ Skip intent detection — always ask or infer

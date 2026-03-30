@@ -46,7 +46,7 @@ The agent reads `SPEC.md`, performs a workspace intelligence scan, proposes a gr
 /finalize
 ```
 
-Reads the component maps generated during execution and builds a proper Page Object or Page Component Model architecture. Refactors the working spec to use the new classes. Runs headed + headless validation. Cleans up all temp files.
+Reads the element maps generated during execution, analyzes reuse patterns, and asks YOU which architecture to build: **Component Object Model (COM)**, **Page Object Model (POM)**, or **Flat** (keep as-is). Generates the architecture, refactors the spec, validates. Cleans up temp files.
 
 ### When Things Break
 
@@ -69,7 +69,7 @@ User provides requirements
        ↓ (per group, TURBO auto-continues)
    /automate (resume)            ← State is in test-session.md — pick up anywhere
        ↓ (all groups done)
-   /finalize                     ← Architect generates POM/PCM architecture
+   /finalize                     ← Architect asks: COM, POM, or Flat?
        ↓
    Production test suite ✅
 ```
@@ -109,9 +109,9 @@ To turn TURBO OFF (v3 behavior): reply "C" or "TURBO OFF" during plan approval.
 | `active-group.md` | Current group being executed | ❌ Deleted by /finalize |
 | `pending-groups/` | Queued groups | ❌ Deleted by /finalize |
 | `completed-groups/` | Collapsed group archives | ❌ Deleted by /finalize |
-| `component-maps/` | UI component structure maps | ✅ Permanent |
+| `element-maps/` | Locator intelligence from exploration | ✅ Permanent |
 | `[framework-test-spec]` | The actual test code | ✅ Permanent |
-| `[POM/PCM files]` | Generated architecture | ✅ Permanent |
+| `[COM/POM files]` | Generated architecture (user chooses) | ✅ Permanent |
 
 ---
 
@@ -125,7 +125,7 @@ Every phase of every workflow is handled by a specialized persona with a distinc
 | Engineer | Step exploration and code writing |
 | Reviewer | Pre-validation rubric check |
 | Validator | Headless test execution |
-| Architect | Finalization and POM generation |
+| Architect | Architecture decision + generation |
 | Debugger | Failure recovery |
 
 ---
@@ -144,7 +144,7 @@ web-automation-pro-4/
     ├── workflows/
     │   ├── automate.md                 # /automate — master orchestrator
     │   ├── spec-gen.md                 # /spec-gen — spec generation
-    │   ├── finalize.md                 # /finalize — POM generation
+    │   ├── finalize.md                 # /finalize — COM/POM/Flat architecture generation
     │   └── debug.md                   # /debug — failure recovery
     └── skills/
         └── web-automation-pro-4/
@@ -157,7 +157,8 @@ web-automation-pro-4/
                 ├── reviewer-rubric.md
                 ├── tip-protocol.md
                 ├── grouping-algorithm.md
-                └── recovery-protocol.md
+                ├── recovery-protocol.md
+                └── architecture-patterns.md
 ```
 
 ---
@@ -171,5 +172,6 @@ web-automation-pro-4/
 | No spec contract; re-derives intent each session | `SPEC.md` — locked before execution |
 | Rules copy-pasted into workflows | Centralized `rules/` + JIT reference loading |
 | No personas | 6 specialized personas per phase |
+| Auto-selects POM or PCM | User chooses COM / POM / Flat with evidence |
 | No pre-validation review | Reviewer rubric runs before every validation |
 | Playwright/Cypress only | Any framework — rule generated during setup |

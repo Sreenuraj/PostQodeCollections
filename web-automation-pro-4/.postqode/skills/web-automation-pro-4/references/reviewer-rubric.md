@@ -40,7 +40,7 @@ Check:
 > Every element interaction has ≥1 fallback locator strategy recorded.
 
 Check:
-- For each `click`, `fill`, `check`, or similar interaction, verify that the component map for that component exists in `component-maps/`
+- For each `click`, `fill`, `check`, or similar interaction, verify that an element map exists in `element-maps/` covering the element's UI block
 - If the element has only one locator strategy with no fallback → WARN
 
 ### Criterion 4 — Observable Assertions Present

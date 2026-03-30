@@ -144,7 +144,7 @@ web-automation-pro-4/
 | Command | Workflow File | Persona(s) | Triggers | Output |
 |---|---|---|---|---|
 | `/spec-gen` | `spec-gen.md` | Strategist | No SPEC.md exists; user has raw requirements | `SPEC.md` (LOCKED) |
-| `/automate` | `automate.md` | Strategist → Engineer → Reviewer → Validator | SPEC.md exists; ready to execute | Code, component maps, test-session.md |
+| `/automate` | `automate.md` | Strategist → Engineer → Reviewer → Validator | SPEC.md exists; ready to execute | Code, element maps, test-session.md |
 | `/finalize` | `finalize.md` | Architect | All groups complete; working spec passes | POM structure, refactored spec, cleanup |
 | `/debug` | `debug.md` | Debugger | Test is failing outside of normal execution | Fixed test or diagnosis report |
 
@@ -264,7 +264,7 @@ Read test-session.md → exists?
 ### Phase 0 — Plan (STRATEGIST persona)
 
 1. Read `SPEC.md` fully → extract step definitions
-2. Workspace Intelligence Scan: `package.json`, existing specs, `component-maps/`
+2. Workspace Intelligence Scan: `package.json`, existing specs, `element-maps/`
 3. Detect pre-coded steps → Case A/B/C decision (from v3, preserved exactly)
 4. Apply grouping algorithm → see `references/grouping-algorithm.md`
 5. Generate plan table → ⛔ STOP for user approval (ONE gate)
@@ -282,7 +282,7 @@ FOR each pending group:
   [ENGINEER] reads active-group.md
   FOR each step:
     TIP: pre-snapshot → action → network monitor → post-snapshot → diff
-    COMPONENT MAP: check/create → references/tip-protocol.md for TIP detail
+    ELEMENT MAP: check/create → references/tip-protocol.md for TIP detail
     WRITE CODE: evidence-based, one step at a time
     MARK [x] → save test-session.md (SAVE RULE, unchanged from v3)
   

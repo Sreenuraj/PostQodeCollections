@@ -29,7 +29,7 @@ Extract the full table from SPEC.md. For each step, note:
 ```
 Scan: package.json → detect framework and test command
 Scan: Existing test spec files → grep for step-matching patterns
-Scan: component-maps/ → list any existing component maps
+Scan: element-maps/ → list any existing element maps
 ```
 
 This scan determines:
@@ -86,7 +86,7 @@ Apply in priority order:
 If Steps 1-5 are all pre-coded, batch them as "Group 0: Pre-Coded Steps". Do NOT split pre-coded steps across groups. The Explore phase will replay them as a single isolation spec run.
 
 #### Rule B — COMPONENT-AWARE GROUPING
-Group steps that interact with the **same logical UI component**. A component is one logical unit (e.g., `login-form`, `data-grid`, `vote-slider`). Steps that share a component should usually be in the same group so one component map serves all steps in the group.
+Group steps that interact with the **same logical UI component**. A component is one logical unit (e.g., `login-form`, `data-grid`, `vote-slider`). Steps that share a component should usually be in the same group so one element map serves all steps in the group.
 
 **Example:**
 - Steps 2, 3, 4 all interact with `login-form` → Group 1: Login
@@ -137,7 +137,7 @@ Stateless generation rule:
 - `pending-groups/group-2.md` — Group 2 step definitions (step template only, no checklist rows)
 - `pending-groups/group-N.md` — same for all remaining groups
 - `completed-groups/` — empty directory
-- `component-maps/` — empty directory (populated during exploration)
+- `element-maps/` — empty directory (populated during exploration)
 
 **After files created:** Delete the temporary `test.md` file.
 
@@ -154,7 +154,7 @@ Each step in `active-group.md` follows this structure:
 - Data: [input values or N/A]
 - Expected Result: [observable outcome]
 - Component: [component name or none]
-- Component Map: [file path or (none)]
+- Element Map: [file path or (none)]
 - Access Context: MAIN_FRAME | IFRAME | SHADOW_DOM
 - Step Type: [navigation | fill | click | assert | drag | hover | other]
 - Wait Strategy: [TIP-based — filled during exploration]

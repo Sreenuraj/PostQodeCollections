@@ -41,7 +41,7 @@ Run before asking the user anything.
 1. Read `package.json` → detect framework and test command (if any)
 2. Read config files (`playwright.config.*`, `cypress.config.*`, etc.) → detect test framework
 3. Scan existing test spec files → grep for patterns matching user's steps (if user already provided some)
-4. Scan `component-maps/` directory → list any existing component maps
+4. Scan `element-maps/` directory → list any existing element maps
 5. Note findings — do NOT act on them yet
 
 ---

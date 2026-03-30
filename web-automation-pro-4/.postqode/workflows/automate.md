@@ -56,7 +56,7 @@ Extract: Target URL, Viewport, Framework (or TBD), all Step Definitions, Anti-Pa
 **Step 0.2 — Workspace Intelligence Scan**
 - Read `package.json` and config files → detect framework, test command, spec file location
 - Scan existing test spec files → detect pre-coded steps
-- Scan `component-maps/` → detect existing maps
+- Scan `element-maps/` → detect existing maps
 - Read `.postqode/rules/[framework].md` if it exists
 
 **Step 0.3 — Pre-Coded Step Detection (Cases A/B/C)**
@@ -96,7 +96,7 @@ Write:
 2. `active-group.md` — Group 1 step definitions (full template per step)
 3. `pending-groups/group-[2..N].md` — all remaining groups (step templates, no checklist rows)
 4. `completed-groups/` — empty directory
-5. `component-maps/` — empty directory
+5. `element-maps/` — empty directory
 
 Write `TURBO: ON` (or `OFF` if user chose C) to header. Write `PHASE: SETUP` to header.
 Delete `test.md`.
@@ -113,7 +113,7 @@ Delete `test.md`.
 1. Read config and `package.json` → record `FRAMEWORK`, `TEST_COMMAND`, timeouts, `SPEC_FILE`, `CONFIG_FILE`
 2. Verify viewport matches `EXPLORATION_VIEWPORT` in config — update if different
 3. Scan existing test patterns (for reference only — do NOT refactor)
-4. Scan component maps (set `COMPONENT_MAPS_FOUND` in header)
+4. Scan element maps (set `ELEMENT_MAPS_FOUND` in header)
 5. Create working spec file if `MODE: NEW_TEST` — single test body, no Page Objects
 6. If `MODE: EXTEND_EXISTING` — create backup, prepare spec for extension
 7. Update `test-session.md` header. Mark SETUP rows `[x]`. Update `PHASE: EXECUTING`.
@@ -162,10 +162,11 @@ For each [ ] step row in the checklist (one at a time — ANTI-BATCHING LAW):
     → Pre-snapshot → perform action → network monitor → 3s settle → post-snapshot → diff
     → Record evidence: locators, network calls, DOM changes
 
-  COMPONENT MAP (G[N]-S[X] COMPONENT MAP row):
-    → Check if component map exists in component-maps/
+  ELEMENT MAP (G[N]-S[X] ELEMENT MAP row):
+    → Check if element map exists in element-maps/ for this page + block
     → If exists: read it, use existing locators, add new ones if discovered
-    → If not exists: create component-maps/[name].json with all element locators
+    → If not exists: create element-maps/[page]__[block].json with all element locators
+    → Note reuse signals: if this block was seen on a previous page, add reuse_signal field
 
   WRITE CODE (G[N]-S[X] WRITE CODE row):
     → Write code for THIS STEP ONLY using TIP evidence
@@ -271,8 +272,9 @@ When no pending groups remain and rotation sets `PHASE: FINALIZING`:
 
 Summary:
   • [N] groups complete
-  • [M] component maps created
+  • [M] element maps created
   • [K] L3 graceful skips (review recommended before /finalize)
+  • [R] reuse signals detected (components shared across pages)
 
 Next step: Run /finalize to generate production architecture.
 ```

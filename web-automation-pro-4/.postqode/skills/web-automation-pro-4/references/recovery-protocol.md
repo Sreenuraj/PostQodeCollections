@@ -19,7 +19,7 @@ Run by **The Debugger persona** when headless validation fails. Always follow th
    - Has the element's structure changed since the locator was written?
    - Is the page in an unexpected state (error message, wrong URL, loading spinner)?
 3. Attempt fix 1 (max 1 tool call):
-   - Try a different locator strategy (from the component map fallback)
+   - Try a different locator strategy (from the element map fallback)
    - Add an explicit wait before the interaction
    - Check if element is inside a frame or shadow DOM
 4. Re-run validation headless
