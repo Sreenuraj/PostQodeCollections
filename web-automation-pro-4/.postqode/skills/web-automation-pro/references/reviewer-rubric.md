@@ -73,15 +73,27 @@ Check for each step:
 
 If the Engineer wrote evidence-less code for any step → WARN
 
+### Criterion 7 — No Secrets in Generated Code
+> The generated code must not contain hardcoded secrets, API keys, tokens, or credential patterns.
+
+Scan the newly written code for:
+- API key patterns: `sk-`, `ghp_`, `AKIA`, `Bearer [token]`
+- Hardcoded passwords: `password = "..."`, `pass: '...'`
+- Environment-specific URLs with embedded tokens
+- Any inline credential that should be in a config object or env variable
+
+If found → FAIL (not WARN — secrets in code are always a hard fail)
+
 ---
 
 ## Scoring and Verdicts
 
 | Score | Verdict | Action |
 |---|---|---|
-| 6/6 criteria pass | **PASS** ✅ | Proceed to headless validation |
-| 4–5/6 criteria pass | **WARN** ⚠️ | Return to Engineer with specific items. Engineer fixes. Reviewer re-runs rubric. |
-| < 4/6 criteria pass | **FAIL** ❌ | ⛔ STOP — present all failing criteria to user before proceeding |
+| 7/7 criteria pass | **PASS** ✅ | Proceed to headless validation |
+| 5–6/7 criteria pass | **WARN** ⚠️ | Return to Engineer with specific items. Engineer fixes. Reviewer re-runs rubric. |
+| < 5/7 criteria pass | **FAIL** ❌ | ⛔ STOP — present all failing criteria to user before proceeding |
+| Criterion 7 fails (any score) | **FAIL** ❌ | ⛔ STOP — secrets in code are always a hard stop regardless of other scores |
 
 ---
 
@@ -98,8 +110,9 @@ If the Engineer wrote evidence-less code for any step → WARN
 | 4 | Observable Assertions | ✅ PASS | All outcomes asserted |
 | 5 | Spec Alignment | ✅ PASS | All outcomes match SPEC |
 | 6 | TIP Evidence Cited | ⚠️ WARN | Step 3 missing TIP comment |
+| 7 | No Secrets in Code | ✅ PASS | No hardcoded credentials found |
 
-SCORE: 4/6
+SCORE: 5/7
 VERDICT: WARN ⚠️
 
 Issues for Engineer to fix:

@@ -25,6 +25,20 @@ Before anything else:
    - **EXISTS + Status: DRAFT** → "Found a DRAFT spec. (A) Continue editing this draft  (B) Start fresh" ⛔ STOP — wait for reply
    - **NOT EXISTS** → proceed to Phase 1 below
 
+2. Check for multiple spec files in `.postqode/spec/`:
+   - If other `*.spec.md` files exist (e.g., `login.spec.md`, `checkout.spec.md`):
+     → List them for the user
+     → Ask: "You have existing specs for other flows. Do you want to (A) Create a new flow spec or (B) Edit an existing one?"
+     → ⛔ STOP — wait for reply
+
+### Multi-Flow Naming Convention
+When a project has multiple automatable flows (login, checkout, profile, etc.), name spec files:
+- First spec: `.postqode/spec/SPEC.md` (default)
+- Additional specs: `.postqode/spec/[flow-name].spec.md`
+- Example: `login.spec.md`, `checkout.spec.md`, `profile-update.spec.md`
+
+Each spec is independent — it can be `/automate`'d and `/finalize`'d separately.
+
 ---
 
 ## 🎭 PERSONA: The Strategist
@@ -76,7 +90,7 @@ After user provides answers:
    - Group related UI actions on the same component into **cohesive steps** (e.g. "Fill form and submit" = 1 step)
    - Extract: exact actions, target component, input data, expected observable outcome
    - Flag ⚠️ NEEDS_DECOMPOSITION if any step spans multiple components, pages, or async states
-2. Draft SPEC.md using the schema from `skills/web-automation-pro-4/references/spec-format.md`
+2. Draft SPEC.md using the schema from `skills/web-automation-pro/references/spec-format.md`
    - Status: DRAFT
    - Framework: set to detected value, or "TBD" if not yet decided
    - Include the Step Definitions table with ALL decomposed steps

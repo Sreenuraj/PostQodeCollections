@@ -39,7 +39,7 @@ description: Master web automation orchestrator — planning, execution, and sta
 | `FINALIZING` | "All groups complete. Please run `/finalize`." ⛔ STOP |
 | `COMPLETE` | "Execution complete. Run `/finalize` for production architecture." ⛔ STOP |
 
-→ Full state machine in `skills/web-automation-pro-4/references/session-protocol.md`
+→ Full state machine in `skills/web-automation-pro/references/session-protocol.md`
 
 ---
 
@@ -60,11 +60,11 @@ Extract: Target URL, Viewport, Framework (or TBD), all Step Definitions, Anti-Pa
 - Read `.postqode/rules/[framework].md` if it exists
 
 **Step 0.3 — Pre-Coded Step Detection (Cases A/B/C)**
-→ See `skills/web-automation-pro-4/references/grouping-algorithm.md` for the full CASE A/B/C logic.
+→ See `skills/web-automation-pro/references/grouping-algorithm.md` for the full CASE A/B/C logic.
 Apply the case, stop for user if needed.
 
 **Step 0.4 — Group the Steps**
-→ Apply grouping algorithm from `skills/web-automation-pro-4/references/grouping-algorithm.md`.
+→ Apply grouping algorithm from `skills/web-automation-pro/references/grouping-algorithm.md`.
 Produce the plan table. Write to `test.md`.
 
 **Step 0.5 — MANDATORY STOP GATE: Plan Approval**
@@ -135,6 +135,7 @@ After selection:
 1. Install with minimal config (no POM, no fixtures, no custom reporters yet)
 2. Set viewport in config to match `EXPLORATION_VIEWPORT`
 3. **Generate `.postqode/rules/[framework].md`** — framework-specific conventions:
+   → Follow the template in `references/framework-rule-template.md` exactly.
    - Locator API (how to implement the locator hierarchy)
    - Wait API (how to implement wait strategies)
    - Assertion syntax
@@ -163,6 +164,7 @@ For each [ ] step row in the checklist (one at a time — ANTI-BATCHING LAW):
     → Record evidence: locators, network calls, DOM changes
 
   ELEMENT MAP (G[N]-S[X] ELEMENT MAP row):
+    → Follow schema from `references/element-map-schema.md`
     → Check if element map exists in element-maps/ for this page + block
     → If exists: read it, use existing locators, add new ones if discovered
     → If not exists: create element-maps/[page]__[block].json with all element locators
@@ -189,11 +191,11 @@ When all step rows for the group are marked `[x]`:
 > Mandate: Review the just-written code against the spec before any test runs.
 > FORBIDDEN: Writing or fixing code.
 
-→ Load `references/reviewer-rubric.md`. Run all 6 criteria. Generate REVIEWER REPORT.
+→ Load `references/reviewer-rubric.md`. Run all 7 criteria. Generate REVIEWER REPORT.
 
-- **PASS (6/6):** Mark row `[x]`. Proceed to validation.
-- **WARN (4-5/6):** Return to Engineer persona. Fix specific flagged items. Reviewer re-runs rubric.
-- **FAIL (<4/6):** Mark row `[FAIL]`. ⛔ STOP — present REVIEWER REPORT to user.
+- **PASS (7/7):** Mark row `[x]`. Proceed to validation.
+- **WARN (5-6/7):** Return to Engineer persona. Fix specific flagged items. Reviewer re-runs rubric.
+- **FAIL (<5/7 or Criterion 7 fails):** Mark row `[FAIL]`. ⛔ STOP — present REVIEWER REPORT to user.
 
 **G[N]-END: RUN VALIDATION**
 

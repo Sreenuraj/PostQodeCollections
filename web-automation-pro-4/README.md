@@ -1,4 +1,4 @@
-# Web Automation Pro 4
+# Web Automation Pro
 
 > **PostQode Agent System** — Spec-driven, persona-powered web automation for any framework.
 > Successor to `web-automation-pro-3`. Built for speed without sacrificing reliability.
@@ -11,9 +11,9 @@ A self-contained PostQode agent system that takes raw test requirements and prod
 
 **System components:**
 - **1 Skill** — the entry point and router
-- **4 Workflows** — `/spec-gen`, `/automate`, `/finalize`, `/debug`  
+- **5 Workflows** — `/spec-gen`, `/spec-update`, `/automate`, `/finalize`, `/debug`  
 - **4 Rules** — always-on behavioral constraints
-- **8 Reference files** — JIT-loaded detail (keeps context lean)
+- **11 Reference files** — JIT-loaded detail (keeps context lean)
 
 ---
 
@@ -33,7 +33,7 @@ The agent will ask a few clarifying questions, then produce a locked `SPEC.md` �
 /automate
 ```
 
-The agent reads `SPEC.md`, performs a workspace intelligence scan, proposes a grouped execution plan, and waits for your approval. After approval it executes group by group — exploring the UI, mapping components, writing code, and validating each group before moving on.
+The agent reads `SPEC.md`, performs a workspace intelligence scan, proposes a grouped execution plan, and waits for your approval. After approval it executes group by group — exploring the UI, mapping elements, writing code, and validating each group before moving on.
 
 **TURBO MODE is ON by default.** The agent auto-continues between groups (no manual gate needed). It will only stop when:
 - A validation failure occurs
@@ -56,6 +56,14 @@ Reads the element maps generated during execution, analyzes reuse patterns, and 
 
 For diagnosing and fixing test failures post-finalization or outside normal execution.
 
+### When the App Changes
+
+```
+/spec-update
+```
+
+Surgically add, modify, or remove steps in a LOCKED spec without starting from scratch. The system analyzes impact on any active sessions.
+
 ---
 
 ## The Lifecycle
@@ -72,6 +80,9 @@ User provides requirements
    /finalize                     ← Architect asks: COM, POM, or Flat?
        ↓
    Production test suite ✅
+
+   ←─ /spec-update ─→              ← App changed? Update the spec, re-run affected groups
+   ←─ /debug ───────→              ← Test failing? Diagnose and fix
 ```
 
 ---
@@ -133,7 +144,7 @@ Every phase of every workflow is handled by a specialized persona with a distinc
 ## File Structure
 
 ```
-web-automation-pro-4/
+web-automation-pro/
 ├── REQUIREMENTS.md                     # System design document
 └── .postqode/
     ├── rules/
@@ -144,10 +155,11 @@ web-automation-pro-4/
     ├── workflows/
     │   ├── automate.md                 # /automate — master orchestrator
     │   ├── spec-gen.md                 # /spec-gen — spec generation
+    │   ├── spec-update.md              # /spec-update — spec evolution
     │   ├── finalize.md                 # /finalize — COM/POM/Flat architecture generation
     │   └── debug.md                   # /debug — failure recovery
     └── skills/
-        └── web-automation-pro-4/
+        └── web-automation-pro/
             ├── SKILL.md               # Entry point and router
             └── references/
                 ├── personas.md
@@ -158,7 +170,9 @@ web-automation-pro-4/
                 ├── tip-protocol.md
                 ├── grouping-algorithm.md
                 ├── recovery-protocol.md
-                └── architecture-patterns.md
+                ├── architecture-patterns.md
+                ├── element-map-schema.md
+                └── framework-rule-template.md
 ```
 
 ---

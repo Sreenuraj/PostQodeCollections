@@ -254,7 +254,74 @@ Validation:
 
 Cleanup: Temp session files removed
 Next steps:
-  • Add the new files to version control
+  • Add the new files to version control (see commit guidance below)
   • Run your CI pipeline to verify in your environment
   • Use /debug if any issues arise in CI
 ```
+
+### Version Control Guidance
+
+For clean Git history and Git bisect compatibility, commit atomically:
+
+```
+Suggested commit sequence:
+  1. git add .postqode/spec/SPEC.md → commit "spec: [flow name] automation spec"
+  2. git add element-maps/ → commit "maps: element maps from exploration"
+  [If COM:]
+  3. git add components/base/ → commit "com: base components"
+  4. git add components/business/ → commit "com: business components"
+  5. git add pages/ → commit "com: page compositions"
+  6. git add [spec file] → commit "test: [flow name] refactored spec"
+  [If POM:]
+  3. git add pages/ → commit "pom: page objects"
+  4. git add [spec file] → commit "test: [flow name] refactored spec"
+  [If Flat:]
+  3. git add [spec file] → commit "test: [flow name] working spec"
+```
+
+This keeps each architectural layer in its own commit — if a future change breaks something, `git bisect` can pinpoint the exact layer.
+
+### CI Integration Snippet
+
+Generate a framework-specific CI config example based on `FRAMEWORK` and `TEST_COMMAND` from the session. Present to user:
+
+```
+🔄 CI Integration
+
+Here's a starter CI config for [FRAMEWORK]:
+
+[If GitHub Actions:]
+  .github/workflows/e2e.yml:
+  ```yaml
+  name: E2E Tests
+  on: [push, pull_request]
+  jobs:
+    e2e:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        - uses: actions/setup-node@v4
+          with:
+            node-version: 20
+        - run: npm ci
+        - run: npx playwright install --with-deps  # adjust per framework
+        - run: [TEST_COMMAND]
+  ```
+
+[If GitLab CI:]
+  .gitlab-ci.yml:
+  ```yaml
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.x  # adjust per framework
+    script:
+      - npm ci
+      - [TEST_COMMAND]
+  ```
+
+Adjust the config for your environment. Key settings:
+  • Install browser dependencies in CI (headless mode)
+  • Use zero-retry for strict validation: [TEST_COMMAND] --retries=0
+  • Run on push/PR for continuous feedback
+```
+
+This is informational — the agent generates it but the user owns the CI config.

@@ -25,7 +25,39 @@ PRE_CODED_STEPS: [step numbers or NONE]
 PRE_CODED_SOURCE: [file path or NONE]
 ELEMENT_MAPS_DIR: element-maps
 GROUPING_CONFIRMED: YES | NO
+LAST_ACTIVE: [ISO timestamp of last session activity]
 ```
+
+---
+
+## Stale Session Detection
+
+When resuming a session, check the `LAST_ACTIVE` timestamp:
+
+```
+Current time − LAST_ACTIVE > 7 days?
+  YES → STALE SESSION WARNING
+  NO  → proceed normally
+```
+
+**If stale (>7 days idle):**
+```
+⚠️ Stale Session Detected
+
+This session has been idle since [LAST_ACTIVE].
+The target application may have changed since then.
+
+(A) Resume anyway — I know the app hasn't changed
+(B) Re-validate — run the existing working spec headless to check
+(C) Start fresh — I want to re-plan from SPEC.md
+```
+**⛔ STOP — wait for user reply.**
+
+- **(A):** Update `LAST_ACTIVE` to now, proceed to state router
+- **(B):** Run validation command → if PASS, update timestamp and continue. If FAIL, suggest `/debug` or fresh start.
+- **(C):** Delete `test-session.md`, `active-group.md`, `pending-groups/`, `completed-groups/`. Keep SPEC.md and element-maps. Route to `/automate` Phase 0.
+
+**Update `LAST_ACTIVE`:** Every time a checklist row is marked `[x]`, update `LAST_ACTIVE` to current timestamp.
 
 ---
 

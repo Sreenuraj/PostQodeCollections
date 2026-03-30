@@ -1,4 +1,4 @@
-# Persona Roster — Web Automation Pro 4
+# Persona Roster — Web Automation Pro
 
 All 6 personas used in the web automation system. Agents adopt these personas at the start of each workflow phase. The declaring workflow provides the persona block — this file is the authoritative definition.
 

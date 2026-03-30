@@ -1,5 +1,5 @@
 ---
-name: web-automation-pro-4
+name: web-automation-pro
 description: >
   Use this skill for ANY task involving: a browser, URL, website, web page,
   navigation, login, form fill, click, scrolling, automation, E2E test,
@@ -9,7 +9,7 @@ description: >
   activate this skill immediately.
 ---
 
-# Web Automation Pro 4
+# Web Automation Pro
 
 Production-quality web automation: spec-first, persona-driven, context-engineered, with zero guesswork in generated code.
 
@@ -21,7 +21,7 @@ Production-quality web automation: spec-first, persona-driven, context-engineere
 
 | Priority | Tool | Use For |
 |---|---|---|
-| **1st** | `postqode_browser_agent` built-in | ALL standard browser actions |
+| **1st** | `postqode_browser_agent` MCP | ALL standard browser actions |
 | **2nd** | `playwright` CLI | Fallback if Priority 1 unavailable |
 | **3rd** | `chrome-devtools` MCP | **LAST RESORT** — DevTools-exclusive features ONLY |
 
@@ -53,14 +53,34 @@ Read the session state to determine which workflow to direct the user to.
 **Quick routing:**
 
 ```
-.postqode/spec/SPEC.md missing?
-  → "Please run /spec-gen to create your automation spec first."
+.postqode/spec/SPEC.md missing AND test-session.md missing?
+  → FIRST RUN — Show welcome:
+
+    👋 Welcome to Web Automation Pro.
+    I'll guide you through automating your web application tests.
+
+    Start with /spec-gen — I'll ask a few questions about your app,
+    then build your automation spec.
+
+    Commands:
+      /spec-gen  → Create your automation spec
+      /automate  → Execute the spec (after spec-gen)
+      /finalize  → Generate production architecture (after automate)
+      /debug     → Fix failing tests
+
+  → ⛔ STOP
+
+SPEC.md missing but test-session.md exists?
+  → Orphaned session — warn user and suggest /spec-gen
 
 SPEC.md exists (LOCKED) but test-session.md missing?
-  → "Please run /automate to begin execution planning."
+  → "SPEC.md is ready. Run /automate to begin execution planning."
 
 test-session.md exists?
-  → Read PHASE field → route accordingly (see session-protocol.md)
+  → Check LAST_ACTIVE for stale session (see session-protocol.md)
+  → Read PHASE field → route accordingly
+  → Show resume diagnostic:
+    "Resumed session. Last completed: [last [x] row]. Resuming at [first [ ] row]."
 ```
 
 ---
@@ -70,8 +90,9 @@ test-session.md exists?
 | Command | When to Use |
 |---|---|
 | `/spec-gen` | No SPEC.md yet. Start here. Generates and locks the spec contract. |
+| `/spec-update` | SPEC.md is locked but the app changed. Add, modify, or remove steps. |
 | `/automate` | SPEC.md is locked. Runs planning → setup → group execution. Resume anytime. |
-| `/finalize` | All groups complete. Generates POM/PCM architecture, refactors spec, validates. |
+| `/finalize` | All groups complete. User chooses COM/POM/Flat architecture, generates it, validates. |
 | `/debug` | A test is failing outside normal execution. Diagnose and fix. |
 
 ---
@@ -88,7 +109,7 @@ Six specialized personas are used across the lifecycle. Each workflow phase acti
 | **Engineer** | EXPLORE + WRITE | Evidence-first code generation, one step at a time |
 | **Reviewer** | Post-code, pre-validation | Adversarial rubric check against SPEC.md |
 | **Validator** | Headless validation | Binary pass/fail, facts only |
-| **Architect** | Finalization | POM/PCM structure, patterns, maintainability |
+| **Architect** | Finalization | COM/POM/Flat decision, architecture generation |
 | **Debugger** | Failure recovery | Root cause first, minimum-change fix |
 
 ---
@@ -106,6 +127,8 @@ Six specialized personas are used across the lifecycle. Each workflow phase acti
 | `references/grouping-algorithm.md` | Strategist is grouping steps (Phase 0) |
 | `references/recovery-protocol.md` | Test validation fails |
 | `references/architecture-patterns.md` | /finalize — choosing POM vs COM vs Flat |
+| `references/element-map-schema.md` | Engineer is creating/updating an element map |
+| `references/framework-rule-template.md` | Engineer is generating framework rules during Setup |
 
 ---
 

@@ -129,7 +129,7 @@ EXECUTING     → Active group step-by-step
 VALIDATING    → Running validation command
 ROTATING      → Collapsing + promoting next group
 MILESTONE     → Waiting for user milestone review
-FINALIZING    → POM generation and spec refactor
+FINALIZING    → Architecture decision (COM/POM/Flat) + spec refactor
 COMPLETE      → All done; clean workspace
 
 Transitions:

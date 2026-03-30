@@ -1,4 +1,4 @@
-# Web Automation Pro 4 — PostQode System Requirements
+# Web Automation Pro — PostQode System Requirements
 
 > **Version:** 4.0 — Codename: "PostQode Agent Kernel"
 > **Created:** 2026-03-29
@@ -71,7 +71,7 @@ WORKFLOW = "How do I execute this phase step by step?"
 Skills can have sub-folders alongside `SKILL.md`. The existing `web-automation-pro-skill` pattern shows this:
 
 ```
-.postqode/skills/web-automation-pro-4/
+.postqode/skills/web-automation-pro/
 ├── SKILL.md                      # Master entry point (lean — routes to references)
 └── references/                   # JIT-loaded detail files
     ├── personas.md               # Full persona roster + declaration templates
@@ -108,7 +108,7 @@ Skills can have sub-folders alongside `SKILL.md`. The existing `web-automation-p
 ## 5. Full System Structure (Corrected)
 
 ```
-web-automation-pro-4/
+web-automation-pro/
 ├── REQUIREMENTS.md                          # ← This document
 └── .postqode/
     ├── rules/
@@ -124,7 +124,7 @@ web-automation-pro-4/
     │   └── debug.md                         # /debug — smart failure recovery
     │
     └── skills/
-        └── web-automation-pro-4/
+        └── web-automation-pro/
             ├── SKILL.md                     # Entry point (lean router — < 150 lines)
             └── references/
                 ├── personas.md              # All 6 persona declarations + thinking modes
@@ -172,7 +172,7 @@ The SKILL.md stays lean by pointing to references. It handles:
 **Section 1 — Frontmatter (activation triggers)**
 ```yaml
 ---
-name: web-automation-pro-4
+name: web-automation-pro
 description: >
   Use for ANY task involving: browser, URL, website, navigation, click,
   form fill, login, automation, playwright, cypress, E2E test, page object,
@@ -364,21 +364,21 @@ VERDICT:
 3. rules/interaction-fallbacks.md          Merged interaction rules
 4. rules/debug-context-capture.md         Port from v3 as-is
 
-5. skills/web-automation-pro-4/references/personas.md          Persona definitions
-6. skills/web-automation-pro-4/references/tool-priority.md     Browser tool priority
-7. skills/web-automation-pro-4/references/spec-format.md       SPEC.md schema
-8. skills/web-automation-pro-4/references/session-protocol.md  State machine
-9. skills/web-automation-pro-4/references/reviewer-rubric.md   Self-critique rubric
-10. skills/web-automation-pro-4/references/tip-protocol.md     TIP protocol
-11. skills/web-automation-pro-4/references/grouping-algorithm.md  Grouping + pre-coded
-12. skills/web-automation-pro-4/references/recovery-protocol.md  L1→L2→L3
+5. skills/web-automation-pro/references/personas.md          Persona definitions
+6. skills/web-automation-pro/references/tool-priority.md     Browser tool priority
+7. skills/web-automation-pro/references/spec-format.md       SPEC.md schema
+8. skills/web-automation-pro/references/session-protocol.md  State machine
+9. skills/web-automation-pro/references/reviewer-rubric.md   Self-critique rubric
+10. skills/web-automation-pro/references/tip-protocol.md     TIP protocol
+11. skills/web-automation-pro/references/grouping-algorithm.md  Grouping + pre-coded
+12. skills/web-automation-pro/references/recovery-protocol.md  L1→L2→L3
 
 13. workflows/spec-gen.md                  Spec generation (needs personas)
 14. workflows/debug.md                     Debug workflow (needs recovery-protocol)
 15. workflows/finalize.md                  POM workflow (port from v3 + Architect persona)
 16. workflows/automate.md                  Master orchestrator (depends on all above)
 
-17. skills/web-automation-pro-4/SKILL.md   Entry point (depends on all references)
+17. skills/web-automation-pro/SKILL.md   Entry point (depends on all references)
 18. README.md                              Human usage guide
 ```
 
