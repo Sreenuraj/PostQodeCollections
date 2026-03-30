@@ -74,7 +74,8 @@ SPEC.md missing but test-session.md exists?
   → Orphaned session — warn user and suggest /spec-gen
 
 SPEC.md exists (LOCKED) but test-session.md missing?
-  → "SPEC.md is ready. Run /automate to begin execution planning."
+  → Tell user: "SPEC.md is ready. Run /automate to begin execution planning."
+  → ⛔ **CRITICAL STOP:** You must output EXACTLY the phrase above and NOTHING ELSE. Do NOT execute setup tasks. Do NOT generate test code. Wait for the user to explicitly type `/automate`.
 
 test-session.md exists?
   → Check LAST_ACTIVE for stale session (see session-protocol.md)
