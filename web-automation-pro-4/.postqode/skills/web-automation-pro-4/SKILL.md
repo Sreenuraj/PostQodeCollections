@@ -21,8 +21,8 @@ Production-quality web automation: spec-first, persona-driven, context-engineere
 
 | Priority | Tool | Use For |
 |---|---|---|
-| **1st** | `postqode_browser_agent` MCP | ALL standard browser actions |
-| **2nd** | `browser_action` built-in | Fallback if Priority 1 unavailable |
+| **1st** | `postqode_browser_agent` built-in | ALL standard browser actions |
+| **2nd** | `playwright` CLI | Fallback if Priority 1 unavailable |
 | **3rd** | `chrome-devtools` MCP | **LAST RESORT** — DevTools-exclusive features ONLY |
 
 → Full details: `references/tool-priority.md`

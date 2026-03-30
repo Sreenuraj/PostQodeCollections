@@ -16,9 +16,9 @@ AI agents are "blind" to dynamic loading states. Without TIP, the Engineer would
 BEFORE ACTION:
   1. browser_snapshot → save pre-action DOM state
 
-PERFORM ACTION:
-  2. Execute the user interaction (click, fill, navigate, etc.)
-  3. Immediately monitor network — note any requests that fire
+PERFORM ACTION(S):
+  2. Execute the cohesive interactions for this step (e.g., fill email → fill pass → click submit)
+  3. Immediately monitor network after the *final* action in the sequence
 
 SETTLE:
   4. Wait 3 seconds (this is evidence-gathering time, not final test time)

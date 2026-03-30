@@ -81,14 +81,26 @@ LOCKED  → User-approved; safe for execution to begin
 
 ## Step Definition Rules
 
-### Atomicity
-Each step must be a single observable UI interaction. If a step says "fill the form and submit", it must be split:
-- Step N: Fill field A
-- Step N+1: Fill field B  
-- Step N+2: Click submit button
-- Step N+3: Assert success outcome
+### Cohesive Interaction Heuristic (Step Sizing)
+Do not blindly map one user action (click/type) to one step in the spec. Group logically related actions within the same component into cohesive steps. This prevents checklist bloat and speeds up execution.
 
-The Strategist flags non-atomic steps with ⚠️ NEEDS_DECOMPOSITION during `/spec-gen`.
+**Rule of Thumb:** If actions happen immediately together on the same component to achieve one micro-goal, box them into one step.
+
+❌ **Inefficient (Too granular):**
+- Step N: Fill email field
+- Step N+1: Fill password field
+- Step N+2: Click submit button
+
+✅ **Efficient (Cohesive step):**
+- Step N: Fill login credentials and submit
+
+❌ **Too Broad (Needs decomposition):**
+- Step N: Complete the checkout process and pay
+
+✅ **Efficient Decomposition:**
+- Step N: Fill shipping address
+- Step N+1: Select payment method and enter card details
+- Step N+2: Click place order and assert confirmation
 
 ### Expected Outcome Must Be Observable
 ❌ Bad: "The action completes"

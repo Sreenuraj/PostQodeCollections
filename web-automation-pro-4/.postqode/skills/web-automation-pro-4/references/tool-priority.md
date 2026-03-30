@@ -14,9 +14,8 @@ Priority 1 ─── postqode_browser_agent MCP
                 browser_evaluate, browser_press_key,
                 browser_handle_dialog, browser_resize, etc.)
 
-Priority 2 ─── browser_action built-in
-               (action: "launch", "click", "type",
-                "scroll_down", "scroll_up", "close")
+Priority 2 ─── Playwright CLI
+               (If available. Run `playwright-cli --help` for tool information)
 
 Priority 3 ─── chrome-devtools MCP  ← LAST RESORT ONLY
                (Only for features unavailable in Priority 1 and 2)
@@ -42,14 +41,13 @@ Use for ALL standard browser interactions:
 
 **If `postqode_browser_agent` tools are available, use them for EVERYTHING.**
 
-### Priority 2 — browser_action built-in (FALLBACK if Priority 1 unavailable)
+### Priority 2 — Playwright CLI (FALLBACK if Priority 1 unavailable)
 
 Use when `postqode_browser_agent` MCP is not available in the session:
-- `launch` — open browser and navigate
-- `click` — click at coordinates or element
-- `type` — type text
-- `scroll_down` / `scroll_up` — scroll page
-- `close` — close browser
+- Run `playwright-cli --help` in the terminal to see all available commands
+- Standard test automation execution
+- Playwright-specific interactions
+- Running previously generated Playwright code
 
 ### Priority 3 — chrome-devtools MCP (LAST RESORT — DevTools-exclusive features only)
 

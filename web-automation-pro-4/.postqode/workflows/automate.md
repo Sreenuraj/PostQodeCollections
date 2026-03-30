@@ -64,7 +64,7 @@ Extract: Target URL, Viewport, Framework (or TBD), all Step Definitions, Anti-Pa
 Apply the case, stop for user if needed.
 
 **Step 0.4 — Group the Steps**
-→ Apply grouping algorithm from `references/grouping-algorithm.md`.
+→ Apply grouping algorithm from `skills/web-automation-pro-4/references/grouping-algorithm.md`.
 Produce the plan table. Write to `test.md`.
 
 **Step 0.5 — MANDATORY STOP GATE: Plan Approval**

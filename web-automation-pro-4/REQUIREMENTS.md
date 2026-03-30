@@ -185,7 +185,7 @@ description: >
 Browser tool priority rule (never reference-file this — too critical to miss):
 ```
 Priority 1: postqode_browser_agent MCP (browser_navigate, browser_click, etc.)
-Priority 2: browser_action built-in (launch, click, type, scroll, close)
+Priority 2: playwright CLI (if available)
 Priority 3: chrome-devtools MCP (LAST RESORT ONLY — DevTools-specific features)
 ```
 

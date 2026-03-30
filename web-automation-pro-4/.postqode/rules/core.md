@@ -58,16 +58,15 @@ Every phase in every workflow MUST open with:
 
 These templates are reusable reasoning patterns. Invoke by name in workflow steps.
 
-### DECOMPOSE
-Break vague user input into atomic actions:
-```
-For each vague step:
-  - Exact action type (click / fill / navigate / assert / wait)
-  - Target element description
+### DECOMPOSE (Cohesive Step Grouping)
+Break vague user input into **cohesive interaction steps**. Do NOT blindly create a step for every single click or keypress. Group related actions on the same component (e.g., "Fill entire form and submit" = 1 step).
+
+For each grouped step, define:
+  - Exact actions (e.g., fill email, pass, click login)
+  - Target component description
   - Input data (if any)
-  - Expected observable outcome
-  - Flag ⚠️ NEEDS_DECOMPOSITION if any part is still unclear
-```
+  - Expected observable outcome for the *entire cohesive step*
+  - Flag ⚠️ NEEDS_DECOMPOSITION if a step spans multiple pages or asynchronous states (e.g., "Checkout" is too big).
 
 ### GROUPING
 → See `references/grouping-algorithm.md` for the full grouping algorithm.
