@@ -5,9 +5,8 @@ description: >
   navigation, login, form fill, click, scrolling, automation, E2E test,
   Playwright, Cypress, Selenium, WebdriverIO, Puppeteer, page object,
   web testing, or test generation. If a URL (http:// or https://) appears
-  anywhere in the user's prompt, or they mention any web interaction,
-  or they use the commands /automate, /spec-gen, /finalize, /spec-update, or /debug
-  — activate this skill immediately.
+  anywhere in the user's prompt, or they mention any web interaction —
+  activate this skill immediately.
 ---
 
 # Web Automation Pro
@@ -41,7 +40,7 @@ Before any browser action or planning, determine intent:
 | Automation / tests | **Recording Mode** | Full lifecycle: spec → plan → explore → code → validate |
 | One-time task | **Exploration Mode** | Standard browser interaction only; no spec or test generation |
 
-**If the user directly asks to "generate tests", "automate this", or provides a test case → acknowledge their request, but you MUST NOT skip the state routing in Step 1. You still must check if `SPEC.md` is missing and show the welcome message first.**
+**If the user directly asks to "generate tests", "automate this", or provides a test case → activate Recording Mode immediately without asking.**
 
 ---
 
@@ -69,14 +68,13 @@ Read the session state to determine which workflow to direct the user to.
       /finalize  → Generate production architecture (after automate)
       /debug     → Fix failing tests
 
-  → ⛔ **CRITICAL STOP:** You must output EXACTLY the welcome message above and NOTHING ELSE. Do NOT open the browser. Do NOT explore the URL. Wait for the user to explicitly type `/spec-gen`.
+  → ⛔ STOP
 
 SPEC.md missing but test-session.md exists?
   → Orphaned session — warn user and suggest /spec-gen
 
 SPEC.md exists (LOCKED) but test-session.md missing?
-  → Tell user: "SPEC.md is ready. Run /automate to begin execution planning."
-  → ⛔ **CRITICAL STOP:** You must output EXACTLY the phrase above and NOTHING ELSE. Do NOT execute setup tasks. Do NOT generate test code. Wait for the user to explicitly type `/automate`.
+  → "SPEC.md is ready. Run /automate to begin execution planning."
 
 test-session.md exists?
   → Check LAST_ACTIVE for stale session (see session-protocol.md)
@@ -94,27 +92,8 @@ test-session.md exists?
 | `/spec-gen` | No SPEC.md yet. Start here. Generates and locks the spec contract. |
 | `/spec-update` | SPEC.md is locked but the app changed. Add, modify, or remove steps. |
 | `/automate` | SPEC.md is locked. Runs planning → setup → group execution. Resume anytime. |
-| `/finalize` | All groups complete. Validate final test suite, cleanup temp files, and generate CI pipelines. |
+| `/finalize` | All groups complete. User chooses COM/POM/Flat architecture, generates it, validates. |
 | `/debug` | A test is failing outside normal execution. Diagnose and fix. |
-
----
-
-## Executing `/automate` (STRICT PROTOCOL)
-
-When the user types `/automate`, you MUST follow this exact sequence without exception:
-
-1. **Load `references/session-protocol.md`** to route the state.
-2. **If PHASE = SPEC_READY (Phase 0 Planning)**: 
-   - Load `references/grouping-algorithm.md`.
-   - **CRITICAL**: You MUST physically create the `active-group.md` and the `pending-groups/` directory as specified. Do NOT proceed to execution until the user explicitly approves the plan.
-3. **If PHASE = SETUP (Phase 1)**:
-   - Generate framework rules.
-   - Execute setup tasks.
-4. **If PHASE = EXECUTING (Phase 2)**:
-   - Follow the `test-session.md` Checklist Format specified in `session-protocol.md`. DO NOT invent a custom summarized checklist.
-   - **CRITICAL**: You MUST NOT write code for future groups. Only work on the current `active-group.md`.
-   - **CRITICAL**: After completing an active group, you MUST trigger the **Reviewer** persona and run the rubric.
-   - **CRITICAL**: Default `TURBO` mode to `OFF`. You MUST stop at the MILESTONE gate and wait for user approval before rotating to the next group.
 
 ---
 
@@ -130,7 +109,7 @@ Six specialized personas are used across the lifecycle. Each workflow phase acti
 | **Engineer** | EXPLORE + WRITE | Evidence-first code generation, one step at a time |
 | **Reviewer** | Post-code, pre-validation | Adversarial rubric check against SPEC.md |
 | **Validator** | Headless validation | Binary pass/fail, facts only |
-| **Architect** | Setup Phase & Finalization | COM/POM/Flat decision, incremental component generation |
+| **Architect** | Finalization | COM/POM/Flat decision, architecture generation |
 | **Debugger** | Failure recovery | Root cause first, minimum-change fix |
 
 ---
