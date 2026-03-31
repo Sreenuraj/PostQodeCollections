@@ -103,6 +103,8 @@ TURBO MODE (default: ON) eliminates the manual gate after each group. The agent 
 - The agent's milestone signals are below threshold
 
 The agent will stop automatically when:
+- **It hits the Group 1 Foundation Gate:** TURBO mode ALWAYS stops at the end of Group 1 before collapsing the session history, mandating human trust in the framework foundation.
+- **It triggers an Intra-Group Volume Gate:** If it processes 3 exploratory steps in a single group, it pauses for a mid-group Reviewer check to prevent context drift.
 - Any validation fails (L2 or L3 escalation required)
 - It detects 2+ milestone signals (e.g., complex recovery, quality warnings, many pending groups)
 - All groups are complete
@@ -188,4 +190,7 @@ web-automation-pro/
 | No personas | 6 specialized personas per phase |
 | Auto-selects POM or PCM | User chooses COM / POM / Flat with evidence |
 | No pre-validation review | Reviewer rubric runs before every validation |
-| Playwright/Cypress only | Any framework — rule generated during setup |
+| Single monolithic codebase | **Incremental COM** builds reusable components *during* early execution |
+| Silent state desyncs | **Protocol A/B** enforces strict browser continuity logic |
+| Messy test history | **Atomic Git Commits** physically map test steps to `git bisect` |
+| Prone to LLM batch hallucination | **Anti-Batching** and **Strategic Review Gates** physically halt drift |

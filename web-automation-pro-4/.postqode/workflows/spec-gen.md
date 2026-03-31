@@ -10,8 +10,9 @@ description: Generate a locked SPEC.md automation contract from raw user require
 
 > [!CAUTION]
 > ## CORE RULES — LOAD BEFORE STARTING
-> Read `.postqode/rules/core.md` now. All Five Laws apply. Especially:
-> - STOP GATE RULE: Never proceed past ⛔ STOP without explicit user reply
+> 1. **MANDATORY PREREQUISITE:** If you were invoked directly into this workflow and have not yet loaded the main skill, you MUST read `.postqode/skills/web-automation-pro/SKILL.md` right now. Execute the "Workflow Invocation Handshake" found there before proceeding.
+> 2. Read `.postqode/rules/core.md` now. All Five Laws apply. Especially:
+>    - STOP GATE RULE: Never proceed past ⛔ STOP without explicit user reply
 > - ANTI-BATCHING: One checklist row at a time
 
 ---

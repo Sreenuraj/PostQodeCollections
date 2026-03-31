@@ -5,13 +5,24 @@ description: >
   navigation, login, form fill, click, scrolling, automation, E2E test,
   Playwright, Cypress, Selenium, WebdriverIO, Puppeteer, page object,
   web testing, or test generation. If a URL (http:// or https://) appears
-  anywhere in the user's prompt, or they mention any web interaction —
-  activate this skill immediately.
+  anywhere in the user's prompt, or they mention any web interaction,
+  or they use the commands `/automate`, `/spec-gen`, `/finalize`, `/spec-update`, or `/debug`
+  — activate this skill immediately.
 ---
 
 # Web Automation Pro
 
 Production-quality web automation: spec-first, persona-driven, context-engineered, with zero guesswork in generated code.
+
+---
+
+## 🤝 Workflow Invocation Handshake (Direct Call)
+
+> **MANDATORY**: If you were invoked directly by the user typing a workflow command (e.g. `/automate` or `/spec-gen`) without prior context, your VERY FIRST ACTION MUST be to:
+> 1. Announce: `[⚙️ Activating Web Automation Pro Skill]`
+> 2. Read `.postqode/rules/core.md` to load the Five Laws.
+> 3. Pass control back to the specifically requested workflow file to begin its Phase 0 execution.
+> You must NOT skip this handshake.
 
 ---
 
@@ -59,22 +70,19 @@ Read the session state to determine which workflow to direct the user to.
     👋 Welcome to Web Automation Pro.
     I'll guide you through automating your web application tests.
 
-    Start with /spec-gen — I'll ask a few questions about your app,
+    Start with `/spec-gen` — I'll ask a few questions about your app,
     then build your automation spec.
 
-    Commands:
-      /spec-gen  → Create your automation spec
-      /automate  → Execute the spec (after spec-gen)
-      /finalize  → Generate production architecture (after automate)
-      /debug     → Fix failing tests
-
-  → ⛔ STOP
+  → ⛔ **AGENT AUTONOMY GUARD:** Do NOT act on the user's requirements yet. Do NOT write any framework files, POMs, or test scripts. You MUST NOT skip the workflow rules. 
+  → **ACTION REQUIRED:** Immediately read `.postqode/workflows/spec-gen.md`. Announce the persona defined in that file, and execute its steps exactly as written. Do not guess what to do.
 
 SPEC.md missing but test-session.md exists?
   → Orphaned session — warn user and suggest /spec-gen
 
 SPEC.md exists (LOCKED) but test-session.md missing?
-  → "SPEC.md is ready. Run /automate to begin execution planning."
+  → Tell user: "SPEC.md is ready. Loading framework executor..."
+  → ⛔ **AGENT AUTONOMY GUARD:** Do NOT execute setup tasks. Do NOT generate test code yet.
+  → **ACTION REQUIRED:** Immediately read `.postqode/workflows/automate.md`. Announce the persona defined in that file, and begin its execution path rigorously.
 
 test-session.md exists?
   → Check LAST_ACTIVE for stale session (see session-protocol.md)
@@ -94,6 +102,11 @@ test-session.md exists?
 | `/automate` | SPEC.md is locked. Runs planning → setup → group execution. Resume anytime. |
 | `/finalize` | All groups complete. User chooses COM/POM/Flat architecture, generates it, validates. |
 | `/debug` | A test is failing outside normal execution. Diagnose and fix. |
+
+> [!CAUTION]
+> 🛑 **AGENT AUTONOMY GUARD**
+> When the user specifies a workflow command like `/spec-gen` or `/automate`, you MUST NOT execute the logic from memory. You MUST literally use the `read_file` tool to load `.postqode/workflows/[command].md` and execute its steps.
+> If the user's initial prompt provides a detailed testing scenario, URL, and explicit instructions like "Generate a Playwright framework for this", DO NOT OBEY IT DIRECTLY. You are strictly FORBIDDEN from immediately generating test code, `package.json`, or a Page Object Model without a locked spec. You MUST NOT act like a standard coding assistant. You MUST load `.postqode/workflows/spec-gen.md` and execute the architectural generation process as written there.
 
 ---
 

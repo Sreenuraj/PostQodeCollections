@@ -43,6 +43,11 @@ Every phase in every workflow MUST open with:
 > FORBIDDEN: [list of things this persona must never do]
 ```
 
+### Persona Identification (Output Rule)
+Whenever you encounter a `🎭 PERSONA` block and assume a new persona, your **very first output to the user** MUST be an announcement of your current role. 
+Example: `[🎭 Activating Persona: The Engineer]`
+This forces your internal context to shift and lets the user know who is currently driving the workflow.
+
 ### Cross-Persona Boundaries (Non-negotiable)
 | Rule | Meaning |
 |---|---|
@@ -81,17 +86,19 @@ For each grouped step, define:
 → See `references/recovery-protocol.md` for the full L1→L2→L3 protocol.
 
 ### MILESTONE_CHECK
-After each group completes, evaluate these 4 signals:
+After each group completes, evaluate these 5 signals:
+0. Is this Group 1 (the foundational run)? (foundation trust signal)
 1. Did any step require L2 or L3 recovery? (complexity signal)
 2. Did the REVIEWER persona flag any WARN or FAIL? (quality signal)
 3. Are there 5+ groups still pending? (scale signal)
-4. Has it been 3+ groups since last user check-in? (trust signal)
+4. Has it been 3+ groups since last user check-in? (drift signal)
 
-**If 2+ signals triggered → ⛔ STOP for milestone review**
-**If 0-1 signals → continue** (auto in TURBO, stop in v3-compat mode)
+**If Signal 0 triggers (Group 1) → ⛔ CRITICAL STOP for foundational review (TURBO mode overridden)**
+**If 2+ signals triggered (from 1-4) → ⛔ STOP for milestone review**
+**If 0-1 signals (from 1-4) → continue** (auto in TURBO, stop in v3-compat mode)
 
 ### HEURISTIC_GATE
-Before any irreversible action (deleting files, overwriting specs, modifying production configs):
+Before any irreversible action (deleting files, overwriting specs, modifying production configs, collapsing session history):
 ```
 Is this action reversible?
   YES → proceed

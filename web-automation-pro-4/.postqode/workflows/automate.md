@@ -9,7 +9,7 @@ description: Master web automation orchestrator — planning, execution, and sta
 
 > [!CAUTION]
 > ## REQUIRED SKILL CHECK & CORE RULES
-> 1. You MUST check that you have read `.postqode/skills/web-automation-pro/SKILL.md` and activated its personas before proceeding.
+> 1. **MANDATORY PREREQUISITE:** If you were invoked directly into this workflow and have not yet loaded the main skill, you MUST read `.postqode/skills/web-automation-pro/SKILL.md` right now. Execute the "Workflow Invocation Handshake" found there before proceeding.
 > 2. Read `.postqode/rules/core.md` now. All Five Laws apply to every action in this workflow.
 > Read `.postqode/rules/automation-standards.md` — framework-agnostic testing standards.
 > Read the relevant framework rule `.postqode/rules/[framework].md` when framework is known.
@@ -110,6 +110,10 @@ Delete `test.md`.
 > Mandate: Get the minimum viable framework in place to run tests. Nothing more.
 > FORBIDDEN: Building production architecture. Creating folder structures. Writing Page Objects. Do minimal work — just enough to run a test.
 
+> [!CAUTION]
+> **PREREQUISITE GUARD:** 
+> Do NOT enter Phase 1 (Framework Setup) just because the user asked to "create a framework". You MUST complete Phase 0 and create `test-session.md` first. If `SPEC.md` does not exist, you MUST direct the user to `/spec-gen`.
+
 **If framework detected (Path A):**
 1. Read config and `package.json` → record `FRAMEWORK`, `TEST_COMMAND`, timeouts, `SPEC_FILE`, `CONFIG_FILE`
 2. Verify viewport matches `EXPLORATION_VIEWPORT` in config — update if different
@@ -133,7 +137,7 @@ Which framework would you like to use?
 **⛔ STOP — wait for reply.**
 
 After selection:
-1. Install with minimal config (no POM, no fixtures, no custom reporters yet)
+1. Install with minimal config using STRICTLY NON-INTERACTIVE commands (e.g., `npm init playwright@latest --yes -- --quiet --browser=chromium --no-gh-actions`). Do NOT trigger interactive terminal prompts.
 2. Set viewport in config to match `EXPLORATION_VIEWPORT`
 3. **Generate `.postqode/rules/[framework].md`** — framework-specific conventions:
    → Follow the template in `.postqode/skills/web-automation-pro/references/framework-rule-template.md` exactly.
@@ -143,7 +147,10 @@ After selection:
    - How to override config for headless + zero-retry validation runs
    - Run command
    - Framework-specific anti-patterns
-4. **Generate basic scaffolding:** Create `.gitignore` ignoring `node_modules/`, `test-results/`, and `playwright-report/` (or framework equiv).
+4. **Generate basic scaffolding & tracking:**
+   - Execute `git init` in the terminal to initialize the test history.
+   - Create `.gitignore` ignoring `node_modules/`, `test-results/`, and `playwright-report/` (or framework equiv).
+   - Execute `git add .` and `git commit -m "chore: framework installation and scaffolding"`
 5. **Architect Decision Gate:**
    Ask the user what architecture they prefer for this framework:
    ```text
@@ -153,8 +160,8 @@ After selection:
      (B) POM (Page Object Model) — Best for simpler apps, separated page logic.
      (C) Flat — Keep code purely sequential in the spec file.
    ```
-   **⛔ STOP — wait for reply.**
-6. Update `test-session.md` header: Add `ARCHITECTURE: [COM/POM/Flat]`. Mark SETUP rows `[x]`. Update `PHASE: EXECUTING`.
+   **⛔ CRITICAL STOP: Do NOT auto-answer or auto-select this choice yourself. The Agent MUST NOT decide this. You MUST present this option to the user and await their exact reply (A, B, or C).**
+6. After user replies, update `test-session.md` header: Add `ARCHITECTURE: [COM/POM/Flat]`. Mark SETUP rows `[x]`. Update `PHASE: EXECUTING`.
 
 ---
 
@@ -175,6 +182,11 @@ Before starting the first step of a group:
   Execute the choice, then update `BROWSER_STATUS: OPEN`.
 
 ### Per-Step Loop (ENGINEER persona)
+
+> [!CAUTION]
+> 🛑 **THE ANTI-BATCHING LAW (ZERO EXCEPTIONS)**
+> You are STRICTLY FORBIDDEN from generating the full test script at once. You MUST NOT write test code for future steps or groups you haven't explicitly explored in the browser. 
+> You MUST execute exactly ONE `[ ]` checklist row at a time. Read row → Do row → mark `[x]` → STOP. If you batch-write tests without running TIP on them, you have FAILED the protocol.
 
 ```
 For each [ ] step row in the checklist (one at a time — ANTI-BATCHING LAW):
@@ -207,6 +219,7 @@ For each [ ] step row in the checklist (one at a time — ANTI-BATCHING LAW):
   UPDATE (G[N]-S[X] UPDATE row):
     → Mark step Status=[x] in active-group.md
     → Mark checklist row [x] in test-session.md  ← SAVE RULE: save file now
+    → **INTRA-GROUP VOLUME GATE**: If you just marked the 3rd, 6th, or 9th exploration step `[x]` for this group, pause and invoke the Reviewer persona mid-group. If the Reviewer issues a WARN or FAIL, ⛔ STOP and wait for User approval before exploring the next step.
 ```
 
 ### End-of-Group Sequence
@@ -245,6 +258,11 @@ Mark row `[x]` if PASS. If FAIL → switch to:
 - **L3:** Graceful skip + mark `[⚠️]`
 
 After fix attempt → return to VALIDATOR for re-run.
+
+**G[N]-END: FOUNDATION TRUST GATE**
+
+- **Is this Group 1?** 
+  If YES → ⛔ **CRITICAL STOP.** You are forbidden from collapsing the very first group without human review of the foundations. Output the Reviewer and Validation results, and wait for explicit User Approval. TURBO mode does not bypass this gate.
 
 **G[N]-END: COLLAPSE CHECKLIST**
 

@@ -9,7 +9,7 @@ description: Generate production-quality test architecture from the working flat
 
 > [!CAUTION]
 > ## REQUIRED SKILL CHECK & CORE RULES
-> 1. You MUST check that you have read `.postqode/skills/web-automation-pro/SKILL.md` and activated its personas before proceeding.
+> 1. **MANDATORY PREREQUISITE:** If you were invoked directly into this workflow and have not yet loaded the main skill, you MUST read `.postqode/skills/web-automation-pro/SKILL.md` right now. Execute the "Workflow Invocation Handshake" found there before proceeding.
 > 2. Read `.postqode/rules/core.md`. All Five Laws apply.
 > Read `.postqode/skills/web-automation-pro/references/architecture-patterns.md` — this is the primary reference for this workflow.
 > PREREQUISITE: Working spec must pass headless validation before /finalize begins. If it doesn't, run /debug first.
