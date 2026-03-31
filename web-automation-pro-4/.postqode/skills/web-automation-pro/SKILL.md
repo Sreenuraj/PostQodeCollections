@@ -5,8 +5,9 @@ description: >
   navigation, login, form fill, click, scrolling, automation, E2E test,
   Playwright, Cypress, Selenium, WebdriverIO, Puppeteer, page object,
   web testing, or test generation. If a URL (http:// or https://) appears
-  anywhere in the user's prompt, or they mention any web interaction —
-  activate this skill immediately.
+  anywhere in the user's prompt, or they mention any web interaction,
+  or they use the commands /automate, /spec-gen, /finalize, /spec-update, or /debug
+  — activate this skill immediately.
 ---
 
 # Web Automation Pro
@@ -93,7 +94,7 @@ test-session.md exists?
 | `/spec-gen` | No SPEC.md yet. Start here. Generates and locks the spec contract. |
 | `/spec-update` | SPEC.md is locked but the app changed. Add, modify, or remove steps. |
 | `/automate` | SPEC.md is locked. Runs planning → setup → group execution. Resume anytime. |
-| `/finalize` | All groups complete. User chooses COM/POM/Flat architecture, generates it, validates. |
+| `/finalize` | All groups complete. Validate final test suite, cleanup temp files, and generate CI pipelines. |
 | `/debug` | A test is failing outside normal execution. Diagnose and fix. |
 
 ---
@@ -129,7 +130,7 @@ Six specialized personas are used across the lifecycle. Each workflow phase acti
 | **Engineer** | EXPLORE + WRITE | Evidence-first code generation, one step at a time |
 | **Reviewer** | Post-code, pre-validation | Adversarial rubric check against SPEC.md |
 | **Validator** | Headless validation | Binary pass/fail, facts only |
-| **Architect** | Finalization | COM/POM/Flat decision, architecture generation |
+| **Architect** | Setup Phase & Finalization | COM/POM/Flat decision, incremental component generation |
 | **Debugger** | Failure recovery | Root cause first, minimum-change fix |
 
 ---

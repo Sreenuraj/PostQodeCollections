@@ -90,7 +90,7 @@ After user provides answers:
    - Group related UI actions on the same component into **cohesive steps** (e.g. "Fill form and submit" = 1 step)
    - Extract: exact actions, target component, input data, expected observable outcome
    - Flag ⚠️ NEEDS_DECOMPOSITION if any step spans multiple components, pages, or async states
-2. Draft SPEC.md using the schema from `skills/web-automation-pro/references/spec-format.md`
+2. Draft SPEC.md using the schema from `.postqode/skills/web-automation-pro/references/spec-format.md`
    - Status: DRAFT
    - Framework: set to detected value, or "TBD" if not yet decided
    - Include the Step Definitions table with ALL decomposed steps

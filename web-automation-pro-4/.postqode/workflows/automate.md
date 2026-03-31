@@ -8,8 +8,9 @@ description: Master web automation orchestrator — planning, execution, and sta
 > Workflow chain: `/spec-gen` → **`/automate`** → `/finalize`
 
 > [!CAUTION]
-> ## CORE RULES — LOAD BEFORE STARTING
-> Read `.postqode/rules/core.md` now. All Five Laws apply to every action in this workflow.
+> ## REQUIRED SKILL CHECK & CORE RULES
+> 1. You MUST check that you have read `.postqode/skills/web-automation-pro/SKILL.md` and activated its personas before proceeding.
+> 2. Read `.postqode/rules/core.md` now. All Five Laws apply to every action in this workflow.
 > Read `.postqode/rules/automation-standards.md` — framework-agnostic testing standards.
 > Read the relevant framework rule `.postqode/rules/[framework].md` when framework is known.
 
@@ -39,7 +40,7 @@ description: Master web automation orchestrator — planning, execution, and sta
 | `FINALIZING` | "All groups complete. Please run `/finalize`." ⛔ STOP |
 | `COMPLETE` | "Execution complete. Run `/finalize` for production architecture." ⛔ STOP |
 
-→ Full state machine in `skills/web-automation-pro/references/session-protocol.md`
+→ Full state machine in `.postqode/skills/web-automation-pro/references/session-protocol.md`
 
 ---
 
@@ -60,11 +61,11 @@ Extract: Target URL, Viewport, Framework (or TBD), all Step Definitions, Anti-Pa
 - Read `.postqode/rules/[framework].md` if it exists
 
 **Step 0.3 — Pre-Coded Step Detection (Cases A/B/C)**
-→ See `skills/web-automation-pro/references/grouping-algorithm.md` for the full CASE A/B/C logic.
+→ See `.postqode/skills/web-automation-pro/references/grouping-algorithm.md` for the full CASE A/B/C logic.
 Apply the case, stop for user if needed.
 
 **Step 0.4 — Group the Steps**
-→ Apply grouping algorithm from `skills/web-automation-pro/references/grouping-algorithm.md`.
+→ Apply grouping algorithm from `.postqode/skills/web-automation-pro/references/grouping-algorithm.md`.
 Produce the plan table. Write to `test.md`.
 
 **Step 0.5 — MANDATORY STOP GATE: Plan Approval**
@@ -135,20 +136,43 @@ After selection:
 1. Install with minimal config (no POM, no fixtures, no custom reporters yet)
 2. Set viewport in config to match `EXPLORATION_VIEWPORT`
 3. **Generate `.postqode/rules/[framework].md`** — framework-specific conventions:
-   → Follow the template in `references/framework-rule-template.md` exactly.
+   → Follow the template in `.postqode/skills/web-automation-pro/references/framework-rule-template.md` exactly.
    - Locator API (how to implement the locator hierarchy)
    - Wait API (how to implement wait strategies)
    - Assertion syntax
    - How to override config for headless + zero-retry validation runs
    - Run command
    - Framework-specific anti-patterns
-4. Update `test-session.md` header. Mark SETUP rows. Update `PHASE: EXECUTING`.
+4. **Generate basic scaffolding:** Create `.gitignore` ignoring `node_modules/`, `test-results/`, and `playwright-report/` (or framework equiv).
+5. **Architect Decision Gate:**
+   Ask the user what architecture they prefer for this framework:
+   ```text
+   Basic setup is complete.
+   Choose your test architecture pattern for this run:
+     (A) COM (Component Object Model) — Best for modern apps, incrementally builds components.
+     (B) POM (Page Object Model) — Best for simpler apps, separated page logic.
+     (C) Flat — Keep code purely sequential in the spec file.
+   ```
+   **⛔ STOP — wait for reply.**
+6. Update `test-session.md` header: Add `ARCHITECTURE: [COM/POM/Flat]`. Mark SETUP rows `[x]`. Update `PHASE: EXECUTING`.
 
 ---
 
 ## Phase 2 — Execution Loop
 
 **This phase repeats for each group until all groups are complete.**
+
+### Browser Continuity (Protocol A/B)
+Before starting the first step of a group:
+- If `BROWSER_STATUS` is `OPEN`, proceed (Protocol A). If action fails (connection lost), ask user for Protocol B.
+- If `BROWSER_STATUS` is `CLOSED` (or browser was lost):
+  ```text
+  Browser needs fresh open. [N] previous steps need replay.
+    (A) I will replay automatically (Headless run to catch up)
+    (B) Open browser to start URL — I will list the steps for you to perform manually.
+  ```
+  **⛔ STOP — wait for reply.** 
+  Execute the choice, then update `BROWSER_STATUS: OPEN`.
 
 ### Per-Step Loop (ENGINEER persona)
 
@@ -159,18 +183,22 @@ For each [ ] step row in the checklist (one at a time — ANTI-BATCHING LAW):
   Verify the row matches what I'm about to do before proceeding.
 
   EXPLORE (G[N]-S[X] EXPLORE row):
-    → Run TIP protocol (references/tip-protocol.md)
+    → Run TIP protocol (.postqode/skills/web-automation-pro/references/tip-protocol.md)
     → Pre-snapshot → perform action → network monitor → 3s settle → post-snapshot → diff
     → Record evidence: locators, network calls, DOM changes
 
   ELEMENT MAP (G[N]-S[X] ELEMENT MAP row):
-    → Follow schema from `references/element-map-schema.md`
+    → Follow schema from `.postqode/skills/web-automation-pro/references/element-map-schema.md`
     → Check if element map exists in element-maps/ for this page + block
     → If exists: read it, use existing locators, add new ones if discovered
     → If not exists: create element-maps/[page]__[block].json with all element locators
     → Note reuse signals: if this block was seen on a previous page, add reuse_signal field
 
   WRITE CODE (G[N]-S[X] WRITE CODE row):
+    → Check `ARCHITECTURE` from session header:
+      - If **COM**: Generate or reuse Base/Business Components in `components/`, and Page objects in `pages/`. Write the test spec step utilizing high-level abstractions (e.g., `loginPage.loginForm.submit()`).
+      - If **POM**: Generate/update the Page class. Write test spec using `page.action()`.
+      - If **Flat**: Write raw locator code directly.
     → Write code for THIS STEP ONLY using TIP evidence
     → Evidence-based waits only (no sleep())
     → Add TIP evidence comment (required for Reviewer)
@@ -191,7 +219,7 @@ When all step rows for the group are marked `[x]`:
 > Mandate: Review the just-written code against the spec before any test runs.
 > FORBIDDEN: Writing or fixing code.
 
-→ Load `references/reviewer-rubric.md`. Run all 7 criteria. Generate REVIEWER REPORT.
+→ Load `.postqode/skills/web-automation-pro/references/reviewer-rubric.md`. Run all 7 criteria. Generate REVIEWER REPORT.
 
 - **PASS (7/7):** Mark row `[x]`. Proceed to validation.
 - **WARN (5-6/7):** Return to Engineer persona. Fix specific flagged items. Reviewer re-runs rubric.
@@ -211,7 +239,7 @@ Mark row `[x]` if PASS. If FAIL → switch to:
 
 ### 🎭 PERSONA: The Debugger
 
-→ Apply L1→L2→L3 from `references/recovery-protocol.md`:
+→ Apply L1→L2→L3 from `.postqode/skills/web-automation-pro/references/recovery-protocol.md`:
 - **L1:** 2 auto-fix attempts
 - **L2:** ⛔ STOP — ask for outerHTML/screenshot
 - **L3:** Graceful skip + mark `[⚠️]`
@@ -220,15 +248,19 @@ After fix attempt → return to VALIDATOR for re-run.
 
 **G[N]-END: COLLAPSE CHECKLIST**
 
-→ Apply COLLAPSE protocol from `references/session-protocol.md`
+→ Apply COLLAPSE protocol from `.postqode/skills/web-automation-pro/references/session-protocol.md`
 → Replace all G[N] rows with one SUMMARY row
 → Mark row `[x]`. Save file.
 
 **G[N]-END: ROTATE AND GENERATE NEXT CHECKLIST**
 
-→ Apply ROTATE protocol from `references/session-protocol.md`
+→ Apply ROTATE protocol from `.postqode/skills/web-automation-pro/references/session-protocol.md`
 → Complete rotation → new active-group.md → new G[N+1] checklist rows
 → Mark row `[x]`. Save file.
+
+**G[N]-END: ATOMIC GIT COMMIT**
+
+→ Execute `git add .` and `git commit -m "test(web-automation): complete Group [N] execution"` in the terminal to save the progress of this group atomically.
 
 **G[N]-END: MILESTONE CHECK + CONTINUE DECISION**
 
