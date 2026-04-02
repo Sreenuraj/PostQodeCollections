@@ -10,6 +10,7 @@ description: Generate a locked SPEC.md automation contract from raw user require
 > Before proceeding:
 > 1. load the skill if needed
 > 2. read `.postqode/rules/core.md`
+> 3. read `.postqode/skills/web-automation-pro/references/protocol-guard.md`
 
 ---
 
@@ -52,6 +53,12 @@ Before `SPEC.md` is approved and locked, `/spec-gen` must not write:
 - page objects
 - utility modules
 - runtime environment files
+
+Before drafting, approving, or summarizing the spec, run `PROTOCOL_GUARD` and confirm:
+- route = `/spec-gen`
+- file category = `SPEC` or `SESSION`
+- `SPEC_DRAFTING -> SPEC_READY` is not attempted without approval
+- summary wording does not claim `locked` before approval
 
 ---
 

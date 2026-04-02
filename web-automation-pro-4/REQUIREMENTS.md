@@ -79,6 +79,9 @@ Use those files as authoritative for exact ledger fields, stop reasons, and resu
 13. **Route before write**
    Natural-language entry must still route through the workflow chain before runtime scaffolding is created.
 
+14. **Guard before move**
+   The agent must self-validate route, write, transition, and summary decisions before making them.
+
 ---
 
 ## 3. PostQode Primitive Model
@@ -102,6 +105,7 @@ That means the skill:
 - Prevents workflow drift by forcing state-based routing.
 - Handles cross-session continuity by reading persisted state instead of trusting conversation memory.
 - Treats natural-language automation requests as implicit workflow entry, not as permission to generate a generic framework immediately.
+- Runs an anti-deviation guard before high-impact writes and phase changes.
 
 That also means the skill does **not**:
 - Generate production code directly.

@@ -2,6 +2,12 @@
 
 Run by the Reviewer after the Engineer finishes a group and before validation starts.
 
+This rubric does not replace the Protocol Guard.
+
+Difference:
+- `Protocol Guard` runs before a write, transition, or summary to check legality
+- `Reviewer Rubric` runs after a group is written to check quality
+
 ---
 
 ## How to Run It

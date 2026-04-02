@@ -11,6 +11,7 @@ description: Make the final architecture decision, refactor the working spec, va
 > 1. load the skill if needed
 > 2. read `.postqode/rules/core.md`
 > 3. read `.postqode/skills/web-automation-pro/references/architecture-patterns.md`
+> 4. read `.postqode/skills/web-automation-pro/references/protocol-guard.md`
 
 ---
 
@@ -46,6 +47,8 @@ Quantify:
 - shared behaviors across pages
 - page count
 - local helper count
+
+Before any refactor write or completion summary, run `PROTOCOL_GUARD`.
 
 ---
 
@@ -176,6 +179,11 @@ Update `test-session.md` to:
 - `NEXT_EXPECTED_ACTION: NONE`
 - `ARCHITECTURE_DECISION: [chosen value]`
 - any other completion metadata needed for later routing
+
+Before setting `PHASE: COMPLETE`, run `PROTOCOL_GUARD` and confirm:
+- final validation passed
+- transition to `COMPLETE` is legal
+- completion wording is now allowed
 
 Report:
 

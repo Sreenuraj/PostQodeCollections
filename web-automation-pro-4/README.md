@@ -28,6 +28,11 @@ This hardened version also adds:
 - one stable working test file during `/automate`
 - refinement checkpoints that persist exact failure state before handoff
 - strict natural-language routing before any scaffolding is created
+- a protocol-guard loop before writes, transitions, and completion claims
+
+The `Protocol Guard` and the `Reviewer` do different jobs:
+- the guard checks whether the next move is allowed
+- the reviewer checks whether the finished group is good enough
 
 ---
 

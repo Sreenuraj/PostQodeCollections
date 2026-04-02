@@ -12,6 +12,7 @@ description: Plan, set up, execute, review, validate, and resume spec-driven web
 > 2. read `.postqode/rules/core.md`
 > 3. read `.postqode/rules/automation-standards.md`
 > 4. read `.postqode/rules/[framework].md` when framework is known
+> 5. read `.postqode/skills/web-automation-pro/references/protocol-guard.md`
 
 ---
 
@@ -59,6 +60,8 @@ If `STOP_REASON: GROUP_REFINEMENT`:
 - resume the same active group
 - inspect the current browser state or saved failure artifacts before replaying earlier steps
 - use `VALIDATION_STATE` and `LAST_FAILURE_REASON` to decide whether revalidation or more exploration is next
+
+Before any planning write, setup write, active-group rotation, or checkpoint summary, run `PROTOCOL_GUARD`.
 
 ---
 
@@ -154,6 +157,12 @@ Write:
    - `FOUNDATION_REVIEW_DONE: NO`
 
 Before this `PLAN_PENDING` state exists, do not create runtime setup files such as framework config, fixtures, helpers, page objects, or executable tests.
+
+Before writing `test.md` or `test-session.md`, run `PROTOCOL_GUARD` and confirm:
+- route = `/automate`
+- phase = planning
+- file category = `PLAN` or `SESSION`
+- no runtime setup write is being attempted yet
 
 ### Step 0.6 — Plan approval gate
 
@@ -300,6 +309,11 @@ During setup and execution:
 - keep one runnable test body in the file persisted as `WORKING_TEST_FILE`
 - do not rotate `WORKING_TEST_FILE` from one group-specific filename to another
 
+Before any setup file is created, run `PROTOCOL_GUARD` and confirm:
+- `PLAN_PENDING -> SETUP` was earned by approval
+- file category = `RUNTIME_SETUP` or `WORKING_TEST`
+- setup is currently allowed
+
 ---
 
 ## Phase 2 — Group Execution Loop
@@ -331,6 +345,8 @@ Before each step starts, update:
 - `ACTIVE_GROUP`
 - `ACTIVE_STEP`
 - `NEXT_EXPECTED_ACTION: EXPLORE_STEP`
+
+Before writing `active-group.md`, `element-maps/*`, or `WORKING_TEST_FILE`, run `PROTOCOL_GUARD` and confirm the file category matches active execution.
 
 1. **EXPLORE**
    - run TIP
@@ -445,6 +461,11 @@ If the current group has been explored or edited but remains unresolved:
 - do not present completion framing
 - present a checkpoint summary only, labeled as progress rather than completion
 
+Before presenting that checkpoint, run `PROTOCOL_GUARD` and confirm:
+- stop state is already persisted
+- summary wording is checkpoint-safe
+- unresolved work is not being described as complete
+
 Required footer:
 
 ```text
@@ -496,6 +517,8 @@ After a passed group and any required gate:
    - `EXECUTING` if continuing immediately
    - `MILESTONE` if a stop gate fired
    - `FINALIZING` if no pending groups remain
+
+Before rotating to the next group or finalizing, run `PROTOCOL_GUARD` and confirm the transition is legal and supported by review/validation evidence.
 
 ### Milestone logic
 

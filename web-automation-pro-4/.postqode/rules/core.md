@@ -3,7 +3,7 @@ Core behavioral laws for every Web Automation Pro session. The skill orchestrate
 
 ---
 
-## The Ten Laws
+## The Eleven Laws
 
 > [!CAUTION]
 > These laws apply in every phase and every workflow.
@@ -93,6 +93,16 @@ Do not create runtime framework files before the workflow route authorizes that 
 - if `SPEC.md` is not yet approved and locked, do not create framework config, fixtures, page objects, utility modules, or executable tests
 - if `/automate` has not yet persisted `PLAN_PENDING`, do not start setup
 - if `/automate` has not yet entered `SETUP`, do not create runtime scaffolding
+
+### LAW 11 — PROTOCOL GUARD LOOP
+Before any high-impact write, transition, or summary, run the protocol guard.
+
+- use `references/protocol-guard.md`
+- answer the route check
+- answer the write check
+- answer the transition check
+- answer the summary check when messaging completion or pause state
+- if any answer fails, stop and repair instead of continuing
 
 ---
 
@@ -208,6 +218,9 @@ Use `references/reviewer-rubric.md`.
 
 ### DEBUGLOOP
 Use `references/recovery-protocol.md`.
+
+### PROTOCOL_GUARD
+Use `references/protocol-guard.md`.
 
 ### MILESTONE_CHECK
 After each group, evaluate the exact signals below and log them in state remarks or the group summary.

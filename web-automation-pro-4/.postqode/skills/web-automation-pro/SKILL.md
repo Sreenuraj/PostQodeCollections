@@ -26,6 +26,7 @@ It must:
 - make persona activation visible when the workflow changes phase
 - repair malformed saved state before trusting it for resume
 - force natural-language automation requests onto the workflow chain before any framework or test files are created
+- run the protocol guard before high-impact writes, transitions, and summaries
 
 It must not:
 - skip the workflow chain
@@ -37,6 +38,7 @@ It must not:
 - present a paused progress checkpoint as if the framework were complete
 - trust markdown-table session ledgers or stray pending files as valid canonical state
 - interpret a natural-language request for automation help as permission to start generic framework scaffolding outside the workflow chain
+- skip the protocol guard when a write, transition, or summary could move the run off-rails
 
 ---
 
@@ -102,6 +104,7 @@ Read in this order:
 6. `LAST_ACTIVE`
 
 Use `references/session-protocol.md` as the canonical state router.
+Use `references/protocol-guard.md` as the mandatory anti-deviation loop.
 
 ### Required routing
 
@@ -193,6 +196,7 @@ Load only what is needed:
 | File | Use |
 |---|---|
 | `references/session-protocol.md` | state routing and resume logic |
+| `references/protocol-guard.md` | route/write/transition/summary guard |
 | `references/personas.md` | persona definitions |
 | `references/spec-format.md` | SPEC schema |
 | `references/grouping-algorithm.md` | plan grouping |

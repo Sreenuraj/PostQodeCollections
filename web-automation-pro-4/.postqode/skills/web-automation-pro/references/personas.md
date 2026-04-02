@@ -71,6 +71,10 @@ State responsibility:
 - records whether WARN occurred so milestone logic remains deterministic even if the Engineer later fixes it
 - fails review if the run has split into multiple runnable group files or if the working test file identity drifted during `/automate`
 
+Scope note:
+- the Reviewer critiques completed group work
+- the Reviewer does not replace the Protocol Guard that should have stopped illegal writes or illegal phase transitions earlier
+
 ---
 
 ## Persona 4 — The Validator
