@@ -22,6 +22,11 @@ This hardened version also adds:
 - deterministic resume fields
 - narrow helper extraction rules
 - repeatable finalize heuristics
+- explicit framework and language confirmation
+- active-group-only validation
+- a ban on runnable future-group code during `/automate`
+- one stable working test file during `/automate`
+- refinement checkpoints that persist exact failure state before handoff
 
 ---
 
@@ -75,6 +80,8 @@ Rules are always-on constraints:
 - stop gates
 - state-first resume behavior
 - flat-first execution standards
+- visible persona activation
+- ledger sync between `test-session.md` and `active-group.md`
 
 ---
 
@@ -84,6 +91,8 @@ During `/automate`, the system writes **flat-first** code and gathers evidence:
 - TIP observations
 - element maps
 - reuse signals
+
+That code lives in one stable working test file with one runnable test body for the whole `/automate` run. It does not rotate into `g1-*`, `g2-*`, or other per-group runnable files.
 
 It may create a small neutral helper only after the same interaction pattern has appeared in at least 2 completed explored steps in the same run. It still does **not** make the final architecture decision there.
 
@@ -110,6 +119,10 @@ Key ledger fields include:
 - `ACTIVE_WORKFLOW`
 - `ACTIVE_GROUP`
 - `ACTIVE_STEP`
+- `LANGUAGE`
+- `WORKING_TEST_FILE`
+- `VALIDATION_STATE`
+- `LAST_FAILURE_REASON`
 - `NEXT_EXPECTED_ACTION`
 
 That is what lets the skill route correctly in the same session or a fresh one.
@@ -120,8 +133,11 @@ That is what lets the skill route correctly in the same session or a fresh one.
 
 The goal is to help an AI agent automate long UI flows without falling into the usual traps:
 - jumping into code too early,
+- silently picking a stack the user never chose,
 - forgetting where it is,
 - over-abstracting too soon,
+- validating too much at once,
+- hallucinating future-group selectors,
 - batching too much work into one step,
 - or losing continuity across sessions.
 

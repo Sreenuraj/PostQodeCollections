@@ -15,7 +15,8 @@ The SPEC.md is the automation contract. It must exist and be LOCKED before any w
 | Created | [date] |
 | Status | DRAFT → LOCKED (on user approval) |
 | Domain | web-automation |
-| Framework | [name] / TBD (resolved in Setup) |
+| Framework | [name] / TBD |
+| Language | [name] / TBD |
 | Target URL | [full URL] |
 | Viewport | [e.g. 1280x800] |
 | Spec Author | Strategist persona via /spec-gen |
@@ -128,6 +129,7 @@ The `Component` column names the logical UI block containing the target element.
 | Status | LOCKED |
 | Domain | web-automation |
 | Framework | TBD |
+| Language | TBD |
 | Target URL | https://vote.example.com |
 | Viewport | 1280x800 |
 

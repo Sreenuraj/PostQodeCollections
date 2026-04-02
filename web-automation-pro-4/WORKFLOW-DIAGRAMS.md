@@ -137,48 +137,54 @@ flowchart TD
     F --> R{"Framework known?"}
     R -->|No| S["Persist FRAMEWORK_CHOICE stop state"]
     S --> T["Ask user to choose framework"]
-    T --> U["Prepare working spec"]
+    T --> U["Prepare working runtime"]
     R -->|Yes| U
-    U --> V["Set PHASE: EXECUTING"]
-    V --> G
+    U --> V["Prepare one stable working test file"]
+    V --> W["Set PHASE: EXECUTING"]
+    W --> G
 
-    G --> W["Per-step loop"]
-    W --> X["Persist ACTIVE_GROUP, ACTIVE_STEP, NEXT_EXPECTED_ACTION"]
-    X --> Y["Explore with TIP"]
-    Y --> Z["Create/update element map"]
-    Z --> AA["Append flat-first code"]
-    AA --> AB["Optional local helper only after 2 matching completed patterns"]
-    AB --> AC["Save state"]
-    AC --> AD{"More steps in group?"}
-    AD -->|Yes| W
-    AD -->|No| AE["Reviewer"]
+    G --> X["Per-step loop"]
+    X --> Y["Persist ACTIVE_GROUP, ACTIVE_STEP, NEXT_EXPECTED_ACTION"]
+    Y --> Z["Explore with TIP"]
+    Z --> AA["Create/update element map"]
+    AA --> AB["Append to same working test file"]
+    AB --> AC["Optional local helper only after 2 matching completed patterns"]
+    AC --> AD["Save state"]
+    AD --> AE{"More steps in group?"}
+    AE -->|Yes| X
+    AE -->|No| AF["Reviewer"]
 
-    AE --> AF["Run 7-criterion rubric"]
-    AF --> AG{"Pass or warn?"}
-    AG -->|Warn| AH["Engineer fixes and reviewer re-runs"]
-    AH --> AE
-    AG -->|Fail| AI["Stop for user"]
-    AG -->|Pass| AJ["Set PHASE: VALIDATING"]
+    AF --> AG["Run 7-criterion rubric"]
+    AG --> AH{"Pass or warn?"}
+    AH -->|Warn| AI["Engineer fixes and reviewer re-runs"]
+    AI --> AF
+    AH -->|Fail| AJ["Persist GROUP_REFINEMENT stop state"]
+    AH -->|Pass| AK["Set PHASE: VALIDATING"]
 
-    AJ --> AK["Validator runs headless"]
-    AK --> AL{"Validation pass?"}
-    AL -->|No| AM["Debugger L1 -> L2 -> L3"]
-    AM --> AK
-    AL -->|Yes| AN["Evaluate foundation and milestone logic"]
+    AK --> AL["Validator runs headless"]
+    AL --> AM{"Validation pass?"}
+    AM -->|No| AN["Debugger L1 -> L2 -> L3"]
+    AN --> AO{"Resolved and revalidated?"}
+    AO -->|No| AP["Persist GROUP_REFINEMENT with failure reason"]
+    AO -->|Yes| AL
+    AM -->|Yes| AQ["Evaluate foundation and milestone logic"]
 
-    AN --> AO{"Foundation gate?"}
-    AO -->|Yes| AP["Persist FOUNDATION_GATE stop state"]
-    AP --> AQ["Stop for Group 1 approval"]
-    AO -->|No| AR{"Milestone gate?"}
-    AR -->|Yes| AS["Persist MILESTONE_GATE stop state"]
-    AS --> AT["Stop for milestone review"]
-    AR -->|No| AU["Collapse and rotate"]
+    AQ --> AR{"Foundation gate?"}
+    AR -->|Yes| AS["Persist FOUNDATION_GATE stop state"]
+    AS --> AT["Stop for Group 1 approval"]
+    AR -->|No| AU{"Milestone gate?"}
+    AU -->|Yes| AV["Persist MILESTONE_GATE stop state"]
+    AV --> AW["Stop for milestone review"]
+    AU -->|No| AX["Collapse and rotate"]
 
-    AQ --> AU
-    AT --> AU
-    AU --> AV{"More groups?"}
-    AV -->|Yes| G
-    AV -->|No| K
+    AJ --> AY["Pause with progress checkpoint"]
+    AP --> AY
+    AT --> AX
+    AW --> AX
+    AX --> AZ["Confirm active-group.md + stable working file"]
+    AZ --> BA{"More groups?"}
+    BA -->|Yes| G
+    BA -->|No| K
 ```
 
 ---
@@ -191,7 +197,7 @@ flowchart LR
     B --> C["EXPLORE"]
     C --> D["TIP evidence"]
     D --> E["ELEMENT MAP"]
-    E --> F["WRITE CODE"]
+    E --> F["WRITE CODE in same working test file"]
     F --> G["Optional local helper<br/>only after 2 matching completed patterns"]
     G --> H["UPDATE state files"]
     H --> I{"More steps in group?"}
@@ -200,14 +206,16 @@ flowchart LR
     J --> K{"7-criterion rubric"}
     K -->|WARN| L["Engineer fixes"]
     L --> J
-    K -->|FAIL| M["Stop for user"]
+    K -->|FAIL| M["Persist GROUP_REFINEMENT"]
     K -->|PASS| N["VALIDATOR"]
     N --> O{"Test passes?"}
     O -->|No| P["DEBUGGER recovery"]
-    P --> N
-    O -->|Yes| Q["FOUNDATION / MILESTONE gate"]
-    Q --> R["COLLAPSE"]
-    R --> S["ROTATE"]
+    P --> Q{"Resolved?"}
+    Q -->|Yes| N
+    Q -->|No| R["Pause with failure state"]
+    O -->|Yes| S["FOUNDATION / MILESTONE gate"]
+    S --> T["COLLAPSE"]
+    T --> U["ROTATE with canonical file checks"]
 ```
 
 ---
@@ -217,19 +225,20 @@ flowchart LR
 ```mermaid
 flowchart TD
     A["/automate execution"] --> B["Working style: FLAT_FIRST"]
-    B --> C["Collect element maps and reuse signals"]
-    C --> D{"2 matching completed patterns?"}
-    D -->|No| E["Keep code flat"]
-    D -->|Yes| F["Allow one local neutral helper"]
-    F --> E
+    B --> C["One stable working test file"]
+    C --> D["Collect element maps and reuse signals"]
+    D --> E{"2 matching completed patterns?"}
+    E -->|No| F["Keep code flat"]
+    E -->|Yes| G["Allow one local neutral helper"]
+    G --> F
 
-    E --> G["All groups done"]
-    G --> H["/finalize"]
-    H --> I["Architect analyzes evidence using explicit thresholds"]
-    I --> J{"User decision"}
-    J -->|COM| K["Build reusable components + thin pages"]
-    J -->|POM| L["Build page objects"]
-    J -->|Flat| M["Keep working spec as final shape"]
+    F --> H["All groups done"]
+    H --> I["/finalize"]
+    I --> J["Architect analyzes evidence using explicit thresholds"]
+    J --> K{"User decision"}
+    K -->|COM| L["Build reusable components + thin pages"]
+    K -->|POM| M["Build page objects"]
+    K -->|Flat| N["Keep working spec as final shape"]
 ```
 
 ---

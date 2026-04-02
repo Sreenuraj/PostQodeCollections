@@ -64,6 +64,18 @@ Use those files as authoritative for exact ledger fields, stop reasons, and resu
 8. **No loopholes for agent freelancing**
    The system must reduce the chance that the agent skips the path and "just starts coding."
 
+9. **Explicit toolchain choice**
+   The system must not silently default framework or language unless the user explicitly asked for a recommendation and accepted it.
+
+10. **Active-group-only execution**
+   During `/automate`, validation and new runnable code must stay scoped to the active group.
+
+11. **Single stable working artifact**
+   During `/automate`, one stable working test file must carry the runnable flow across all groups.
+
+12. **Honest paused-state resume**
+   If a group is unresolved, the session ledger must say exactly that before any checkpoint summary is shown.
+
 ---
 
 ## 3. PostQode Primitive Model
@@ -143,7 +155,7 @@ State lives on disk, not in the conversation.
 |---|---|
 | `.postqode/spec/SPEC.md` | Locked automation contract |
 | `test.md` | Plan preview awaiting approval |
-| `test-session.md` | Live session header + checklist |
+| `test-session.md` | Live session header + checklist in canonical `KEY: VALUE` form |
 | `active-group.md` | Current group step definitions |
 | `pending-groups/` | Future groups |
 | `completed-groups/` | Archived groups |
@@ -177,6 +189,8 @@ When the Strategist presents the plan:
 Without this, a new session cannot truthfully resume at plan approval.
 
 In the hardened protocol, exact stop-state fields such as `STOP_REASON`, `GATE_TYPE`, and `NEXT_EXPECTED_ACTION` are defined in `session-protocol.md`.
+The hardened protocol also tracks `LANGUAGE` so framework and language choices remain resumable facts instead of chat-only memory.
+It also tracks `WORKING_TEST_FILE`, `VALIDATION_STATE`, and `LAST_FAILURE_REASON` so an unfinished group can resume honestly in a fresh session.
 
 ---
 
@@ -275,7 +289,7 @@ For each group:
 1. Explore one step at a time.
 2. Capture TIP evidence.
 3. Create or update element maps.
-4. Append flat-first code to the working spec.
+4. Append flat-first code to one stable working test file.
 5. Review the group against the rubric.
 6. Validate headless with zero retries.
 7. Run recovery if needed.
@@ -305,6 +319,7 @@ Flat-first code minimizes wrong abstractions while the browser evidence is still
 ### What flat-first means
 
 - One working spec/test body is the canonical implementation during `/automate`.
+- One stable working test file carries that body across all groups.
 - Interactions are appended sequentially.
 - Assertions come directly from observed evidence and `SPEC.md`.
 - Element maps, not page objects, are the system memory during execution.
@@ -328,6 +343,7 @@ Forbidden during `/automate`:
 - Full component trees
 - User-facing architecture choice
 - Broad refactors driven by taste rather than evidence
+- Rotating into one runnable spec file per group
 
 This is the compromise that preserves flat-first execution without ignoring obvious reuse pressure.
 

@@ -13,15 +13,20 @@ Always follow this escalation order.
 **Max attempts:** 2
 
 Allowed actions:
+- inspect the current live browser state first when the browser is still open
+- inspect saved failure artifacts such as screenshot, video, and error context before replaying the flow
 - re-snapshot the page
 - try a fallback locator
 - add an evidence-based explicit wait
 - check frame or shadow DOM context
+- replay only from the nearest state needed to restore the active-group context, not from a brand new per-group flow
 
 Forbidden:
 - broad refactors
 - changing multiple unrelated steps
 - asking the user anything
+- replaying the full flow before first inspecting the current browser state or saved failure artifacts
+- creating a new runnable spec file for the failing group
 
 If L1 succeeds:
 - record the fix in remarks
@@ -95,18 +100,25 @@ If an entire group cannot be completed:
 
 Before stopping, persist:
 - `PHASE: MILESTONE`
-- `STOP_REASON: MILESTONE_GATE`
-- `GATE_TYPE: ESCALATION`
-- `NEXT_EXPECTED_ACTION: RESOLVE_GROUP_FAILURE`
+- `STOP_REASON: GROUP_REFINEMENT`
+- `GATE_TYPE: APPROVAL`
+- `ACTIVE_WORKFLOW: AUTOMATE`
+- `ACTIVE_GROUP: [current group]`
+- `ACTIVE_STEP: [current step or NONE]`
+- `NEXT_EXPECTED_ACTION: RESUME_GROUP_REFINEMENT`
+- `VALIDATION_STATE: FAILED` or `STALE_AFTER_EDIT`, whichever is true
+- `LAST_FAILURE_REASON: [short exact summary]`
+- keep `active-group.md` pointing at that unfinished group
+- keep `WORKING_TEST_FILE` unchanged
 
 Present:
 
 ```text
-⚠️ Critical: Group [N] cannot be completed.
+⚠️ Group [N] paused for refinement.
 
 Options:
-(A) Pause
-(B) Skip this entire group
+(A) Continue later from this group
+(B) Pause and review
 (C) Re-spec this group
 ```
 

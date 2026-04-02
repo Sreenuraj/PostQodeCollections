@@ -3,7 +3,7 @@ Core behavioral laws for every Web Automation Pro session. The skill orchestrate
 
 ---
 
-## The Five Laws
+## The Nine Laws
 
 > [!CAUTION]
 > These laws apply in every phase and every workflow.
@@ -22,6 +22,9 @@ Every meaningful state change must be written to disk before the workflow advanc
 - `test-session.md` is the source of truth for phase progression
 - `active-group.md` is the source of truth for active step status
 - remarks should capture key evidence, fixes, or helper creation when relevant
+- `test-session.md` must stay in the canonical plain-text `KEY: VALUE` ledger format, not a markdown table
+- `active-group.md` must always represent the real active group, not a completed or stale group
+- `WORKING_TEST_FILE` must stay stable across `/automate`; do not rotate it per group
 
 ### LAW 3 — STOP PERSISTENCE RULE
 Before any `⛔ STOP`, the workflow must write all required stop-state fields to disk.
@@ -52,6 +55,36 @@ Persisted session state outranks chat memory and prose inference.
 - read `SPEC.md` and `test-session.md` first
 - route based on state fields first
 - use prose only as supporting context, not as the primary resume signal
+
+### LAW 6 — PERSONA VISIBILITY RULE
+Persona switches must be visible in both reasoning and output.
+
+- emit the required persona declaration block when a persona phase begins
+- announce the switch before taking persona-specific action
+- if the persona is not visibly activated, the workflow is already drifting
+- every Strategist, Engineer, Reviewer, Validator, Debugger, or Architect phase should begin with an explicit user-visible activation line
+
+### LAW 7 — GROUP ISOLATION RULE
+During `/automate`, only the active group may gain new executable behavior.
+
+- future groups may exist only as comments, placeholders, or pending-group checklists
+- do not write runnable selectors, assertions, or interaction flows for unexplored future groups
+- do not treat failures from non-active groups as permission to keep coding
+
+### LAW 8 — LEDGER SYNC RULE
+Do not let `test-session.md` outrun `active-group.md`.
+
+- before advancing `LAST_COMPLETED_ROW`, `ACTIVE_STEP`, or `FOUNDATION_REVIEW_DONE`, confirm the matching checklist state exists in `active-group.md`
+- if the two ledgers disagree, fall back to the last mutually confirmed row
+- a summary claim is invalid if the detailed group checklist does not support it
+
+### LAW 9 — PAUSE HONESTY RULE
+Do not present a paused `/automate` run as a completed result.
+
+- only `PHASE: COMPLETE` may use completion framing
+- mid-run summaries are progress checkpoints and must persist stop state first
+- every intentional pause must end with the required handoff footer
+- any unresolved active group must be described as `IN PROGRESS`, `NEEDS REPAIR`, or `NEEDS REVALIDATION`, not `SUCCESS`
 
 ---
 
@@ -115,7 +148,8 @@ Example:
 | `PLAN_APPROVAL` | waiting for plan approval in `/automate` |
 | `FOUNDATION_GATE` | waiting for Group 1 trust review |
 | `MILESTONE_GATE` | waiting at a milestone review |
-| `FRAMEWORK_CHOICE` | waiting for the user to choose a framework |
+| `FRAMEWORK_CHOICE` | waiting for the user to choose or confirm framework and language |
+| `GROUP_REFINEMENT` | waiting to resume an unfinished or failed active group |
 | `STALE_SESSION` | waiting for stale-session choice |
 | `L2_ESCALATION` | waiting for recovery evidence or skip decision |
 | `DEBUG_DIAGNOSIS` | waiting for diagnosis approval in `/debug` |
@@ -251,6 +285,7 @@ FINALIZING    → COMPLETE: architecture finalized and cleanup done
 Always extract before execution:
 - target URL
 - framework
+- language
 - viewport
 - Step Definitions
 - success criteria

@@ -112,6 +112,12 @@ Generate:
 - `pending-groups/`
 - `completed-groups/`
 - `element-maps/`
+- one canonical working test file only
+
+That working test file should:
+- have its path persisted in `WORKING_TEST_FILE`
+- keep the same path for the full `/automate` run
+- contain one runnable test body that grows as groups are appended
 
 Set these fields explicitly:
 - `ACTIVE_WORKFLOW: AUTOMATE`
@@ -122,6 +128,8 @@ Set these fields explicitly:
 - `ACTIVE_STEP: NONE`
 - `LAST_COMPLETED_ROW: NONE`
 - `NEXT_EXPECTED_ACTION: RUN_SETUP`
+
+Do not generate one runnable test file per group during `/automate`.
 
 Delete `test.md` only after plan approval has been resolved and setup can proceed.
 
@@ -147,3 +155,8 @@ Each step should include:
 - Network Endpoints: [TIP-based]
 - Status: [ ]
 ```
+
+Pending-group files should use the canonical location pattern:
+- `pending-groups/g1-[slug].md`
+- `pending-groups/g2-[slug].md`
+- `pending-groups/g3-[slug].md`

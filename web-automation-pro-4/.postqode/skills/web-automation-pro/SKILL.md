@@ -23,11 +23,18 @@ It must:
 - read saved state from disk
 - route the user to the correct workflow
 - prevent direct freeform coding when the workflow path should be used
+- make persona activation visible when the workflow changes phase
+- repair malformed saved state before trusting it for resume
 
 It must not:
 - skip the workflow chain
 - reconstruct state from memory when state files exist
 - make the COM/POM/Flat decision during `/automate`
+- silently default framework or language when the user has not confirmed them
+- treat non-active-group failures as permission to keep coding
+- create multiple runnable group test files during `/automate`
+- present a paused progress checkpoint as if the framework were complete
+- trust markdown-table session ledgers or stray pending files as valid canonical state
 
 ---
 
@@ -123,6 +130,13 @@ If the user asks for browser automation and the workflow path applies:
 - do not jump directly into coding
 - do not install frameworks immediately
 - do not invent page objects or components before the spec and state model allow it
+- do not write runnable future-group code before those groups are explored
+- do not validate more than the active group during `/automate`
+- do not continue past the Group 1 foundation gate without an explicit user reply
+- do not present a success summary while speculative code or non-target validation failures remain
+- do not create one runnable test file per group during `/automate`
+- do not replay the whole flow before first inspecting the current browser state or saved failure artifacts when diagnosing an in-progress group
+- do not treat a malformed `test-session.md`, a stale `active-group.md`, or a stray non-canonical pending-group file as acceptable resume state
 
 The orchestrator's job is to keep the system on rails.
 

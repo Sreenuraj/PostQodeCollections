@@ -9,9 +9,12 @@ During `/automate`, the working implementation is flat by default.
 
 That means:
 - one working spec or test body is the canonical execution artifact
+- one working test file is the canonical runnable artifact
+- that working test file keeps the same identity across all groups until `/finalize`
 - steps are appended sequentially as they are explored
 - the agent does not commit to COM or POM during setup or early execution
 - element maps hold structural evidence until `/finalize`
+- future pending groups stay non-executable until they are explored
 
 Flat-first exists because the agent still has incomplete information during execution.
 
@@ -53,6 +56,40 @@ Example:
 - inheritance hierarchies
 - folder-structure refactors
 - asking the user to choose COM/POM/Flat during `/automate`
+
+---
+
+## No Future-Group Executable Code
+
+During `/automate`, unexplored future groups must not contain runnable automation code.
+
+Allowed:
+- comments marking upcoming groups
+- TODO placeholders
+- pending-group markdown files
+
+Forbidden:
+- one runnable spec file per group
+- runnable tests for unexplored groups
+- guessed selectors or assertions for unexplored groups
+- speculative login/setup rewrites triggered by failures in unexplored groups
+
+If such code already exists, treat it as stale placeholder material, not as validated implementation.
+
+### Single runnable test body
+
+During `/automate`, the canonical working test file should contain one runnable test body that grows as explored groups are appended.
+
+That file may include:
+- section comments for completed groups
+- small local helpers that satisfy the helper rule
+
+That file must not be split into:
+- `g1-*.spec.*`
+- `g2-*.spec.*`
+- other per-group runnable files
+
+That file must not be renamed or replaced group-by-group as execution progresses.
 
 ---
 
@@ -102,6 +139,9 @@ Wait for observable state:
 
 TIP evidence should explain why the chosen wait exists.
 
+Hard rule:
+- `waitForTimeout()` must not remain in saved working code unless the framework rule explicitly permits a documented temporary diagnostic fallback, and `/automate` should treat that as failing reviewer criterion 7 until removed
+
 ---
 
 ## Code Generation Principles
@@ -116,6 +156,30 @@ Do not write from memory.
 
 ### Sequential working spec
 The working spec should remain readable as an ordered business flow while execution is in progress.
+
+### Active-group-only validation
+When validating during `/automate`, run only the active group.
+
+Examples:
+- the single working test file whose executable scope ends at the active group
+- file-level focus limited to the active group's executable section
+- single-worker runs when parallelism would pull in other groups
+
+Because future groups are not yet executable, running the single working file still remains active-group-only.
+
+### Browser continuity before replay
+When the browser is already open and the user asks for inspection, screenshot capture, or failure diagnosis:
+
+1. inspect the current browser state first
+2. inspect saved failure artifacts if they exist
+3. replay the flow only if the current state is no longer usable
+
+If replay is required, record why in `test-session.md` remarks.
+
+Replay preference:
+1. restore only the minimum context needed for the active group
+2. continue from the saved active group, not from a brand new group file
+3. do not restart from step 1 unless earlier state is unusable and artifacts are insufficient
 
 ### Non-obvious waits need comments
 
@@ -160,6 +224,10 @@ Rules:
 - do not carry multiple unvalidated groups
 - do not treat code inspection as a substitute for execution
 - every expected outcome in `SPEC.md` must have a real assertion
+- do not accept broad-suite failures as feedback for the active group
+- do not report overall success while any unexplored group still contains speculative code
+- do not report a completion-style success summary while `PHASE` is anything other than `COMPLETE`
+- if code is edited after a failing validation, mark the group `STALE_AFTER_EDIT` until it is re-run
 
 ---
 

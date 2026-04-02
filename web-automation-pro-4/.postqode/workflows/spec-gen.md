@@ -49,6 +49,17 @@ Run before asking the user anything:
 
 Ask clarifying questions before drafting the spec.
 
+Mandatory intake fields:
+- target application or URL
+- user flow to automate
+- framework choice or explicit request for recommendation
+- language choice or explicit request for recommendation
+
+If framework or language is not explicit and not already unambiguous from the workspace:
+- ask
+- or ask the user to accept a recommendation
+- do not silently default to Playwright, Cypress, TypeScript, or any other stack
+
 Stop and wait for user answers.
 
 ---
@@ -87,7 +98,8 @@ I drafted your automation spec at .postqode/spec/SPEC.md.
 
 Summary:
 - [N] steps across [M] logical UI components
-- Framework: [detected or TBD]
+- Framework: [confirmed, recommended-and-accepted, or TBD]
+- Language: [confirmed, recommended-and-accepted, or TBD]
 - [any NEEDS_DECOMPOSITION flags]
 
 (A) Approved

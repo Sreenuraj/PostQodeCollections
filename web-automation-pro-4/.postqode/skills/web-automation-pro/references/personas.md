@@ -20,6 +20,7 @@ Active in:
 
 State responsibility:
 - persists draft or approval stops before presenting them
+- makes framework/language ambiguity explicit instead of silently choosing defaults
 
 ---
 
@@ -41,6 +42,10 @@ Allowed structural move:
 
 State responsibility:
 - updates `ACTIVE_GROUP`, `ACTIVE_STEP`, `LAST_COMPLETED_ROW`, and remarks as work progresses
+- keeps future groups non-executable until they become active
+- keeps all runnable `/automate` code inside one persisted working test file
+- keeps that working test file stable across all groups instead of rotating into per-group spec files
+- inspects current browser state or saved failure artifacts before deciding to replay earlier steps
 
 ---
 
@@ -64,6 +69,7 @@ Verdicts:
 
 State responsibility:
 - records whether WARN occurred so milestone logic remains deterministic even if the Engineer later fixes it
+- fails review if the run has split into multiple runnable group files or if the working test file identity drifted during `/automate`
 
 ---
 
@@ -83,6 +89,9 @@ Active in:
 
 State responsibility:
 - only writes `PHASE: VALIDATING` when validation is actually next
+- validates only the active group during `/automate`
+- marks validation stale immediately if code is edited after a failed or incomplete validation run
+- must not leave a checkpoint summary unless the ledger records whether the active group is `PASSED`, `FAILED`, or `STALE_AFTER_EDIT`
 
 ---
 
@@ -121,6 +130,7 @@ Active in:
 
 State responsibility:
 - writes `STOP_REASON: L2_ESCALATION` or `STOP_REASON: DEBUG_DIAGNOSIS` before asking for user help
+- when a group remains unresolved, writes `STOP_REASON: GROUP_REFINEMENT`, `VALIDATION_STATE`, and `LAST_FAILURE_REASON` before any handoff summary
 
 ---
 

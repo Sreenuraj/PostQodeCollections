@@ -19,7 +19,7 @@ Evaluate every criterion independently.
 ## The 7 Criteria
 
 ### 1. Complete Coverage
-Every step in `active-group.md` has corresponding code in the working spec.
+Every step in `active-group.md` has corresponding code in the single working test file, that file remains the same canonical runnable artifact used earlier in `/automate`, and no runnable code exists for future groups elsewhere.
 
 ### 2. No Arbitrary Waits
 No unexplained fixed-time waits such as `sleep()` or `waitForTimeout(2000)`.
@@ -40,6 +40,10 @@ Each step includes enough evidence commentary to explain the chosen wait/asserti
 No hardcoded credentials, tokens, API keys, or other secrets in generated code.
 
 Criterion 7 is always a hard fail if violated.
+
+Criterion 1 note:
+- per-group runnable spec files during `/automate` fail criterion 1, because the canonical working artifact must stay singular until `/finalize`
+- rotating from one runnable group file to another during `/automate` also fails criterion 1, even if only one such file is active at a time
 
 ---
 
