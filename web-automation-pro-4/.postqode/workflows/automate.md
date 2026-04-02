@@ -26,6 +26,10 @@ Every `/automate` entry must:
 6. confirm `test-session.md` is in canonical plain-text ledger format before trusting it
 7. confirm `WORKING_TEST_FILE` is still the same canonical runnable file used by earlier groups
 
+`/automate` setup must not begin unless either:
+- `test-session.md` already exists and routes here, or
+- the workflow is currently executing Phase 0 planning and will persist `PLAN_PENDING` first
+
 If `test-session.md` and `active-group.md` disagree:
 - do not trust the more optimistic state
 - resume from the last mutually confirmed row
@@ -35,6 +39,11 @@ If `test-session.md` and `active-group.md` disagree:
 If `test-session.md` is malformed, `WORKING_TEST_FILE` has drifted, or a stray pending-group file exists:
 - repair those state files first
 - do not resume browser work until the canonical ledger and group files are restored
+
+If `test-session.md` does not exist yet:
+- do not start setup directly
+- begin at Phase 0 planning
+- do not create framework scaffolding before `PLAN_PENDING` is persisted and approved
 
 If state is:
 - `PLAN_PENDING` → re-show the saved plan
@@ -144,6 +153,8 @@ Write:
    - `GROUPING_CONFIRMED: NO`
    - `FOUNDATION_REVIEW_DONE: NO`
 
+Before this `PLAN_PENDING` state exists, do not create runtime setup files such as framework config, fixtures, helpers, page objects, or executable tests.
+
 ### Step 0.6 — Plan approval gate
 
 Present:
@@ -183,6 +194,8 @@ Only after explicit approval:
 - create `element-maps/` if missing
 - create exactly one canonical working test file
 - choose a stable path for that file that will remain the same across all groups until `/finalize`
+
+Only after explicit plan approval may `/automate` create runtime framework/setup files.
 - set:
   - `PHASE: SETUP`
   - `STOP_REASON: NONE`

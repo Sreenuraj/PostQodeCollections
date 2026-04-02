@@ -25,6 +25,7 @@ It must:
 - prevent direct freeform coding when the workflow path should be used
 - make persona activation visible when the workflow changes phase
 - repair malformed saved state before trusting it for resume
+- force natural-language automation requests onto the workflow chain before any framework or test files are created
 
 It must not:
 - skip the workflow chain
@@ -35,6 +36,7 @@ It must not:
 - create multiple runnable group test files during `/automate`
 - present a paused progress checkpoint as if the framework were complete
 - trust markdown-table session ledgers or stray pending files as valid canonical state
+- interpret a natural-language request for automation help as permission to start generic framework scaffolding outside the workflow chain
 
 ---
 
@@ -48,6 +50,16 @@ If a workflow command is typed directly:
 4. continue according to persisted state, not memory
 
 Do not skip this handshake.
+
+If the user enters through natural language instead of an explicit workflow command:
+
+1. announce the routed workflow, for example:
+   - `[⚙️ Routing to /spec-gen]`
+   - `[⚙️ Routing to /automate]`
+2. read the same rules and workflow file that explicit command would have used
+3. follow that workflow contract exactly, including persisted stops and approval gates
+
+Natural-language entry is still workflow entry. It is not a freeform framework-generator mode.
 
 ---
 
@@ -70,6 +82,12 @@ Decide first:
 - **Exploration Mode** for one-time browser work
 
 If the user asks to generate tests, automate a flow, or gives a reusable browser scenario, enter Recording Mode immediately.
+
+This applies whether the user gives:
+- a vague opener
+- a full detailed step list
+- a framework-specific request
+- or a request spread across multiple messages
 
 ---
 
@@ -113,6 +131,18 @@ Use `references/session-protocol.md` as the canonical state router.
 - locked spec exists and no session
   - route to `/automate`
 
+When routing says `/spec-gen`, the skill must not create:
+- framework config files
+- fixtures
+- page objects
+- utility modules
+- runtime environment files
+- executable tests
+
+When routing says `/automate` but `test-session.md` does not yet exist:
+- begin at `/automate` Phase 0 planning
+- do not skip directly to setup
+
 ### Resume messaging rule
 
 When resuming, state clearly:
@@ -129,6 +159,7 @@ When resuming, state clearly:
 If the user asks for browser automation and the workflow path applies:
 - do not jump directly into coding
 - do not install frameworks immediately
+- do not create framework scaffolding, fixtures, config helpers, page objects, or utility modules before the routed workflow explicitly allows it
 - do not invent page objects or components before the spec and state model allow it
 - do not write runnable future-group code before those groups are explored
 - do not validate more than the active group during `/automate`
@@ -137,6 +168,7 @@ If the user asks for browser automation and the workflow path applies:
 - do not create one runnable test file per group during `/automate`
 - do not replay the whole flow before first inspecting the current browser state or saved failure artifacts when diagnosing an in-progress group
 - do not treat a malformed `test-session.md`, a stale `active-group.md`, or a stray non-canonical pending-group file as acceptable resume state
+- do not turn a general request for automation help into a generic framework-generator checklist
 
 The orchestrator's job is to keep the system on rails.
 

@@ -17,7 +17,7 @@ These diagrams reflect the intended operating model defined in:
 flowchart TD
     A["User Request"] --> B{"Reusable automation<br/>or one-time browser task?"}
     B -->|One-time task| C["Standard browser exploration"]
-    B -->|Reusable automation| D["Skill reads saved state"]
+    B -->|Reusable automation| D["Skill reads saved state<br/>before writing runtime files"]
 
     D --> E{"Locked SPEC.md exists?"}
     E -->|No| F["Route to /spec-gen"]
@@ -33,7 +33,7 @@ flowchart TD
     I -->|FINALIZE| N["/finalize resumes"]
     I -->|COMPLETE| O["Run is already finalized"]
 
-    F --> P["Draft and lock SPEC.md"]
+    F --> P["Draft, approve, and lock SPEC.md"]
     P --> H
 
     H --> Q["Plan persisted with stop-state fields"]
@@ -63,11 +63,11 @@ flowchart TD
     B -->|Yes| D["Read SPEC.md"]
 
     D --> E{"SPEC locked?"}
-    E -->|No| F["Tell user to run /spec-gen"]
+    E -->|No| F["Route into /spec-gen<br/>before any scaffolding"]
     E -->|Yes| G["Read test-session.md"]
 
     G --> H{"Session file exists?"}
-    H -->|No| I["Tell user to run /automate"]
+    H -->|No| I["Route into /automate Phase 0<br/>before setup"]
     H -->|Yes| J["Read ACTIVE_WORKFLOW, STOP_REASON, PHASE, LAST_ACTIVE"]
 
     J --> K{"Stale session?"}
@@ -105,6 +105,8 @@ flowchart TD
     K -->|Yes| M["Set SPEC.md to LOCKED"]
     M --> N["Set ACTIVE_WORKFLOW: AUTOMATE"]
     N --> O["Next step: /automate"]
+
+    F -.-> P["No framework/runtime files may be created here"]
 ```
 
 ---
@@ -137,7 +139,7 @@ flowchart TD
     F --> R{"Framework known?"}
     R -->|No| S["Persist FRAMEWORK_CHOICE stop state"]
     S --> T["Ask user to choose framework"]
-    T --> U["Prepare working runtime"]
+    T --> U["Prepare working runtime<br/>only after plan approval"]
     R -->|Yes| U
     U --> V["Prepare one stable working test file"]
     V --> W["Set PHASE: EXECUTING"]

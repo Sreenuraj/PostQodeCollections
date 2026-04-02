@@ -76,6 +76,9 @@ Use those files as authoritative for exact ledger fields, stop reasons, and resu
 12. **Honest paused-state resume**
    If a group is unresolved, the session ledger must say exactly that before any checkpoint summary is shown.
 
+13. **Route before write**
+   Natural-language entry must still route through the workflow chain before runtime scaffolding is created.
+
 ---
 
 ## 3. PostQode Primitive Model
@@ -98,12 +101,14 @@ That means the skill:
 - Explains the next correct command.
 - Prevents workflow drift by forcing state-based routing.
 - Handles cross-session continuity by reading persisted state instead of trusting conversation memory.
+- Treats natural-language automation requests as implicit workflow entry, not as permission to generate a generic framework immediately.
 
 That also means the skill does **not**:
 - Generate production code directly.
 - Skip workflow entry points.
 - Make architecture decisions.
 - Reconstruct state from memory when state files exist.
+- Create framework/runtime files before `/spec-gen` or `/automate` explicitly allows that phase.
 
 **Workflows are executors, not orchestrators.**
 
@@ -239,6 +244,7 @@ The skill is allowed to feel like the system's "brain," but the source of contin
 - Run a strategist self-critique before presentation.
 - Stop for user approval.
 - On approval, set `Status: LOCKED`.
+- Do not create runtime framework files before approval.
 
 ### Output quality bar
 

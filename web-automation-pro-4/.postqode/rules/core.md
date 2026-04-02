@@ -3,7 +3,7 @@ Core behavioral laws for every Web Automation Pro session. The skill orchestrate
 
 ---
 
-## The Nine Laws
+## The Ten Laws
 
 > [!CAUTION]
 > These laws apply in every phase and every workflow.
@@ -86,6 +86,14 @@ Do not present a paused `/automate` run as a completed result.
 - every intentional pause must end with the required handoff footer
 - any unresolved active group must be described as `IN PROGRESS`, `NEEDS REPAIR`, or `NEEDS REVALIDATION`, not `SUCCESS`
 
+### LAW 10 — ROUTE BEFORE WRITE RULE
+Do not create runtime framework files before the workflow route authorizes that phase.
+
+- if the skill routes to `/spec-gen`, only spec/intake/session-draft artifacts may be written
+- if `SPEC.md` is not yet approved and locked, do not create framework config, fixtures, page objects, utility modules, or executable tests
+- if `/automate` has not yet persisted `PLAN_PENDING`, do not start setup
+- if `/automate` has not yet entered `SETUP`, do not create runtime scaffolding
+
 ---
 
 ## Skill Orchestration Contract
@@ -102,6 +110,11 @@ When a workflow command is typed directly:
 2. perform the workflow handshake
 3. read the workflow file
 4. continue according to persisted state
+
+When the user starts with natural language instead:
+1. the skill still chooses the workflow
+2. the skill announces that route
+3. the same workflow restrictions apply before any file creation begins
 
 ---
 

@@ -27,6 +27,7 @@ This hardened version also adds:
 - a ban on runnable future-group code during `/automate`
 - one stable working test file during `/automate`
 - refinement checkpoints that persist exact failure state before handoff
+- strict natural-language routing before any scaffolding is created
 
 ---
 
@@ -63,6 +64,8 @@ Refactor + validate + cleanup
 ### Skill
 
 The skill is the orchestrator and router. It reads saved state, decides which workflow should run next, and keeps the agent from skipping the system path.
+
+That includes natural-language starts in general. A vague opener, a fully detailed browser flow, or a framework-specific request must still route into `/spec-gen` or `/automate`; none of them should trigger a freeform framework-generator mode.
 
 ### Workflows
 

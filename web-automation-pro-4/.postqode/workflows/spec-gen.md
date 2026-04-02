@@ -26,12 +26,32 @@ If a locked spec already exists:
 If a draft spec exists:
 - resume draft review or editing, not a fresh intake
 
+If a natural-language automation request arrives with no explicit slash command, `/spec-gen` is still the required first executable phase whenever the spec is missing or unlocked.
+
 ---
 
 ## 🎭 PERSONA: The Strategist
 > Mandate: Surface ambiguity and build a precise, testable spec before any code is written.
 > Thinking mode: Broad and questioning. Every vague step is a future flaky test.
 > FORBIDDEN: Writing test code. Touching the browser. Proceeding past a stop gate without explicit user reply.
+
+Required first output:
+`[🎭 Activating Persona: The Strategist]`
+
+### Spec-gen write boundary
+
+Before `SPEC.md` is approved and locked, `/spec-gen` may write only:
+- `.postqode/spec/SPEC.md`
+- the minimal session ledger fields needed to persist `SPEC_DRAFTING`
+- notes directly required for intake or critique
+
+Before `SPEC.md` is approved and locked, `/spec-gen` must not write:
+- framework config files
+- executable tests
+- fixtures
+- page objects
+- utility modules
+- runtime environment files
 
 ---
 
@@ -125,6 +145,8 @@ If approved:
   - `GATE_TYPE: NONE`
   - `ACTIVE_WORKFLOW: AUTOMATE`
   - `NEXT_EXPECTED_ACTION: PLAN_AUTOMATION`
+
+`SPEC.md` must never move from `DRAFT` to `LOCKED` without a fresh user approval reply.
 
 If changes are requested:
 - keep `PHASE: SPEC_DRAFTING`
