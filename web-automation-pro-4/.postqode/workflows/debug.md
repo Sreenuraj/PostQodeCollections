@@ -1,133 +1,149 @@
 ---
-description: Smart failure recovery for broken web automation tests
+description: Deterministic failure recovery for broken web automation tests
 ---
 
 # /debug
 
-> **Invoke when:** A test that was previously working is now failing, OR a newly written test fails outside of the normal `/automate` execution flow.
-> Use `/automate` for failures during group execution — it has L1/L2/L3 built in.
-> Use `/debug` for standalone diagnosis of a broken test file.
+> Use when a test fails outside the normal `/automate` loop, or when a finalized run needs explicit diagnosis.
 
 > [!CAUTION]
-> ## CORE RULES — LOAD BEFORE STARTING
-> Read `.postqode/rules/core.md` and `.postqode/rules/debug-context-capture.md`. All Five Laws apply.
-> CLEAN FIRST: Always check for and delete any leftover `debug-context/` directory before starting a new debug session.
+> Before proceeding:
+> 1. read `.postqode/rules/core.md`
+> 2. read `.postqode/rules/debug-context-capture.md`
+
+---
+
+## Resume Protocol
+
+If `ACTIVE_WORKFLOW: DEBUG`, resume using:
+- `STOP_REASON`
+- `NEXT_EXPECTED_ACTION`
+- `PHASE: DEBUGGING`
+
+If the failing run was already finalized:
+- keep that completion context in the ledger when debug finishes
 
 ---
 
 ## 🎭 PERSONA: The Debugger
-> Mandate: Find the root cause of this failure using evidence — not guesses — then fix it with the minimum change possible.
-> Thinking mode: Methodical and evidence-driven. Never jump to conclusions. Confirm root cause before touching code.
-> FORBIDDEN: Guessing without evidence. Making broad code changes. Fixing multiple things at once. Leaving debug injection code in the spec after cleanup.
+> Mandate: Find the root cause using evidence and fix it with the minimum change possible.
+> Thinking mode: Methodical and evidence-driven.
+> FORBIDDEN: Guessing. Broad code changes. Fixing multiple unrelated things at once.
 
 ---
 
 ## Phase 0 — Setup
 
-1. **Cleanup check:** Delete `debug-context/` if it exists from a previous session
-2. **Read spec file** — identify the failing test(s) and the relevant code section
-3. **Read `.postqode/spec/SPEC.md`** — understand what the test is supposed to do
-4. **Read `.postqode/rules/[framework].md`** (if exists) — understand framework conventions
+1. remove stale `debug-context/` if present
+2. read the failing spec area
+3. read `.postqode/spec/SPEC.md`
+4. read `.postqode/rules/[framework].md` if present
+5. set:
+   - `PHASE: DEBUGGING`
+   - `ACTIVE_WORKFLOW: DEBUG`
+   - `STOP_REASON: NONE`
+   - `GATE_TYPE: NONE`
+   - `NEXT_EXPECTED_ACTION: RUN_DEBUG_REPRO`
 
 ---
 
-## Phase 1 — Initial Run (Headed)
+## Phase 1 — Reproduce and Observe
 
-Run the failing test in **headed mode** (visible browser) first:
+Run the failing test in the most useful mode for diagnosis.
 
-```
-Purpose: Watch what actually happens vs. what should happen
-```
+Observe:
+- failing step
+- page state
+- error message
+- missing element vs wrong state vs loading stall
 
-Observe during the run:
-- At what step does it fail?
-- What does the page look like when it fails?
-- Does an error message appear? What does it say?
-- Is the element missing, or is it there but wrong state?
-- Is there a loading state that never completes?
-
-Take notes. Do NOT modify any code yet.
-
-**If headed run passes but headless fails:**
-This is a timing issue. The fix is almost always adding an explicit wait for a specific element/network event (not sleep). Go to Phase 3 immediately.
+Do not change code yet.
 
 ---
 
-## Phase 2 — Debug Bundle Capture
+## Phase 2 — Capture Debug Bundle
 
-Inject debug context capture into the failing test following `rules/debug-context-capture.md`:
-
-1. Inject `// DEBUG-HELPER` function at the end of the spec file
-2. After the failing step, inject `// DEBUG-CONTEXT` call: `captureDebugContext(page, 'step-[N]')`
-3. Run the test (headless is fine now — we're collecting artifacts)
-4. Read `debug-context/step-[N].json`
-5. View `debug-context/step-[N].jpg`
-
-Analyze the debug bundle (see `rules/debug-context-capture.md` — AI Analysis Protocol):
-- Screenshot: Is the element visible? Is the page in the right state?
-- Interaction log: Was focus on the right element?
-- Network log: Any 4xx/5xx errors explaining the failure?
-- DOM: Find the target element — what is its actual structure and state?
+If deeper evidence is needed:
+- inject debug context capture
+- run the test
+- inspect the bundle
 
 ---
 
-## Phase 3 — Root Cause Confirmation
+## Phase 3 — Diagnosis Confirmation
 
-**Do not fix until root cause is confirmed.** Present diagnosis to user:
+Before asking the user to approve a diagnosis, persist:
+- `PHASE: DEBUGGING`
+- `STOP_REASON: DEBUG_DIAGNOSIS`
+- `GATE_TYPE: APPROVAL`
+- `ACTIVE_WORKFLOW: DEBUG`
+- `NEXT_EXPECTED_ACTION: REVIEW_DEBUG_DIAGNOSIS`
 
-```
-🔍 Diagnosis — Step [N]: [step description]
+Present:
 
-Error: [exact error from test runner]
+```text
+Diagnosis
 
-Root cause: [specific, evidence-backed explanation]
+Error: [...]
+Root cause: [...]
 Evidence:
-  • Screenshot shows: [what was visible]
-  • DOM analysis: [what the element looks like / why the locator failed]
-  • Network: [any API failures? timing issues?]
+- screenshot: [...]
+- DOM: [...]
+- network: [...]
 
-Proposed fix: [exact minimal change — one thing only]
+Proposed fix: [...]
 
 (A) Apply this fix
-(B) I have more context — let me tell you more
-(C) This is the wrong diagnosis
+(B) I have more context
+(C) This diagnosis is wrong
 ```
 
-**⛔ STOP — wait for user reply.**
+Stop and wait.
+
+Required footer:
+
+```text
+Paused at: DEBUG / DEBUGGING
+Reason: DEBUG_DIAGNOSIS
+Next action: REVIEW_DEBUG_DIAGNOSIS
+To continue, run: /debug
+```
 
 ---
 
 ## Phase 4 — Apply Fix
 
-After user confirms diagnosis:
-
-1. Apply the minimum change necessary
-2. Re-run test headless with fix applied
-3. If PASS → go to Phase 5 (cleanup)
-4. If still FAIL → return to Phase 2 (new debug bundle with updated code)
-5. Maximum 3 fix-attempt cycles before escalating back to user with updated analysis
+After approval:
+1. apply the minimum change necessary
+2. re-run the failing test
+3. if still failing and user help is needed, persist `STOP_REASON: L2_ESCALATION`
+4. if still failing without user help, continue the debug loop
 
 ---
 
-## Phase 5 — Cleanup
+## Phase 5 — Cleanup and Completion
 
-After fix is confirmed working:
+After the fix is confirmed:
+1. remove debug injection helpers
+2. delete `debug-context/`
+3. run one final clean verification
 
-1. Remove `// DEBUG-HELPER` block from spec file
-2. Remove all `// DEBUG-CONTEXT` lines from spec file
-3. Delete `debug-context/` directory
-4. Run test one final time headless to confirm clean pass
+If the debugged run was previously finalized:
+- keep `PHASE: COMPLETE`
+- keep `ACTIVE_WORKFLOW: FINALIZE`
+- clear `STOP_REASON`
+- clear `GATE_TYPE`
+- set `NEXT_EXPECTED_ACTION: NONE`
 
-Report to user:
-```
-✅ Debug Complete
+Otherwise:
+- restore the appropriate workflow and next expected action
 
-Fixed: [what was fixed]
-Test status: PASSING (headless, zero retries)
-Cleanup: Debug injection removed, debug-context/ deleted
+Report:
 
-Suggested follow-up:
-  • Update .postqode/spec/SPEC.md if the expected behavior changed
-  • Update element-maps/[page]__[block].json if the UI structure changed
-  • Consider running /finalize if this fix reveals a POM-level issue
+```text
+Debug complete.
+
+Fixed: [...]
+Test status: PASS
+Cleanup: complete
 ```

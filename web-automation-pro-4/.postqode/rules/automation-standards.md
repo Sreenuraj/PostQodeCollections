@@ -1,152 +1,175 @@
 ## Brief overview
-Framework-agnostic web automation testing standards. These principles apply regardless of the testing framework chosen (Playwright, Cypress, Selenium, WebdriverIO, Puppeteer, or any other).
+Framework-agnostic execution standards for Web Automation Pro. These rules define how code is explored, written, persisted, and kept flat during `/automate` before `/finalize` makes the architecture decision.
 
-When a specific framework is chosen during `/automate` Phase 1 (Setup), a **framework-specific rule file** will be created at `.postqode/rules/[framework-name].md` containing conventions, locator APIs, and patterns for that framework. These general standards always apply on top of any framework-specific rules.
+---
+
+## Flat-First Execution Standard
+
+During `/automate`, the working implementation is flat by default.
+
+That means:
+- one working spec or test body is the canonical execution artifact
+- steps are appended sequentially as they are explored
+- the agent does not commit to COM or POM during setup or early execution
+- element maps hold structural evidence until `/finalize`
+
+Flat-first exists because the agent still has incomplete information during execution.
+
+---
+
+## Very Narrow Local Helper Rule
+
+Flat-first does not mean "duplicate everything forever," but helper extraction is intentionally narrow.
+
+A local helper is allowed during `/automate` only when **all** of the following are true:
+
+1. the same interaction pattern has appeared in at least **2 completed explored steps in the same run**
+2. the duplication has already been executed and observed, not predicted
+3. the helper remains local to the working implementation
+4. the helper accepts context or locator inputs and stays architecture-neutral
+5. the helper does not introduce page classes, component classes, inheritance, or new architecture directories
+6. the helper creation is recorded in `test-session.md` remarks and in the relevant group summary
+
+### Interaction pattern definition
+
+An "interaction pattern" means the same:
+- action type
+- logical UI block or component context
+- wait/assertion shape
+
+Example:
+- the same modal-submit flow with the same evidence-based wait pattern repeated across two completed steps
+
+### Allowed examples
+
+- a repeated wait/assertion helper inside the working spec
+- a small local function for a repeated UI block interaction
+- a neutral local helper module such as `working-helpers`
+
+### Forbidden examples
+
+- full page classes
+- component object models
+- inheritance hierarchies
+- folder-structure refactors
+- asking the user to choose COM/POM/Flat during `/automate`
+
+---
+
+## Persistence During Execution
+
+Every per-step phase must write state before and after execution where relevant.
+
+Required behavior:
+- before a step starts, update `ACTIVE_GROUP`, `ACTIVE_STEP`, and `NEXT_EXPECTED_ACTION`
+- after the step completes, update `LAST_COMPLETED_ROW`, `ACTIVE_STEP`, and remarks
+- before a stop, write `STOP_REASON`, `GATE_TYPE`, and the expected next action
+- `PHASE: VALIDATING` must be written only after review is complete and validation is truly next
+
+This improves determinism without adding extra human gates.
 
 ---
 
 ## Locator Strategy Hierarchy
 
-Always prefer locators in this order (most resilient → least resilient):
+Prefer locators in this order:
 
-| Priority | Strategy | Why |
-|---|---|---|
-| 1 | Semantic role + accessible name | Tied to user-visible behavior; survives CSS refactors |
-| 2 | Data test ID attributes (`data-testid`, `data-cy`, `data-qa`) | Explicit automation hooks; stable |
-| 3 | Unique text content | Human-readable; survives class changes |
-| 4 | ARIA labels / placeholder / title | Accessible; survives minor DOM changes |
-| 5 | Unique CSS selector (ID or scoped class) | Fragile to styling changes — last resort |
-| ❌ | XPath, index-based, auto-generated class names | Never use as primary — too brittle |
+| Priority | Strategy |
+|---|---|
+| 1 | role + accessible name |
+| 2 | test IDs |
+| 3 | unique text |
+| 4 | ARIA label, placeholder, or title |
+| 5 | stable scoped CSS |
 
-**Always capture at least 2 locator strategies per element.** Use the primary; record the fallback in element maps.
+Rules:
+- capture at least two strategies when possible
+- record fallbacks in element maps
+- avoid brittle XPath or index selectors as the primary choice unless no better option exists and the reason is documented
 
 ---
 
 ## Wait Strategy Principles
 
-**Never use arbitrary sleep or fixed-time waits.** Always wait for observable state.
+Never use arbitrary fixed waits as the default strategy.
 
-| Situation | Wait For |
-|---|---|
-| After click/submit that triggers navigation | URL change OR key element on next page to be visible |
-| After click that opens a modal / dialog | The modal container or its heading to be visible |
-| After form submit with API call | The success/error message OR network response to complete |
-| After dynamic content load | The specific data element to be visible, not the full page |
-| After animation / transition | The final state element, not the animation class |
+Wait for observable state:
+- URL change
+- visible UI element
+- response completion
+- DOM state change
+- final value change after drag or slider action
 
-Wait strategy evidence comes from TIP (Transition Intelligence Protocol) — observe what ACTUALLY changes in DOM and network after each action, then generate waits based on that evidence.
+TIP evidence should explain why the chosen wait exists.
 
 ---
 
 ## Code Generation Principles
 
-### Evidence-First Rule
-Never write interaction code from memory or assumption. Always:
-1. Observe the element in a snapshot
-2. Record what network call fires (if any)
-3. Record what DOM state changes
-4. THEN write code that waits for exactly that evidence
+### Evidence-first
+Do not write from memory.
 
-### Single-Test-Body Rule
-All steps across all groups append sequentially into **one** test body/spec. Never create multiple test blocks or describe blocks during the working spec phase. POM refactoring into separate files happens only during `/finalize`.
+1. inspect
+2. interact
+3. observe DOM and network effects
+4. write code from evidence
 
-### Comment Every Non-Obvious Wait
+### Sequential working spec
+The working spec should remain readable as an ordered business flow while execution is in progress.
+
+### Non-obvious waits need comments
+
+```ts
+// WAIT STRATEGY: wait for success banner after POST /api/votes
+// TIP EVIDENCE: DOM diff showed #success-banner appearing after submit
 ```
-// WAIT STRATEGY: Network call POST /api/votes completes → then check success banner
-// TIP EVIDENCE: DOM diff showed #success-banner appeared after 847ms
-```
 
-### No Hardcoded Secrets
-Credentials, tokens, and environment-specific values MUST be placed in config objects or environment variables — never inline in test code.
+### No secrets in code
+Credentials, tokens, and env-specific values belong in config or environment variables.
 
 ---
 
 ## Element Mapping Principles
 
-### What is an Element Map?
-A JSON file in `element-maps/` that captures the locator intelligence gathered during exploration. Element maps are **raw exploration artifacts** — they record what elements exist on the page, their locator strategies, and their context. They are NOT architecture decisions.
+Element maps are exploration memory, not architecture.
 
-The architecture decision (POM vs COM vs Flat) happens later during `/finalize`, where the **Architect persona** analyzes these maps and asks the user.
+They capture:
+- page or route context
+- logical UI block
+- primary and fallback locators
+- reuse signals
 
-### What an Element Map Captures
-- The page/URL where the element was found
-- The logical UI block it belongs to (e.g., `login-form`, `data-grid`)
-- All interactive elements within that block
-- Primary + fallback locator strategies for each element
-- Whether the same block appears on other pages (reuse signal for COM)
+They should be created or updated after each explored step that reveals new interaction evidence.
 
-### When to Create/Update a Map
-- After each EXPLORE step, when TIP evidence is captured
-- One map per **logical UI block per page** (e.g., `login-page__login-form.json`)
-- If a later group interacts with the same block on the same page → update the existing map with any new elements discovered
-- Maps persist across sessions and are reused by later groups
+### Reuse signal purpose
 
-### Map Naming Convention
-`element-maps/[page-name]__[block-name].json`
-Example: `element-maps/login-page__login-form.json`, `element-maps/dashboard__vote-slider.json`
-
-### Reuse Signals (For /finalize Architecture Decision)
-During exploration, if the Engineer notices the same UI block on a different page (e.g., a shared header, a reused data table), note it in the map:
-```json
-{
-  "block": "header-nav",
-  "page": "dashboard",
-  "reuse_signal": ["also seen on: settings-page", "also seen on: reports-page"],
-  "elements": [...]
-}
-```
-These reuse signals are what the Architect uses to recommend COM over POM during `/finalize`.
+Reuse signals help `/finalize` choose:
+- `COM` when shared UI blocks are clearly emerging
+- `POM` when pages are distinct
+- `Flat` when refactoring adds little value
 
 ---
 
 ## Validation Principles
 
-### Immediate-Validation Rule
-After writing code for each group, run headless validation BEFORE moving to the next group. Never accumulate multiple groups of unvalidated code.
+After every group:
+1. review the code first
+2. then validate headless with zero retries
 
-### Zero-Retry Validation
-Validation runs with:
-- `retries: 0` (override project config)
-- Headless mode
-- Standard timeout (no extended waits for CI)
-
-On fail → DEBUGLOOP (L1→L2→L3) — see `references/recovery-protocol.md`.
-
-### Assertion Rules
-Every user-visible outcome in the SPEC.md step definitions MUST have a corresponding assertion in the test code. "It didn't throw an error" is NOT an assertion.
+Rules:
+- do not carry multiple unvalidated groups
+- do not treat code inspection as a substitute for execution
+- every expected outcome in `SPEC.md` must have a real assertion
 
 ---
 
-## Framework-Specific Rule Generation (During Setup)
+## Framework-Specific Rule Files
 
-When the user selects a framework in Phase 1, the **ENGINEER persona** generates `.postqode/rules/[framework].md` containing:
-- Locator API for that framework (how to implement the hierarchy above)
-- Wait API for that framework (how to implement the wait strategies above)
-- Assertion syntax
-- Config file structure and how to override for validation
-- Run command for headless execution
-- Any framework-specific anti-patterns
+When setup selects a framework, generate `.postqode/rules/[framework].md` with:
+- locator API guidance
+- wait API guidance
+- assertion syntax
+- validation command shape
+- framework-specific anti-patterns
 
-This file is created ONCE during setup and persists. If it already exists, read it — don't overwrite.
-
----
-
-## DO / DON'T
-
-**DO:**
-- ✅ Always capture ≥2 locator strategies per element
-- ✅ Generate waits based on TIP evidence, not guesswork
-- ✅ Run headless validation after every group (zero retries)
-- ✅ Assert every expected outcome from SPEC.md
-- ✅ Create/update element maps after each step's exploration
-- ✅ Note reuse signals when the same UI block appears on multiple pages
-- ✅ Store credentials in config, not inline
-
-**DON'T:**
-- ❌ Use arbitrary sleep() or fixed-time waits
-- ❌ Use index-based or auto-generated CSS class locators as primary
-- ❌ Generate code for multiple steps before validating
-- ❌ Skip element map creation — maps are the memory of the system
-- ❌ Make architecture decisions (POM/COM) during execution — that's for /finalize
-- ❌ Hardcode environment-specific values in test code
-- ❌ Write assertions like "element exists" — verify the actual data/state
+If the file already exists, read and reuse it instead of overwriting it blindly.

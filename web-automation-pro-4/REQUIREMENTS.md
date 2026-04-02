@@ -1,411 +1,508 @@
 # Web Automation Pro — PostQode System Requirements
 
-> **Version:** 4.0 — Codename: "PostQode Agent Kernel"
+> **Version:** 4.2
 > **Created:** 2026-03-29
-> **Predecessor:** `web-automation-pro-3` (split workflow: setup → explore → final)
-> **Status:** READY FOR IMPLEMENTATION
+> **Revised:** 2026-04-02
+> **Status:** High-level design summary for the hardened protocol
 
 ---
 
-## 1. Problem Statement
+## 1. Problem This System Solves
 
-### What v3 Got Right
-- ~90% reliability; checklist execution prevents hallucination and batching
-- Stateless architecture keeps context lean across sessions
-- Critical human-in-the-loop gates at the right moments
+Users often hand an agent a long browser flow and expect three things at once:
 
-### What v3 Gets Wrong
+1. Correct browser exploration against a complicated application.
+2. Production-quality automation in the framework they choose.
+3. Reliable continuation when the work exceeds one session or one context window.
 
-| Pain Point | Root Cause |
+Standard "generate the test" prompting breaks down when:
+- The flow is long.
+- The UI is stateful or brittle.
+- The browser session can drift.
+- The agent starts abstracting too early.
+- The same agent has to resume after context loss.
+
+Web Automation Pro exists to solve that by turning browser automation into a **stateful, spec-driven operating system** instead of a one-shot prompt.
+
+### Authoritative Protocol Note
+
+This file is the high-level design summary.
+
+The exact operational contract now lives in:
+- [`.postqode/skills/web-automation-pro/SKILL.md`](./.postqode/skills/web-automation-pro/SKILL.md)
+- [`.postqode/skills/web-automation-pro/references/session-protocol.md`](./.postqode/skills/web-automation-pro/references/session-protocol.md)
+- [`.postqode/workflows/automate.md`](./.postqode/workflows/automate.md)
+- [`.postqode/workflows/finalize.md`](./.postqode/workflows/finalize.md)
+
+Use those files as authoritative for exact ledger fields, stop reasons, and resume behavior.
+
+---
+
+## 2. Core Design Goals
+
+1. **Spec first**
+   No code should be generated until the user's flow is converted into a locked `SPEC.md`.
+
+2. **Skill-led orchestration**
+   The skill is the router and session orchestrator. It detects state, explains what workflow is required, and prevents freeform improvisation.
+
+3. **Workflow-led execution**
+   Workflows perform the actual stateful work, but only after the skill/router contract has been respected.
+
+4. **Flat-first implementation**
+   During exploration and early execution, code stays flat and evidence-driven so the agent does not commit to the wrong architecture too early.
+
+5. **Architecture at the right time**
+   The real COM/POM/Flat decision belongs in `/finalize`, once reuse evidence exists.
+
+6. **Context-window survival**
+   State must be persisted so the system can resume in the same session or a fresh one.
+
+7. **Review before validation**
+   Every group must be reviewed against the spec before the test runner is trusted.
+
+8. **No loopholes for agent freelancing**
+   The system must reduce the chance that the agent skips the path and "just starts coding."
+
+---
+
+## 3. PostQode Primitive Model
+
+PostQode gives us three primitives:
+
+| Primitive | Location | Responsibility |
+|---|---|---|
+| **Skill** | `.postqode/skills/{name}/SKILL.md` | Orchestrates, routes, resumes, loads the right references, and hands the user to the correct workflow |
+| **Workflow** | `.postqode/workflows/{name}.md` | Executes a stateful phase with checklists and stop gates |
+| **Rules** | `.postqode/rules/{name}.md` | Always-on laws and standards |
+
+### Required interpretation for this project
+
+**The skill is the orchestrator.**
+
+That means the skill:
+- Detects whether the request is automation or one-off browsing.
+- Detects current session state from disk.
+- Explains the next correct command.
+- Prevents workflow drift by forcing state-based routing.
+- Handles cross-session continuity by reading persisted state instead of trusting conversation memory.
+
+That also means the skill does **not**:
+- Generate production code directly.
+- Skip workflow entry points.
+- Make architecture decisions.
+- Reconstruct state from memory when state files exist.
+
+**Workflows are executors, not orchestrators.**
+
+Each workflow owns its phase checklist, but it should not redefine the system contract differently from the skill.
+
+---
+
+## 4. Lifecycle
+
+```text
+Raw requirements
+  ↓
+/spec-gen
+  ↓
+Locked .postqode/spec/SPEC.md
+  ↓
+/automate
+  ↓
+Plan persisted + approved
+  ↓
+Setup
+  ↓
+Group-by-group exploration → mapping → flat-first code → review → validate
+  ↓
+Resume anytime via skill + /automate
+  ↓
+All groups complete
+  ↓
+/finalize
+  ↓
+Architecture decision with evidence: COM / POM / Flat
+  ↓
+Refactor + validate + cleanup
+```
+
+Supporting workflows:
+- `/spec-update` updates a locked spec.
+- `/debug` diagnoses failures outside the normal group loop.
+
+---
+
+## 5. State Model
+
+State lives on disk, not in the conversation.
+
+### Primary artifacts
+
+| Artifact | Purpose |
 |---|---|
-| **Slow** | Mandatory human gate after EVERY group |
-| **High token cost** | 120KB+ workflow preamble re-read per session |
-| **Context rot** | Agent re-derives intent from scratch each resumption |
-| **No spec contract** | Intent must be re-explained mid-session if context drifts |
-| **No self-critique** | Generates → executes; never reviews own output |
-| **No personas** | Same voice for planning, coding, reviewing — losing specialization |
-| **Rules scattered** | v3 rules copy-pasted into workflow preambles instead of centralized |
+| `.postqode/spec/SPEC.md` | Locked automation contract |
+| `test.md` | Plan preview awaiting approval |
+| `test-session.md` | Live session header + checklist |
+| `active-group.md` | Current group step definitions |
+| `pending-groups/` | Future groups |
+| `completed-groups/` | Archived groups |
+| `element-maps/` | Reuse evidence and locator intelligence |
 
----
+After `/finalize`, `test-session.md` should remain as a **slim completion ledger** with `PHASE: COMPLETE` so the skill can still route correctly in later sessions.
 
-## 2. Core Philosophy
+### Session phases
 
-> "Architect complexity into the system. Keep the workflow a few deterministic commands." — The Blueprint
-
-1. **Spec is the contract** — SPEC.md is generated before any code. It survives context resets.
-2. **Personas per stage** — Every phase has a named persona with an explicit thinking mode.
-3. **Context Engineering** — Agents load only what they need (JIT via reference files).
-4. **TURBO MODE** — Auto-continues between groups; human gates only at failures and earned milestones.
-5. **Self-critique is mandatory** — Same-session persona switch to Reviewer before every validation.
-6. **All v3 rules migrate** — Nothing is lost; everything is consolidated into `rules/`.
-7. **PostQode primitives used correctly** — Skill, Workflow, Rules — each with a clear job.
-
----
-
-## 3. PostQode Primitives — Correct Usage
-
-PostQode supports exactly three primitives:
-
-| Primitive | Location | Invocation | Job |
-|---|---|---|---|
-| **Skill** | `.postqode/skills/{name}/SKILL.md` | Agent reads it as a capability context | Entry point, intent detection, routing, JIT reference loading. **Not stateful.** |
-| **Workflow** | `.postqode/workflows/{name}.md` | User runs `/workflow-name` command | Stateful, checklist-driven, phased execution with human gates |
-| **Rules** | `.postqode/rules/{name}.md` | Referenced by Skill or Workflow | Always-on behavioral constraints — protocols, standards, anti-patterns |
-
-### Critical Distinction: Skill vs. Workflow
-
-```
-SKILL = "What can I do and how do I start?"
-  → Reads state, picks the right workflow, directs user to run it
-  → Contains: intent detection, tool priority, persona roster, state router
-  → SKILL cannot invoke a workflow — it tells the USER which /command to run
-
-WORKFLOW = "How do I execute this phase step by step?"
-  → Stateful: reads/writes test-session.md, active-group.md etc.
-  → Contains: checklists, human gates, explicit step sequences
-  → Invoked by user via /command
-```
-
-### Skill Sub-Resources (utilized in v4)
-
-Skills can have sub-folders alongside `SKILL.md`. The existing `web-automation-pro-skill` pattern shows this:
-
-```
-.postqode/skills/web-automation-pro/
-├── SKILL.md                      # Master entry point (lean — routes to references)
-└── references/                   # JIT-loaded detail files
-    ├── personas.md               # Full persona roster + declaration templates
-    ├── spec-format.md            # SPEC.md schema + example
-    ├── session-protocol.md       # State machine + state reading protocol
-    ├── tool-priority.md          # Browser tool priority (postqode > chrome-devtools)
-    ├── reviewer-rubric.md        # Self-critique checklist (replaces LLM-as-Judge)
-    ├── tip-protocol.md           # Transition Intelligence Protocol
-    ├── grouping-algorithm.md     # Component-aware + code-aware grouping logic
-    └── recovery-protocol.md     # L1→L2→L3 debug recovery (DEBUGLOOP template)
-```
-
-**Why references?** The SKILL.md stays lean (< 150 lines). Detail is loaded JIT when the agent needs it. This eliminates the 120KB+ preamble problem from v3.
-
----
-
-## 4. On "LLM-as-Judge" — Honest Assessment
-
-> ⚠️ **Reality check:** A true second-model review (passing output to an independent model) requires a separate session in PostQode and currently needs human intervention to trigger. We cannot automate a true multi-model review loop within a single agent session.
-
-**What we CAN do (and will do):**
-
-| Technique | Implementation | Effectiveness |
-|---|---|---|
-| **Same-session Persona Switch** | Agent switches to `REVIEWER` persona explicitly, with forbidden actions (cannot write code). Reviews own output against rubric. | High — catches anti-patterns, spec mismatches, missing assertions |
-| **Rubric-based Self-Critique** | Structured checklist in `references/reviewer-rubric.md` — agent must answer each criterion before proceeding | High — forces structured review, not vague "looks good" |
-| **Explicit role boundary** | Personas have forbidden actions. REVIEWER cannot write code. ENGINEER cannot approve spec. | Medium — prevents cross-role contamination |
-| **Fresh session review (optional)** | User can start `/debug` in a new session to get a fresh-context review. Human-triggered but clean. | High — true context independence |
-
-**The REVIEWER persona IS the practical LLM-as-Judge for PostQode.** It's not a second model, but it's the closest we can get without human-triggered fresh sessions.
-
----
-
-## 5. Full System Structure (Corrected)
-
-```
-web-automation-pro/
-├── REQUIREMENTS.md                          # ← This document
-└── .postqode/
-    ├── rules/
-    │   ├── core.md                          # Universal laws + persona protocol + templates
-    │   ├── framework-standards.md           # Playwright/Cypress standards (from v3)
-    │   ├── interaction-fallbacks.md         # Coordinates + hover + slider (merged from v3)
-    │   └── debug-context-capture.md        # Debug injection protocol (from v3, unchanged)
-    │
-    ├── workflows/
-    │   ├── automate.md                      # /automate — master orchestrator (replaces v3 split)
-    │   ├── spec-gen.md                      # /spec-gen — spec generation + approval
-    │   ├── finalize.md                      # /finalize — POM generation + refactor
-    │   └── debug.md                         # /debug — smart failure recovery
-    │
-    └── skills/
-        └── web-automation-pro/
-            ├── SKILL.md                     # Entry point (lean router — < 150 lines)
-            └── references/
-                ├── personas.md              # All 6 persona declarations + thinking modes
-                ├── spec-format.md           # SPEC.md schema + full example
-                ├── session-protocol.md      # State machine + session file read protocol
-                ├── tool-priority.md         # Browser tool priority rules
-                ├── reviewer-rubric.md       # Self-critique rubric (6-criteria)
-                ├── tip-protocol.md          # Transition Intelligence Protocol
-                ├── grouping-algorithm.md    # Component-aware + code-aware grouping
-                └── recovery-protocol.md    # L1→L2→L3 DEBUGLOOP escalation
-```
-
----
-
-## 6. Workflow Map — What Each `/command` Does
-
-| Command | Workflow File | Persona(s) | Triggers | Output |
-|---|---|---|---|---|
-| `/spec-gen` | `spec-gen.md` | Strategist | No SPEC.md exists; user has raw requirements | `SPEC.md` (LOCKED) |
-| `/automate` | `automate.md` | Strategist → Engineer → Reviewer → Validator | SPEC.md exists; ready to execute | Code, element maps, test-session.md |
-| `/finalize` | `finalize.md` | Architect | All groups complete; working spec passes | POM structure, refactored spec, cleanup |
-| `/debug` | `debug.md` | Debugger | Test is failing outside of normal execution | Fixed test or diagnosis report |
-
-### Workflow Invocation Convention
-
-The Skill CANNOT invoke workflows. It **directs the user** to run the correct `/command`:
-
-```
-# In SKILL.md or references/session-protocol.md:
-
-Based on state detected:
-- SPEC.md missing → "Please run /spec-gen to generate your automation spec first."
-- SPEC.md exists, no session → "Please run /automate to begin execution."
-- Session mid-execution → "Please run /automate to resume."
-- All groups done → "Please run /finalize to generate the production POM structure."
-- Test failing post-finalize → "Please run /debug to diagnose and fix."
-```
-
----
-
-## 7. SKILL.md Design (Lean Router)
-
-The SKILL.md stays lean by pointing to references. It handles:
-
-**Section 1 — Frontmatter (activation triggers)**
-```yaml
----
-name: web-automation-pro
-description: >
-  Use for ANY task involving: browser, URL, website, navigation, click,
-  form fill, login, automation, playwright, cypress, E2E test, page object,
-  web testing. If a URL (http/https) or web interaction appears in the prompt,
-  activate this skill.
----
-```
-
-**Section 2 — Tool Priority (inline — must always be visible)**
-Browser tool priority rule (never reference-file this — too critical to miss):
-```
-Priority 1: postqode_browser_agent MCP (browser_navigate, browser_click, etc.)
-Priority 2: playwright CLI (if available)
-Priority 3: chrome-devtools MCP (LAST RESORT ONLY — DevTools-specific features)
-```
-
-**Section 3 — Persona Roster (summary only, detail in `references/personas.md`)**
-Names + one-line mandate for each. Agent reads `references/personas.md` for full declaration.
-
-**Section 4 — Intent Detection**
-Ask once: "Are you automating this flow for test generation, or is this a one-time task?"
-→ Recording Mode (automation) or Exploration Mode (one-time)
-
-**Section 5 — State Router**
-Read `test-session.md`. Direct user to the correct `/command`. (Detail in `references/session-protocol.md`)
-
-**Section 6 — Reference Registry**
-Table of all reference files with one-line descriptions — agent loads JIT.
-
----
-
-## 8. Personas — Full Roster
-
-Defined in full in `references/personas.md`. Summary:
-
-| Persona | Phase | Mandate | Forbidden |
-|---|---|---|---|
-| **Strategist** | spec-gen, planning, grouping | Surface ambiguity, ask before committing, never assume | Cannot write code, cannot touch browser |
-| **Engineer** | EXPLORE + WRITE per step | Observe evidence first, then write one step | Cannot batch rows, cannot skip snapshot evidence, cannot review |
-| **Reviewer** | Post-code, pre-validation | Review against SPEC.md rubric, find failures before tests do | Cannot write or fix code — only flags issues |
-| **Validator** | Headless validation | Binary pass/fail, report facts | Cannot interpret ambiguous results — escalates to user |
-| **Architect** | Phase 3 finalize | Structural patterns, POM, abstractions | Cannot write flat ad-hoc code, cannot skip pattern consistency |
-| **Debugger** | Failure recovery | Root cause first, then fix, L1→L2→L3 only | Cannot skip L1 before trying L2, cannot guess without evidence |
-
-**Persona Declaration Format** (used at the opening of every phase in every workflow):
-```
-## 🎭 PERSONA: The [Name]
-> Mandate: [one sentence]
-> Thinking mode: [how to reason about this phase]
-> FORBIDDEN: [what this persona must never do]
-```
-
----
-
-## 9. SPEC.md — The Contract
-
-The SPEC.md is generated before any code and persists across sessions. Generated by `/spec-gen`.
-
-**Lock Policy — Soft Lock:**
-- `DRAFT` → `LOCKED` on user approval
-- LOCKED = stable, not immutable
-- Adding steps mid-session: Strategist opens SPEC.md, adds step, routes to appropriate pending-group. Brief gate: "Updated SPEC.md. Continues in [group N]. (A) Yes (B) Adjust" — NO full re-plan
-- This is designed for "malau test cases" (many steps from a test case document) where scope evolves
-
-**SPEC.md lives at:** `.postqode/spec/SPEC.md`
-**SPEC.md schema detail:** `references/spec-format.md`
-
----
-
-## 10. /automate Workflow Design
-
-### State Router (Phase 0 of every /automate invocation)
-
-```
-Read .postqode/spec/SPEC.md → exists?
-  NO  → "Please run /spec-gen first"  ⛔ STOP
-  YES ↓
-Read test-session.md → exists?
-  NO  → begin Phase 0 (plan from SPEC)
-  YES → read PHASE field:
-    SETUP → resume Phase 1
-    EXECUTING → resume Phase 2 (active group)
-    VALIDATING → resume validation
-    ROTATING → resume next group
-    MILESTONE → show milestone menu
-    COMPLETE → redirect to /finalize
-```
-
-### Phase 0 — Plan (STRATEGIST persona)
-
-1. Read `SPEC.md` fully → extract step definitions
-2. Workspace Intelligence Scan: `package.json`, existing specs, `element-maps/`
-3. Detect pre-coded steps → Case A/B/C decision (from v3, preserved exactly)
-4. Apply grouping algorithm → see `references/grouping-algorithm.md`
-5. Generate plan table → ⛔ STOP for user approval (ONE gate)
-6. TURBO consent: "(A) TURBO ON — auto-continue between groups  (B) TURBO OFF — stop after each group (default: A)"
-7. Write `test-session.md` header + SETUP rows + Group 1 rows only (stateless pattern from v3)
-
-### Phase 1 — Setup (ENGINEER persona)
-
-Exact port of v3 Phase 1. Minimal framework install only.
-
-### Phase 2 — Execution Loop
-
-```
-FOR each pending group:
-  [ENGINEER] reads active-group.md
-  FOR each step:
-    TIP: pre-snapshot → action → network monitor → post-snapshot → diff
-    ELEMENT MAP: check/create → references/tip-protocol.md for TIP detail
-    WRITE CODE: evidence-based, one step at a time
-    MARK [x] → save test-session.md (SAVE RULE, unchanged from v3)
-  
-  [REVIEWER] reads references/reviewer-rubric.md → runs rubric
-    PASS → proceed to validation
-    WARN → Engineer fixes flagged issues → re-run rubric
-    FAIL → ⛔ STOP (present issues to user)
-  
-  [VALIDATOR] run headless validation
-    PASS → COLLAPSE CHECKLIST → ROTATE
-    FAIL → [DEBUGGER] references/recovery-protocol.md → L1→L2→L3
-  
-  MILESTONE CHECK (references/session-protocol.md):
-    Evaluate 4 signals → 2+ signals → ⛔ STOP
-    Else IF TURBO=ON → AUTO-CONTINUE
-    Else IF TURBO=OFF → ⛔ STOP always
-```
-
-### Milestone Intelligence (Agent-Decided)
-
-The **Validator** persona evaluates after each group:
-
-| Signal | Indicates |
+| Phase | Meaning |
 |---|---|
-| L2 or L3 recovery was needed this group | Flow is complex — user should check |
-| Reviewer flagged any WARN or FAIL | Quality issue — scan before continuing |
-| 5+ groups still pending | Long session — periodic sanity check |
-| 3+ groups since last user check-in | Trust decay — re-establish alignment |
+| `NO_SPEC` | No locked spec exists |
+| `SPEC_READY` | Locked spec exists; execution not started |
+| `PLAN_PENDING` | Plan has been generated and persisted; waiting for approval |
+| `SETUP` | Framework selection or setup in progress |
+| `EXECUTING` | Active group is being explored/coded |
+| `VALIDATING` | Current group validation is running |
+| `ROTATING` | Group is being collapsed and next group promoted |
+| `MILESTONE` | Waiting for user after a milestone or foundation gate |
+| `FINALIZING` | `/finalize` should be run or resumed |
+| `COMPLETE` | Finalization is complete |
 
-**2+ signals triggered → MILESTONE GATE → ⛔ STOP**
+### Critical rule
 
----
+`PLAN_PENDING` must be a **real persisted state**, not a conceptual one.
 
-## 11. Reviewer Rubric (references/reviewer-rubric.md)
+When the Strategist presents the plan:
+- `test.md` must exist.
+- `test-session.md` must already exist with `PHASE: PLAN_PENDING`.
 
-Runs after EVERY group's code is written, before headless validation.
+Without this, a new session cannot truthfully resume at plan approval.
 
-```
-REVIEWER RUBRIC — 6 Criteria:
-□ 1. Every step in active-group.md has corresponding code in the spec file
-□ 2. Zero sleep() or waitForTimeout() — only evidence-based waits
-□ 3. Every locator has ≥1 fallback strategy captured
-□ 4. Every major action (navigate, submit, drag) has a DOM assertion after it
-□ 5. All expected outcomes match the SPEC.md step definitions exactly
-□ 6. TIP protocol citation in code comments (what network/DOM change observed)
-
-VERDICT:
-  6/6 → PASS — proceed to validation
-  4-5/6 → WARN — Engineer fixes, re-run rubric  
-  <4/6 → FAIL → ⛔ STOP, present to user
-```
+In the hardened protocol, exact stop-state fields such as `STOP_REASON`, `GATE_TYPE`, and `NEXT_EXPECTED_ACTION` are defined in `session-protocol.md`.
 
 ---
 
-## 12. Rules Migration (v3 → v4)
+## 6. Skill Orchestration Contract
 
-| v3 File | v4 Destination | Change |
-|---|---|---|
-| Core rules (in workflow CAUTION blocks) | `rules/core.md` | Extracted and centralized |
-| `rules/playwright-framework-best-practices.md` | `rules/framework-standards.md` | Renamed, enriched with PCM |
-| `rules/coordinate-fallback.md` | `rules/interaction-fallbacks.md` | Merged with hover + slider |
-| `rules/hover-handling.md` | `rules/interaction-fallbacks.md` | Merged |
-| `rules/slider-handling.md` | `rules/interaction-fallbacks.md` | Merged |
-| `rules/debug-context-capture.md` | `rules/debug-context-capture.md` | Port as-is (proven) |
-| TIP protocol (inline in v3 explore) | `references/tip-protocol.md` | Extracted to skill reference |
-| L1/L2/L3 recovery (inline in v3 explore) | `references/recovery-protocol.md` | Extracted to skill reference |
-| Grouping algorithm (inline in v3 setup) | `references/grouping-algorithm.md` | Extracted to skill reference |
-| Pre-coded step Case A/B/C (in v3 setup) | `references/grouping-algorithm.md` | Extracted to skill reference |
+The skill must be the first source of truth for routing.
 
-**Nothing is lost. Everything is reorganized.**
+### Skill responsibilities
 
----
+1. Detect mode:
+   - Recording mode for reusable automation.
+   - Exploration mode for one-off browser tasks.
 
-## 13. Build Order (Implementation Sequence)
+2. Detect state:
+   - Read `SPEC.md`.
+   - Read `test-session.md` if present.
+   - Read `LAST_ACTIVE` and stale-session conditions.
 
-```
-1. rules/core.md                           Foundation — all workflows reference this
-2. rules/framework-standards.md            Playwright/Cypress standards
-3. rules/interaction-fallbacks.md          Merged interaction rules
-4. rules/debug-context-capture.md         Port from v3 as-is
+3. Route:
+   - No spec → direct to `/spec-gen`
+   - Locked spec, no session → direct to `/automate`
+   - `PLAN_PENDING`, `SETUP`, `EXECUTING`, `VALIDATING`, `ROTATING`, `MILESTONE` → resume via `/automate`
+   - `FINALIZING` → route to `/finalize`
+   - `COMPLETE` → do not route to `/finalize` again unless the user explicitly wants a re-run
 
-5. skills/web-automation-pro/references/personas.md          Persona definitions
-6. skills/web-automation-pro/references/tool-priority.md     Browser tool priority
-7. skills/web-automation-pro/references/spec-format.md       SPEC.md schema
-8. skills/web-automation-pro/references/session-protocol.md  State machine
-9. skills/web-automation-pro/references/reviewer-rubric.md   Self-critique rubric
-10. skills/web-automation-pro/references/tip-protocol.md     TIP protocol
-11. skills/web-automation-pro/references/grouping-algorithm.md  Grouping + pre-coded
-12. skills/web-automation-pro/references/recovery-protocol.md  L1→L2→L3
+4. Guard against improvisation:
+   - If the user provides a huge browser flow and asks for code immediately, the skill must still route through `/spec-gen`.
+   - If a workflow command is typed directly, the skill performs the handshake and then defers to the workflow instructions.
 
-13. workflows/spec-gen.md                  Spec generation (needs personas)
-14. workflows/debug.md                     Debug workflow (needs recovery-protocol)
-15. workflows/finalize.md                  POM workflow (port from v3 + Architect persona)
-16. workflows/automate.md                  Master orchestrator (depends on all above)
+### Orchestrator principle
 
-17. skills/web-automation-pro/SKILL.md   Entry point (depends on all references)
-18. README.md                              Human usage guide
-```
+The skill is allowed to feel like the system's "brain," but the source of continuity is still the saved artifacts, not hidden memory.
 
 ---
 
-## 14. Design Decisions Log
+## 7. `/spec-gen` Contract
 
-| Decision | Choice | Rationale |
-|---|---|---|
-| TURBO default | **ON** (user opts out) | Speed is the primary v3 complaint |
-| SPEC.md lock policy | **Soft lock** | Malau-style many-step inputs need to evolve without full re-plan |
-| Milestone trigger | **Agent-decided** (4-signal heuristic) | LLM better than fixed count at judging context |
-| LLM-as-Judge | **Reviewer persona + rubric** | Honest — no multi-model in single session; rubric makes it rigorous |
-| Skills scope | **Project-level** | `.postqode/` per project; global sharing deferred |
-| Domain | **Web automation first** | SPEC.md has domain field for future extension |
-| Workflow invocation | **Only by user via /command** | Skill cannot invoke workflows; routes user to right command |
-| Sub-resources | **`references/` folder** | JIT loading keeps SKILL.md lean; follows existing skill pattern |
+`/spec-gen` exists to produce a reliable automation contract before execution.
+
+### Required behavior
+
+- Run a workspace scan before asking questions.
+- Ask clarifying questions.
+- Decompose vague user input into testable step definitions.
+- Persist `.postqode/spec/SPEC.md` with `Status: DRAFT`.
+- Run a strategist self-critique before presentation.
+- Stop for user approval.
+- On approval, set `Status: LOCKED`.
+
+### Output quality bar
+
+The spec must:
+- Use observable outcomes.
+- Capture out-of-scope items.
+- Flag vague steps with `⚠️ NEEDS_DECOMPOSITION`.
+- Be stable enough to survive session resets.
 
 ---
 
-## 15. Success Metrics
+## 8. `/automate` Contract
 
-| Metric | v3 | v4 Target |
-|---|---|---|
-| Human gates (6-group TURBO session) | 6+ | ~2 (plan + final) |
-| SKILL.md token footprint | ~15K (full workflow) | < 3K (SKILL.md only, refs JIT) |
-| Active test-session.md rows (peak) | 50+ | ≤ 30 (collapse enforced) |
-| Step reliability | ~90% | ≥ 90% (no regression) |
-| Spec mismatches caught pre-validation | 0% | > 80% (Reviewer rubric) |
-| Time to resume after context reset | Re-read 3 files | Read SPEC.md + test-session.md only |
+`/automate` is the stateful execution workflow.
+
+### Phase 0 — Plan and persist
+
+The Strategist:
+1. Reads the locked spec.
+2. Scans the workspace.
+3. Detects pre-coded steps.
+4. Groups the steps.
+5. Writes `test.md`.
+6. Writes `test-session.md` with `PHASE: PLAN_PENDING`.
+7. Stops for user approval.
+
+After approval, `/automate`:
+- Expands `test-session.md` into setup + Group 1 checklist rows.
+- Creates `active-group.md`.
+- Creates `pending-groups/`.
+- Sets `TURBO` according to the user's choice.
+- Moves to `PHASE: SETUP`.
+
+### Phase 1 — Setup
+
+Setup chooses or detects the framework and prepares the minimum viable test runtime.
+
+Setup does **not**:
+- Ask the user to choose COM/POM/Flat.
+- Create page objects or component architecture.
+- Reframe the suite structurally.
+
+In the hardened protocol, setup and all later stops must persist explicit stop-state fields before pausing.
+
+### Phase 2 — Group loop
+
+For each group:
+1. Explore one step at a time.
+2. Capture TIP evidence.
+3. Create or update element maps.
+4. Append flat-first code to the working spec.
+5. Review the group against the rubric.
+6. Validate headless with zero retries.
+7. Run recovery if needed.
+8. Apply milestone logic.
+9. Collapse and rotate.
+
+### Non-negotiable execution rule
+
+The engineer writes **one explored step at a time**. No full-script generation.
+
+---
+
+## 9. Flat-First Execution Policy
+
+The working code during `/automate` should be **flat by default**.
+
+### Why
+
+At execution time, the agent still does not know enough to safely commit to:
+- Component boundaries
+- Page boundaries
+- Shared abstractions
+- Long-term naming
+
+Flat-first code minimizes wrong abstractions while the browser evidence is still being gathered.
+
+### What flat-first means
+
+- One working spec/test body is the canonical implementation during `/automate`.
+- Interactions are appended sequentially.
+- Assertions come directly from observed evidence and `SPEC.md`.
+- Element maps, not page objects, are the system memory during execution.
+
+### Limited local abstraction is allowed
+
+To avoid missing obvious reuse, `/automate` may create **small local helpers** if all of the following are true:
+
+1. The duplication is already observed in executed work, not guessed.
+2. The helper removes immediate repetition without deciding COM vs POM.
+3. The helper accepts context/locators instead of hardcoding a page architecture.
+4. The working spec remains the primary execution artifact.
+
+Allowed examples:
+- A tiny helper for a repeated wait/assertion pattern
+- A repeated interaction wrapper for the exact same UI block
+- A neutral utility module such as `working-helpers.ts`
+
+Forbidden during `/automate`:
+- Full page object hierarchies
+- Full component trees
+- User-facing architecture choice
+- Broad refactors driven by taste rather than evidence
+
+This is the compromise that preserves flat-first execution without ignoring obvious reuse pressure.
+
+---
+
+## 10. Architecture Timing
+
+### The actual architecture decision belongs in `/finalize`
+
+Only after the system has:
+- Completed the groups
+- Collected element maps
+- Seen reuse patterns
+- Produced a working flat implementation
+
+should it ask the user:
+- `COM`
+- `POM`
+- `Flat`
+
+### `/finalize` responsibilities
+
+The Architect:
+1. Reads the working spec and all element maps.
+2. Quantifies reuse signals.
+3. Presents an evidence-based recommendation.
+4. Stops for user decision.
+5. Refactors according to the chosen architecture.
+6. Validates again.
+7. Cleans up session artifacts.
+8. Sets `PHASE: COMPLETE`.
+
+### Key distinction
+
+`/automate` may create **local helpers**.
+
+`/finalize` owns the **architecture decision**.
+
+---
+
+## 11. Review and Validation Contract
+
+Reviewer and Validator must be separate persona phases.
+
+### Order
+
+1. Engineer finishes the group.
+2. Reviewer runs the rubric.
+3. Engineer fixes WARN items if needed.
+4. Validator runs the test.
+
+This order must be consistent everywhere.
+
+### Rubric requirements
+
+The rubric has **7 criteria**:
+1. Coverage
+2. No arbitrary waits
+3. Fallback locators
+4. Observable assertions
+5. Spec alignment
+6. TIP evidence cited
+7. No secrets in code
+
+Scoring must also be consistent everywhere:
+- `7/7` → PASS
+- `5-6/7` → WARN
+- `<5/7` → FAIL
+- Criterion 7 failure → automatic FAIL
+
+---
+
+## 12. Resumption and Multi-Session Continuity
+
+This system is explicitly designed for fresh-session continuation.
+
+### Required resumption behavior
+
+On every entry:
+- Read persisted state first.
+- Never trust conversation memory over state files.
+- Tell the user exactly what phase will resume.
+
+### Stale session behavior
+
+If the session is old:
+- Warn the user.
+- Offer resume, re-validate, or fresh-start.
+
+### Foundation trust gate
+
+Group 1 always forces a human review stop, even with TURBO ON.
+
+That rule must be encoded:
+- In the core milestone logic
+- In the session protocol transitions
+- In `/automate`
+
+No document should omit it.
+
+---
+
+## 13. Checkpointing and Git
+
+Git checkpointing can be useful, but it must not be mandatory for every workspace.
+
+### Required policy
+
+- The system must not assume it owns the whole repository.
+- It must not auto-`git init` as a universal default.
+- It must not auto-commit unrelated user changes.
+
+### Safer approach
+
+Checkpointing should be:
+- Optional
+- Workspace-aware
+- Safe only when the workspace is clearly dedicated or the user opted in
+
+The primary recovery mechanism should remain the persisted session artifacts, not git side effects.
+
+---
+
+## 14. Anti-Loophole Rules
+
+The system should explicitly close common failure modes:
+
+1. **No direct coding before spec**
+2. **No architecture choice during setup**
+3. **No hidden redefinition of state names**
+4. **No contradictory rubric scoring**
+5. **No fake resumability for `PLAN_PENDING`**
+6. **No routing `COMPLETE` users back into `/finalize` by default**
+7. **No workflow-specific reinterpretation of the same milestone logic**
+
+If two files disagree, the skill/router and session protocol should win.
+
+---
+
+## 15. File Ownership Map
+
+| File | Owns |
+|---|---|
+| `SKILL.md` | Orchestration, state routing, workflow handoff |
+| `rules/core.md` | Universal laws, persona protocol, milestone logic |
+| `references/session-protocol.md` | State fields, legal transitions, resume rules |
+| `workflows/spec-gen.md` | Spec generation |
+| `workflows/automate.md` | Plan, setup, group execution, review, validation |
+| `workflows/finalize.md` | Architecture decision, refactor, cleanup |
+| `rules/automation-standards.md` | Flat-first execution standards |
+| `references/architecture-patterns.md` | COM/POM/Flat guidance for finalize |
+
+---
+
+## 16. Success Metrics
+
+| Metric | Target |
+|---|---|
+| Human gates in a 6-group TURBO run | About 2-3 meaningful gates, not one after every group |
+| Resume fidelity | Skill can route correctly from disk state alone |
+| Architecture timing | COM/POM/Flat chosen in `/finalize`, not setup |
+| Execution style | Flat-first by default, with only limited local helper extraction |
+| Review consistency | Same 7-criterion rubric and verdict thresholds everywhere |
+| Session survivability | Fresh-session resumption works for `PLAN_PENDING` through `FINALIZING` |
+
+---
+
+## 17. Design Summary
+
+The intended behavior is:
+
+- **The skill orchestrates**
+- **The workflows execute**
+- **The code stays flat while evidence is being gathered**
+- **The architecture decision waits for evidence**
+- **The session state, not memory, is what makes long automation runs reliable**
+
+That is the contract every workflow, rule, and reference file must follow.

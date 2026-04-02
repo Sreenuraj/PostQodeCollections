@@ -1,196 +1,145 @@
 # Web Automation Pro
 
-> **PostQode Agent System** — Spec-driven, persona-powered web automation for any framework.
-> Successor to `web-automation-pro-3`. Built for speed without sacrificing reliability.
+Spec-driven web automation for long, stateful browser flows.
 
 ---
 
-## What This Is
+## What It Is
 
-A self-contained PostQode agent system that takes raw test requirements and produces production-quality, maintainable web automation — using any testing framework the user chooses.
+Web Automation Pro is a PostQode setup for turning raw browser requirements into maintainable automation without losing control when:
+- the steps are long,
+- the AUT is complicated,
+- the session exceeds one context window,
+- or the right architecture is not obvious up front.
 
-**System components:**
-- **1 Skill** — the entry point and router
-- **5 Workflows** — `/spec-gen`, `/spec-update`, `/automate`, `/finalize`, `/debug`  
-- **4 Rules** — always-on behavioral constraints
-- **11 Reference files** — JIT-loaded detail (keeps context lean)
+The system is built around three ideas:
+- **The skill orchestrates**
+- **The workflows execute**
+- **The code stays flat until there is enough evidence to refactor**
+
+This hardened version also adds:
+- explicit stop reasons
+- deterministic resume fields
+- narrow helper extraction rules
+- repeatable finalize heuristics
 
 ---
 
-## Quick Start
+## Lifecycle
 
-### Step 1 — Generate the Spec
-
-```
+```text
+Raw requirements
+  ↓
 /spec-gen
-```
-
-The agent will ask a few clarifying questions, then produce a locked `SPEC.md` — the contract for everything that follows.
-
-### Step 2 — Plan and Execute
-
-```
+  ↓
+Locked SPEC.md
+  ↓
 /automate
-```
-
-The agent reads `SPEC.md`, performs a workspace intelligence scan, proposes a grouped execution plan, and waits for your approval. After approval it executes group by group — exploring the UI, mapping elements, writing code, and validating each group before moving on.
-
-**TURBO MODE is ON by default.** The agent auto-continues between groups (no manual gate needed). It will only stop when:
-- A validation failure occurs
-- The agent's milestone heuristic decides a check-in is warranted
-- All groups are complete
-
-### Step 3 — Generate Production Architecture
-
-```
+  ↓
+Plan persisted + approved
+  ↓
+Flat-first group execution
+  ↓
+Review + validate per group
+  ↓
+Resume anytime using saved state
+  ↓
 /finalize
-```
-
-Reads the element maps generated during execution, analyzes reuse patterns, and asks YOU which architecture to build: **Component Object Model (COM)**, **Page Object Model (POM)**, or **Flat** (keep as-is). Generates the architecture, refactors the spec, validates. Cleans up temp files.
-
-### When Things Break
-
-```
-/debug
-```
-
-For diagnosing and fixing test failures post-finalization or outside normal execution.
-
-### When the App Changes
-
-```
-/spec-update
-```
-
-Surgically add, modify, or remove steps in a LOCKED spec without starting from scratch. The system analyzes impact on any active sessions.
-
----
-
-## The Lifecycle
-
-```
-User provides requirements
-       ↓
-   /spec-gen                     ← Strategist generates + locks SPEC.md
-       ↓
-   /automate                     ← Strategist plans, Engineer codes, Reviewer + Validator verify
-       ↓ (per group, TURBO auto-continues)
-   /automate (resume)            ← State is in test-session.md — pick up anywhere
-       ↓ (all groups done)
-   /finalize                     ← Architect asks: COM, POM, or Flat?
-       ↓
-   Production test suite ✅
-
-   ←─ /spec-update ─→              ← App changed? Update the spec, re-run affected groups
-   ←─ /debug ───────→              ← Test failing? Diagnose and fix
+  ↓
+Evidence-based COM / POM / Flat decision
+  ↓
+Refactor + validate + cleanup
 ```
 
 ---
 
-## Framework Support
+## Core Model
 
-This system is **framework-agnostic**. During the first `/automate` run, if no framework is detected, the agent will ask which framework you want to use. Your answer creates a `.postqode/rules/[framework].md` file with framework-specific conventions.
+### Skill
 
-Supported: Playwright, Cypress, Selenium, WebdriverIO, Puppeteer, and any other framework the agent can install.
+The skill is the orchestrator and router. It reads saved state, decides which workflow should run next, and keeps the agent from skipping the system path.
 
----
+### Workflows
 
-## TURBO MODE
+The workflows are stateful executors:
+- `/spec-gen`
+- `/automate`
+- `/finalize`
+- `/spec-update`
+- `/debug`
 
-TURBO MODE (default: ON) eliminates the manual gate after each group. The agent continues automatically when:
-- Validation passed
-- The reviewer rubric scored PASS or resolved WARN
-- The agent's milestone signals are below threshold
+### Rules
 
-The agent will stop automatically when:
-- **It hits the Group 1 Foundation Gate:** TURBO mode ALWAYS stops at the end of Group 1 before collapsing the session history, mandating human trust in the framework foundation.
-- **It triggers an Intra-Group Volume Gate:** If it processes 3 exploratory steps in a single group, it pauses for a mid-group Reviewer check to prevent context drift.
-- Any validation fails (L2 or L3 escalation required)
-- It detects 2+ milestone signals (e.g., complex recovery, quality warnings, many pending groups)
-- All groups are complete
-
-To turn TURBO OFF (v3 behavior): reply "C" or "TURBO OFF" during plan approval.
-
----
-
-## What Gets Created During Execution
-
-| File/Folder | Purpose | Persists? |
-|---|---|---|
-| `.postqode/spec/SPEC.md` | Automation contract | ✅ Permanent |
-| `test-session.md` | Live execution ledger | ❌ Deleted by /finalize |
-| `active-group.md` | Current group being executed | ❌ Deleted by /finalize |
-| `pending-groups/` | Queued groups | ❌ Deleted by /finalize |
-| `completed-groups/` | Collapsed group archives | ❌ Deleted by /finalize |
-| `element-maps/` | Locator intelligence from exploration | ✅ Permanent |
-| `[framework-test-spec]` | The actual test code | ✅ Permanent |
-| `[COM/POM files]` | Generated architecture (user chooses) | ✅ Permanent |
+Rules are always-on constraints:
+- anti-batching
+- stop gates
+- state-first resume behavior
+- flat-first execution standards
 
 ---
 
-## Personas
+## Architecture Timing
 
-Every phase of every workflow is handled by a specialized persona with a distinct thinking mode and strict forbidden actions. You'll see persona declarations like `🎭 PERSONA: The Engineer` at the start of each phase. This is by design — it prevents the agent from, for example, reviewing its own code as the same persona that wrote it.
+During `/automate`, the system writes **flat-first** code and gathers evidence:
+- TIP observations
+- element maps
+- reuse signals
 
-| Persona | Active In |
-|---|---|
-| Strategist | Spec generation, execution planning |
-| Engineer | Step exploration and code writing |
-| Reviewer | Pre-validation rubric check |
-| Validator | Headless test execution |
-| Architect | Architecture decision + generation |
-| Debugger | Failure recovery |
+It may create a small neutral helper only after the same interaction pattern has appeared in at least 2 completed explored steps in the same run. It still does **not** make the final architecture decision there.
+
+The real `COM / POM / Flat` choice happens in `/finalize`, when the Architect has full evidence from all groups.
 
 ---
 
-## File Structure
+## Resumability
 
-```
-web-automation-pro/
-├── REQUIREMENTS.md                     # System design document
-└── .postqode/
-    ├── rules/
-    │   ├── core.md                     # 5 Laws + persona protocol (always active)
-    │   ├── automation-standards.md     # Framework-agnostic testing standards
-    │   ├── interaction-fallbacks.md    # Coordinates, hover, slider strategies
-    │   └── debug-context-capture.md   # Debug injection protocol
-    ├── workflows/
-    │   ├── automate.md                 # /automate — master orchestrator
-    │   ├── spec-gen.md                 # /spec-gen — spec generation
-    │   ├── spec-update.md              # /spec-update — spec evolution
-    │   ├── finalize.md                 # /finalize — COM/POM/Flat architecture generation
-    │   └── debug.md                   # /debug — failure recovery
-    └── skills/
-        └── web-automation-pro/
-            ├── SKILL.md               # Entry point and router
-            └── references/
-                ├── personas.md
-                ├── spec-format.md
-                ├── session-protocol.md
-                ├── tool-priority.md
-                ├── reviewer-rubric.md
-                ├── tip-protocol.md
-                ├── grouping-algorithm.md
-                ├── recovery-protocol.md
-                ├── architecture-patterns.md
-                ├── element-map-schema.md
-                └── framework-rule-template.md
-```
+This system is designed to survive context loss.
+
+State is persisted in:
+- `.postqode/spec/SPEC.md`
+- `test.md`
+- `test-session.md`
+- `active-group.md`
+- `pending-groups/`
+- `completed-groups/`
+- `element-maps/`
+
+Key ledger fields include:
+- `PHASE`
+- `STOP_REASON`
+- `ACTIVE_WORKFLOW`
+- `ACTIVE_GROUP`
+- `ACTIVE_STEP`
+- `NEXT_EXPECTED_ACTION`
+
+That is what lets the skill route correctly in the same session or a fresh one.
 
 ---
 
-## Differences From v3
+## Why This Exists
 
-| v3 | v4 |
-|---|---|
-| 3-file split (setup/explore/final) | Single `/automate` entry point |
-| Stop after every group | TURBO MODE — auto-continues |
-| No spec contract; re-derives intent each session | `SPEC.md` — locked before execution |
-| Rules copy-pasted into workflows | Centralized `rules/` + JIT reference loading |
-| No personas | 6 specialized personas per phase |
-| Auto-selects POM or PCM | User chooses COM / POM / Flat with evidence |
-| No pre-validation review | Reviewer rubric runs before every validation |
-| Single monolithic codebase | **Incremental COM** builds reusable components *during* early execution |
-| Silent state desyncs | **Protocol A/B** enforces strict browser continuity logic |
-| Messy test history | **Atomic Git Commits** physically map test steps to `git bisect` |
-| Prone to LLM batch hallucination | **Anti-Batching** and **Strategic Review Gates** physically halt drift |
+The goal is to help an AI agent automate long UI flows without falling into the usual traps:
+- jumping into code too early,
+- forgetting where it is,
+- over-abstracting too soon,
+- batching too much work into one step,
+- or losing continuity across sessions.
+
+The system is opinionated on purpose so the agent follows a reliable path instead of improvising.
+
+---
+
+## Workflow Diagrams
+
+A full system diagram set is available in [WORKFLOW-DIAGRAMS.md](./WORKFLOW-DIAGRAMS.md).
+
+It includes:
+- whole-system lifecycle,
+- skill orchestration and resume routing,
+- `/spec-gen`,
+- `/automate` state flow,
+- per-group execution,
+- architecture timing,
+- `/finalize`,
+- stale-session handling,
+- and failure recovery situations.

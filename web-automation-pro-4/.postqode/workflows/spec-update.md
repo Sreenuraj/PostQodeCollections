@@ -1,124 +1,129 @@
 ---
-description: Add, modify, or remove steps in a LOCKED SPEC.md without starting from scratch
+description: Add, modify, or remove steps in a locked SPEC.md without starting from scratch
 ---
 
 # /spec-update
 
-> **Invoke when:** The target application has changed and you need to update the automation spec.
-> SPEC.md must be LOCKED. If DRAFT, use `/spec-gen` instead.
+> Use when the target application has changed and the locked spec must be updated.
 
 > [!CAUTION]
-> ## CORE RULES — LOAD BEFORE STARTING
-> Read `.postqode/rules/core.md`. All Five Laws apply.
-> PREREQUISITE: SPEC.md must exist and be LOCKED.
+> Before proceeding:
+> 1. read `.postqode/rules/core.md`
+> 2. ensure `SPEC.md` exists and is locked
 
 ---
 
 ## Resume Protocol
 
-1. Check `.postqode/spec/SPEC.md`:
-   - **NOT EXISTS** → "No spec found. Run `/spec-gen` first." ⛔ STOP
-   - **EXISTS + DRAFT** → "Spec is still a draft. Run `/spec-gen` to finish and lock it." ⛔ STOP
-   - **EXISTS + LOCKED** → proceed
+1. check `.postqode/spec/SPEC.md`
+2. check `test-session.md`
+3. if `ACTIVE_WORKFLOW: SPEC_UPDATE`, resume using `STOP_REASON` and `NEXT_EXPECTED_ACTION`
 
-2. Check `test-session.md`:
-   - **EXISTS + PHASE: EXECUTING** → "⚠️ There's an active automation session. Updating the spec mid-execution may invalidate existing work. (A) Pause session and update spec  (B) Cancel — finish the current session first" ⛔ STOP
-   - **EXISTS + PHASE: COMPLETE/FINALIZING** → safe to update
-   - **NOT EXISTS** → safe to update
+If there is an active execution session:
+- the update workflow must explicitly record which groups become stale
 
 ---
 
 ## 🎭 PERSONA: The Strategist
-> Mandate: Understand what changed, update the spec surgically, and re-lock it.
-> Thinking mode: Precise. Change only what's needed. Don't re-derive the entire spec.
-> FORBIDDEN: Writing code. Touching the browser. Modifying steps the user didn't ask to change.
+> Mandate: Understand what changed, update the spec surgically, and re-lock it without losing execution truth.
+> Thinking mode: Precise and impact-aware.
+> FORBIDDEN: Writing code. Touching the browser. Modifying steps the user did not ask to change.
 
 ---
 
 ## Phase 1 — Understand the Change
 
-Ask the user:
+If an execution session is active and the user must decide whether to pause it, persist:
+- `PHASE: SPEC_UPDATING`
+- `STOP_REASON: SPEC_UPDATE_APPROVAL`
+- `GATE_TYPE: CHOICE`
+- `ACTIVE_WORKFLOW: SPEC_UPDATE`
+- `ACTIVE_GROUP: [current automate group or NONE]`
+- `ACTIVE_STEP: NONE`
+- `NEXT_EXPECTED_ACTION: RESOLVE_ACTIVE_SESSION_UPDATE`
 
+Then present the active-session choice and stop.
+
+If no such gate is needed, ask what changed and stop for the user reply.
+
+Required footer when stopping:
+
+```text
+Paused at: SPEC_UPDATE / SPEC_UPDATING
+Reason: SPEC_UPDATE_APPROVAL
+Next action: RESOLVE_ACTIVE_SESSION_UPDATE
+To continue, run: /spec-update
 ```
-📋 Spec Update — What Changed?
-
-Current spec has [N] steps across [M] components.
-
-What would you like to do?
-  (A) Add new steps — I'll need the new actions and expected outcomes
-  (B) Modify existing steps — Tell me which step(s) and what changed
-  (C) Remove steps — Tell me which step(s) to remove
-  (D) Multiple changes — describe everything that changed
-```
-
-**⛔ STOP — wait for user reply.**
 
 ---
 
 ## Phase 2 — Apply Changes
 
-1. **Temporarily unlock** SPEC.md: change Status from `LOCKED` to `UPDATING`
-2. Apply the requested changes:
+1. temporarily change spec status from `LOCKED` to `UPDATING`
+2. apply only the requested changes
+3. run the spec critique checklist on the changed areas
 
-### For Added Steps:
-- Apply `DECOMPOSE` template to new steps
-- Insert into Step Definitions table at the correct position
-- Re-number subsequent steps if needed
-- Flag ⚠️ if new steps affect existing groups (e.g., inserted between grouped steps)
+If an active execution session exists:
+- identify affected groups
+- write them to `STALE_GROUPS`
+- update `NEXT_EXPECTED_ACTION` to `REVIEW_STALE_GROUPS` when approval is next
 
-### For Modified Steps:
-- Update only the specified step rows
-- If the change affects the step's component, data, or expected outcome → flag that element maps for this component may need re-exploration
-
-### For Removed Steps:
-- Remove the step rows
-- Re-number subsequent steps
-- Flag if removed steps were part of an already-completed group → element maps may be orphaned
-
-3. Run **SPEC CRITIQUE CHECKLIST** (from `/spec-gen` Phase 4) on the changed section only — not the entire spec
+Rules for stale groups:
+- modified completed groups become stale
+- removed completed groups become stale
+- pending groups that now mismatch the spec become stale
+- untouched pending groups remain valid
 
 ---
 
 ## Phase 3 — Present and Re-Lock
 
-Present the diff to user:
+Before presenting approval, persist:
+- `PHASE: SPEC_UPDATING`
+- `STOP_REASON: SPEC_UPDATE_APPROVAL`
+- `GATE_TYPE: APPROVAL`
+- `ACTIVE_WORKFLOW: SPEC_UPDATE`
+- `ACTIVE_STEP: NONE`
+- `NEXT_EXPECTED_ACTION: REVIEW_SPEC_UPDATE`
 
-```
-📋 Spec Updated
+Present:
+
+```text
+Spec updated.
 
 Changes:
-  [+] Added [N] steps: [list]
-  [~] Modified [N] steps: [list]
-  [-] Removed [N] steps: [list]
+- added: [...]
+- modified: [...]
+- removed: [...]
 
-Impact on existing work:
-  [If test-session.md exists:]
-  • Groups affected: [list any groups that contained modified/removed steps]
-  • Recommendation: [re-run affected groups / no impact]
-  
-  [If no session:]
-  • No active session — changes are safe
+Impact:
+- stale groups: [list or NONE]
+- recommendation: [re-run affected groups or no automate impact]
 
-(A) Approve — re-lock the spec
-(B) Adjust — tell me what to change
+(A) Approve and re-lock
+(B) Adjust
 ```
 
-**⛔ STOP — wait for user approval.**
+Stop and wait.
 
-- **(A):** Update Status from `UPDATING` to `LOCKED`. Save. Output: "✅ Spec re-locked. Run `/automate` to execute with the updated spec."
-- **(B):** Apply adjustments. Return to Phase 3.
+Required footer:
 
----
+```text
+Paused at: SPEC_UPDATE / SPEC_UPDATING
+Reason: SPEC_UPDATE_APPROVAL
+Next action: REVIEW_SPEC_UPDATE
+To continue, run: /spec-update
+```
 
-## Impact on Active Sessions
+If approved:
+- change spec status back to `LOCKED`
+- restore workflow ownership:
+  - `ACTIVE_WORKFLOW: AUTOMATE` if the run should continue later
+  - `ACTIVE_WORKFLOW: FINALIZE` if the run was already finalizing
+  - keep `PHASE: COMPLETE` if the run was already complete
+- clear `STOP_REASON`
+- clear `GATE_TYPE`
 
-If `test-session.md` exists and groups have already been completed:
-
-| Scenario | Impact | Action |
-|---|---|---|
-| New steps added after last completed group | No impact on existing work | New steps will be in new groups during next `/automate` |
-| Steps modified in a completed group | Completed code may be stale | Recommend re-running the affected group |
-| Steps removed from a completed group | Orphaned code | Recommend running `/finalize` to clean up |
-| Steps modified in a pending group | No code written yet | No impact — pending group will use updated spec |
-
-The agent flags these impacts but **never auto-deletes completed work**. The user decides.
+If adjustment is requested:
+- remain in `SPEC_UPDATING`
+- revise and present again

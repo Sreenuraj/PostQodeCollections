@@ -1,188 +1,130 @@
-# Architecture Patterns — POM vs COM Decision Guide
+# Architecture Patterns — COM vs POM vs Flat
 
-Referenced during `/finalize` and during `/automate` Phase 0 (when the Strategist asks the user about architecture intent). This file defines the two architecture approaches, when to use each, and how the agent should help the user decide.
+Primary reference for `/finalize`.
 
----
-
-## The Two Architectures
-
-### Page Object Model (POM)
-> One class per page. All locators and actions for a page live in that class.
-
-**Best for:**
-- Simple apps with distinct, non-overlapping pages
-- Short automation suites (< 20 tests)
-- Apps with minimal component reuse across pages
-- Quick PoCs or short-term automation
-
-**Structure:**
-```
-/pages
-   login_page
-   dashboard_page
-   settings_page
-
-/tests
-   login_tests
-   dashboard_tests
-```
-
-**Key trait:** Each page class owns ALL elements on that page. If a header appears on both Dashboard and Settings, its locators are duplicated in both page classes.
+During `/automate`, this file may inform structure hints, but it must not be used to force the final architecture decision early.
 
 ---
 
-### Component Object Model (COM)
-> UI modeled as **reusable building blocks (components)**, composed into pages. Pages are thin containers; components hold the logic.
+## Decision Timing
 
-**Best for:**
-- Modern UI frameworks (React, Angular, Vue, micro-frontends)
-- Applications with repeated UI patterns (tables, forms, cards, modals, headers)
-- Growing test suites that need long-term maintainability
-- Applications where multiple pages share behaviors (same nav bar, same data grid component)
+The real architecture decision happens in `/finalize`, after:
+- the working flat implementation exists
+- element maps have been collected
+- reuse signals can be measured
+- any local helpers from `/automate` can be assessed in context
 
-**Structure (4-Layer):**
-```
-/components
-   /base          ← Generic: button, input, dropdown, checkbox
-   /business      ← Domain-specific: product_card, vote_slider, meeting_row
-
-/pages
-   login_page     ← Thin: composes components, no direct locators
-   dashboard_page
-
-/tests
-   login_tests
-   dashboard_tests
-
-/utils
-   helpers
-   config
-```
-
-**The 4 Layers:**
-| Layer | Contains | Role |
-|---|---|---|
-| **Test Layer** | Test specs / scenarios | Defines what to test — in business language |
-| **Page Layer** | Page objects | Composes components for a specific page context — thin, minimal logic |
-| **Component Layer** | Reusable components (base + business) | Contains locators, actions, validations — reusable across pages |
-| **Base Layer** | Shared utilities | Common actions (click, type, wait), logging, error handling |
-
-**Key trait:** Components are **independent of pages**. A `HeaderComponent` is written once and used by every page that has a header. Change the header → update one component → all pages updated.
+`/automate` may gather evidence and create narrow local helpers only. It must not make the final structural decision.
 
 ---
 
-## How the Agent Decides (Heuristic)
+## Deterministic Recommendation Heuristics
 
-The agent does NOT auto-select. During `/automate` Phase 0, after the Workspace Intelligence Scan and before grouping, the **Strategist** presents the architecture decision to the user.
+The user still decides, but the recommendation must be repeatable.
 
-### Evidence Gathering (During Execution)
+### Recommend COM when all of these are true
 
-During `/automate` Phase 2, the Engineer captures **element maps** (locator snapshots per step). These are raw exploration artifacts — NOT architecture decisions. They capture:
-- What elements exist on the page at each step
-- Primary and fallback locator strategies
-- What page/URL context the element appears in
+1. at least **2 distinct UI blocks** repeat
+2. each repeated block appears on **2 or more distinct pages**
+3. the repeated blocks contain meaningful behavior, not just trivial navigation links
 
-After ALL groups complete, the **Architect persona** in `/finalize` reads these element maps and asks the user the architecture question.
+### Recommend POM when all of these are true
 
-### Decision Gate (During /finalize Phase 0)
+1. the COM threshold is not met
+2. page responsibilities are clearly distinct
+3. most interactions are page-specific instead of shared-block specific
 
-The Architect analyzes the element maps and presents evidence:
+### Recommend Flat when any of these are true
 
-```
+1. total scope is small, such as **6 or fewer total steps**
+2. the flow spans **2 or fewer pages** and shared-block reuse is low
+3. refactoring cost is likely higher than the maintainability benefit
+
+These are the recommendation rules, not mandatory outcomes. The user can still choose differently.
+
+---
+
+## Option 1 — Flat
+
+Best when:
+- the flow is short
+- reuse is low
+- this is a proof of concept or one-off validation
+- refactoring overhead adds little value
+
+Flat means:
+- keep the working spec as the primary artifact
+- optionally tidy local helpers
+- do not force POM or COM for ceremony alone
+
+---
+
+## Option 2 — POM
+
+Best when:
+- pages are distinct
+- reuse across pages is limited
+- the suite is moderate in size
+- a simple page-centered model is sufficient
+
+POM means:
+- one class or module per page
+- page methods wrap page interactions
+- shared logic stays modest and page-centered
+
+---
+
+## Option 3 — COM
+
+Best when:
+- shared UI blocks appear across pages
+- the app behaves like a component-driven frontend
+- the suite will grow
+- reuse signals are strong enough to justify shared abstractions
+
+COM means:
+- reusable components hold interaction logic
+- pages stay thin
+- shared UI changes can be updated in one place
+
+---
+
+## Evidence the Architect Should Present
+
+Before asking the user, quantify:
+- how many element maps exist
+- how many UI blocks repeat across pages
+- which blocks repeat
+- how many pages are involved
+- whether any `/automate` local helpers remained isolated or now point to broader shared structure
+
+---
+
+## Decision Gate Template
+
+```text
 📐 Architecture Decision
 
-I've analyzed the [N] element maps from your automation run.
+Evidence gathered:
+- [N] element maps analyzed
+- [X] repeated UI blocks across [Y] pages
+- repeated blocks: [...]
+- local helper count: [...]
 
-Evidence:
-  • [X] unique UI elements captured across [Y] pages
-  • [Z] elements appear on multiple pages (shared components detected)
-  • Shared patterns found: [e.g., "Header appears on 4/5 pages", "DataGrid used on 3 pages"]
-  
-My recommendation: [COM | POM]
-Reasoning: [why — based on reuse evidence above]
+Recommendation: [COM | POM | Flat]
+Reason: [...]
 
-(A) COM — Component Object Model (reusable components + thin pages)
-    Best if: This app will grow, components are reused, team maintains long-term
-(B) POM — Page Object Model (one class per page)
-    Best if: Simple app, few pages, minimal reuse, short-term automation
-(C) Flat — Keep the working spec as-is, no architecture refactor
-    Best if: This is a PoC, one-time validation, no maintainability needs
+(A) COM
+(B) POM
+(C) Flat
 ```
 
-**⛔ STOP — wait for user reply.**
+Stop and wait for the user's decision.
 
 ---
 
-## COM Implementation Rules (When User Chooses COM)
+## Guardrail
 
-### Step 1 — Identify Components from Element Maps
+Do not ask this question during `/automate` setup or normal group execution.
 
-Analyze all element maps. Look for:
-- **Base components:** Elements that appear across many pages with the same structure (buttons, inputs, dropdowns, checkboxes, modals)
-- **Business components:** Domain-specific UI blocks that appear on 2+ pages (data grids, vote sliders, product cards, navigation headers, search bars)
-- **Page-specific elements:** Elements unique to one page with no reuse potential
-
-### Step 2 — Create Base Components
-
-For each identified base pattern, create a component class that:
-- Accepts a locator or context via constructor (NOT hardcoded to a page)
-- Provides generic action methods (click, type, getValue, isEnabled, isVisible)
-- Provides generic validation methods (assertValue, assertVisible, assertText)
-- Includes built-in wait logic (never a bare click — always wait-then-act)
-- Has no page-specific logic
-
-### Step 3 — Create Business Components
-
-For each identified business pattern, create a component class that:
-- Extends or composes base components where appropriate
-- Encapsulates the domain-specific locators and selectors
-- Provides domain-specific action methods (e.g., `VoteSlider.setPercentage(60)`)
-- Provides domain-specific validation methods (e.g., `VoteSlider.assertPercentage(60, tolerance=1)`)
-- Is independent of any page — can be used on any page that contains this component
-
-### Step 4 — Create Thin Page Objects
-
-Pages are **containers, not logic holders**:
-- Instantiate the relevant components
-- Wire components to the page's specific context/selectors
-- Provide page-level navigation methods (goto, isLoaded)
-- Do NOT duplicate any component logic
-- Do NOT contain direct element locators (those belong in components)
-
-### Step 5 — Refactor Working Spec
-
-Replace inline test code with:
-- Page-level abstractions for navigation
-- Component-level method calls for interactions
-- Test body reads like business language
-
----
-
-## POM Implementation Rules (When User Chooses POM)
-
-Standard POM — one class per page:
-- All locators for a page live in the page class
-- Action methods encapsulate interactions
-- Assertions are page-level
-- Test code uses page methods, not raw locators
-
----
-
-## Common Mistakes to Avoid
-
-| Mistake | Why It's Wrong |
-|---|---|
-| Treating element maps as page-specific objects | Element maps capture locators; components in COM must be page-independent |
-| Duplicating component logic across page classes | This is what COM solves — create the component once |
-| Mixing page navigation logic into components | Components don't know what page they're on |
-| Over-engineering small projects with COM | If the app has 3 pages and no reuse, POM is simpler and faster |
-| Not asking the user | Architecture is a team decision — always present evidence and ask |
-
----
-
-## Guiding Principle
-
-> Build once. Reuse everywhere. Compose intelligently.
-> — Component Object Model Testing Guide
-
-The agent's job is to **gather evidence during execution** (element maps) and **present an informed recommendation during finalize**. The user decides. The architecture is never auto-selected.
+The purpose of `/finalize` is to make this decision with evidence, not with guesswork.

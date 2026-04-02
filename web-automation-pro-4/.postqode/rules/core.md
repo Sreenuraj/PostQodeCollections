@@ -1,160 +1,259 @@
 ## Brief overview
-Core behavioral laws that govern every agent session in this system. Every workflow and skill must respect these. No exceptions.
+Core behavioral laws for every Web Automation Pro session. The skill orchestrates, workflows execute, and persisted state on disk outranks conversation memory.
 
 ---
 
 ## The Five Laws
 
 > [!CAUTION]
-> These rules apply to EVERY action in EVERY phase. Violating any of these causes session corruption.
+> These laws apply in every phase and every workflow.
 
 ### LAW 1 — ANTI-BATCHING
-Execute exactly **ONE** `[ ]` checklist row at a time. It is STRICTLY FORBIDDEN to perform actions for rows 4, 5, and 6 in a single thought or tool call. You must:
-- Read row N → do row N → mark `[x]` → STOP
-- Then read row N+1
+Execute exactly one checklist row or one stop-gate decision at a time.
 
-Batching causes skipped steps and hallucinations.
+- Read row N
+- Perform row N
+- Persist the result
+- Only then move to row N+1
 
 ### LAW 2 — SAVE RULE
-Every "Mark row [x]" means: **physically edit `test-session.md`**, replace `[ ]` with `[x]` for that row, and save to disk. You MAY NOT proceed to the next row until the file is saved. Remarks MUST include key artifacts (locators written, maps created/reused).
+Every meaningful state change must be written to disk before the workflow advances.
 
-### LAW 3 — STOP GATE RULE
-**NEVER** auto-approve, auto-decide, or self-answer any `⛔ STOP` prompt. Present the menu and **immediately end your response**. The fresh user reply is the only valid gate through.
+- `test-session.md` is the source of truth for phase progression
+- `active-group.md` is the source of truth for active step status
+- remarks should capture key evidence, fixes, or helper creation when relevant
 
-### LAW 4 — FAIL RULE
-**NEVER** proceed past a `[FAIL]` row. Mark it `[FAIL]`, stop, present the error. You cannot proceed until the failure is fixed and the row is updated from `[FAIL]` to `[x]`.
+### LAW 3 — STOP PERSISTENCE RULE
+Before any `⛔ STOP`, the workflow must write all required stop-state fields to disk.
 
-### LAW 5 — NEW_TASK RULE
-When calling `new_task`, provide exactly ONE line: the workflow command (e.g. `"/automate continue"`). No summaries, bullet points, or "Current Work" sections. The fresh agent reads state files directly.
+Required fields before every stop:
+- `PHASE`
+- `STOP_REASON`
+- `GATE_TYPE`
+- `ACTIVE_WORKFLOW`
+- `ACTIVE_GROUP`
+- `ACTIVE_STEP`
+- `LAST_COMPLETED_ROW`
+- `NEXT_EXPECTED_ACTION`
+
+If a stop is not persisted, it is not resumable.
+
+### LAW 4 — STOP GATE RULE
+Never answer your own `⛔ STOP`.
+
+- persist stop state first
+- present the gate
+- end the response
+- wait for a fresh user reply
+
+### LAW 5 — STATE-FIRST RULE
+Persisted session state outranks chat memory and prose inference.
+
+- read `SPEC.md` and `test-session.md` first
+- route based on state fields first
+- use prose only as supporting context, not as the primary resume signal
+
+---
+
+## Skill Orchestration Contract
+
+The skill is the session orchestrator for this system.
+
+That means:
+- the skill determines mode and current workflow
+- the skill routes to the correct workflow command
+- workflows do not redefine routing independently
+
+When a workflow command is typed directly:
+1. load the skill first
+2. perform the workflow handshake
+3. read the workflow file
+4. continue according to persisted state
 
 ---
 
 ## Persona Activation Protocol
 
-### When to Switch Personas
-Each workflow phase opens with a persona declaration. The agent adopts that persona for the full phase. Switching personas mid-phase is forbidden unless explicitly instructed by the workflow.
+Each workflow phase declares its persona and must stay inside that role until the workflow explicitly switches.
 
-### Persona Declaration Block Format
-Every phase in every workflow MUST open with:
-```
+### Required declaration block
+
+```text
 ## 🎭 PERSONA: The [Name]
-> Mandate: [one sentence — what this persona's job is]
-> Thinking mode: [how to reason about this phase]
-> FORBIDDEN: [list of things this persona must never do]
+> Mandate: [one sentence]
+> Thinking mode: [how to reason]
+> FORBIDDEN: [hard limits]
 ```
 
-### Persona Identification (Output Rule)
-Whenever you encounter a `🎭 PERSONA` block and assume a new persona, your **very first output to the user** MUST be an announcement of your current role. 
-Example: `[🎭 Activating Persona: The Engineer]`
-This forces your internal context to shift and lets the user know who is currently driving the workflow.
+### Output rule
 
-### Cross-Persona Boundaries (Non-negotiable)
+Whenever a new persona phase begins, the first output should announce it.
+
+Example:
+`[🎭 Activating Persona: The Engineer]`
+
+### Cross-persona boundaries
+
 | Rule | Meaning |
 |---|---|
-| REVIEWER never writes code | Reviewer identifies issues only — NEVER fixes them |
-| ENGINEER never reviews | Engineer executes — never critiques its own output |
-| STRATEGIST never touches the browser | Strategist plans — never performs browser actions |
-| VALIDATOR reports facts only | Never interprets ambiguous results — escalates to user |
-| DEBUGGER follows L1→L2→L3 order | Never jumps to L2 if L1 hasn't been tried |
+| Reviewer never writes code | review is separate from repair |
+| Engineer never self-approves | execution is separate from sign-off |
+| Strategist never drives the browser | planning is separate from evidence collection |
+| Validator reports facts | validation is not speculation |
+| Debugger follows escalation order | L1 before L2 before L3 |
+| Architect owns final structure | COM/POM/Flat is finalized in `/finalize` |
+
+---
+
+## Stop State Model
+
+### Canonical stop reasons
+
+| Value | Meaning |
+|---|---|
+| `NONE` | no pending stop |
+| `PLAN_APPROVAL` | waiting for plan approval in `/automate` |
+| `FOUNDATION_GATE` | waiting for Group 1 trust review |
+| `MILESTONE_GATE` | waiting at a milestone review |
+| `FRAMEWORK_CHOICE` | waiting for the user to choose a framework |
+| `STALE_SESSION` | waiting for stale-session choice |
+| `L2_ESCALATION` | waiting for recovery evidence or skip decision |
+| `DEBUG_DIAGNOSIS` | waiting for diagnosis approval in `/debug` |
+| `ARCHITECTURE_CHOICE` | waiting for COM/POM/Flat decision in `/finalize` |
+| `SPEC_APPROVAL` | waiting for spec draft approval |
+| `SPEC_UPDATE_APPROVAL` | waiting for spec update approval or pause/cancel choice |
+
+### Canonical gate types
+
+| Value | Meaning |
+|---|---|
+| `NONE` | no gate active |
+| `APPROVAL` | user must approve or reject |
+| `CHOICE` | user must choose among explicit options |
+| `ESCALATION` | workflow needs user help to continue safely |
+
+### Required handoff footer template
+
+Every intentional pause should end with:
+
+```text
+Paused at: [ACTIVE_WORKFLOW] / [PHASE]
+Reason: [STOP_REASON]
+Next action: [NEXT_EXPECTED_ACTION]
+To continue, run: [/workflow-command]
+```
 
 ---
 
 ## Named Prompt Templates
 
-These templates are reusable reasoning patterns. Invoke by name in workflow steps.
-
-### DECOMPOSE (Cohesive Step Grouping)
-Break vague user input into **cohesive interaction steps**. Do NOT blindly create a step for every single click or keypress. Group related actions on the same component (e.g., "Fill entire form and submit" = 1 step).
-
-For each grouped step, define:
-  - Exact actions (e.g., fill email, pass, click login)
-  - Target component description
-  - Input data (if any)
-  - Expected observable outcome for the *entire cohesive step*
-  - Flag ⚠️ NEEDS_DECOMPOSITION if a step spans multiple pages or asynchronous states (e.g., "Checkout" is too big).
+### DECOMPOSE
+Break vague input into observable, testable steps.
 
 ### GROUPING
-→ See `references/grouping-algorithm.md` for the full grouping algorithm.
+Use `references/grouping-algorithm.md`.
 
-### TIP (Transition Intelligence Protocol)
-→ See `references/tip-protocol.md` for the full TIP protocol.
+### TIP
+Use `references/tip-protocol.md`.
 
-### CRITIQUE (Self-Critique)
-→ See `references/reviewer-rubric.md` for the full reviewer rubric.
+### CRITIQUE
+Use `references/reviewer-rubric.md`.
 
-### DEBUGLOOP (Failure Recovery)
-→ See `references/recovery-protocol.md` for the full L1→L2→L3 protocol.
+### DEBUGLOOP
+Use `references/recovery-protocol.md`.
 
 ### MILESTONE_CHECK
-After each group completes, evaluate these 5 signals:
-0. Is this Group 1 (the foundational run)? (foundation trust signal)
-1. Did any step require L2 or L3 recovery? (complexity signal)
-2. Did the REVIEWER persona flag any WARN or FAIL? (quality signal)
-3. Are there 5+ groups still pending? (scale signal)
-4. Has it been 3+ groups since last user check-in? (drift signal)
+After each group, evaluate the exact signals below and log them in state remarks or the group summary.
 
-**If Signal 0 triggers (Group 1) → ⛔ CRITICAL STOP for foundational review (TURBO mode overridden)**
-**If 2+ signals triggered (from 1-4) → ⛔ STOP for milestone review**
-**If 0-1 signals (from 1-4) → continue** (auto in TURBO, stop in v3-compat mode)
+Signal names:
+- `FOUNDATION_REVIEW_PENDING`
+- `RECOVERY_ESCALATED`
+- `REVIEW_WARNED`
+- `MANY_GROUPS_PENDING`
+- `LONG_SINCE_CHECKIN`
+
+Counting rules:
+- `FOUNDATION_REVIEW_PENDING` is true only when the just-completed group is Group 1 and `FOUNDATION_REVIEW_DONE=NO`
+- `RECOVERY_ESCALATED` is true if any step in the group required L2 or L3
+- `REVIEW_WARNED` is true if the Reviewer issued WARN for the group, even if later resolved
+- `MANY_GROUPS_PENDING` is true if 5 or more groups remain after the current group
+- `LONG_SINCE_CHECKIN` is true if 3 or more groups have completed since the last user checkpoint
+
+Decision rules:
+- If `FOUNDATION_REVIEW_PENDING` is true, stop with `STOP_REASON: FOUNDATION_GATE`
+- Else if 2 or more of the remaining four signals are true, stop with `STOP_REASON: MILESTONE_GATE`
+- Else continue if `TURBO=ON`
+- Else stop with `STOP_REASON: MILESTONE_GATE` if `TURBO=OFF`
 
 ### HEURISTIC_GATE
-Before any irreversible action (deleting files, overwriting specs, modifying production configs, collapsing session history):
-```
-Is this action reversible?
+Before irreversible actions:
+
+```text
+Is this reversible?
   YES → proceed
-  NO → ⛔ STOP, confirm with user before executing
+  NO  → ask the user first
+```
+
+---
+
+## Canonical State Model
+
+| State | Meaning |
+|---|---|
+| `NO_SPEC` | locked spec missing |
+| `SPEC_READY` | locked spec exists, no execution session yet |
+| `SPEC_DRAFTING` | `/spec-gen` draft exists and is awaiting approval or revision |
+| `PLAN_PENDING` | `/automate` plan persisted and waiting for approval |
+| `SETUP` | `/automate` setup in progress |
+| `EXECUTING` | active group execution in progress |
+| `VALIDATING` | review completed and validation is in progress |
+| `ROTATING` | group collapse or rotation is in progress |
+| `MILESTONE` | waiting for user after foundation or milestone gate |
+| `SPEC_UPDATING` | `/spec-update` is in progress |
+| `DEBUGGING` | `/debug` is in progress |
+| `FINALIZING` | `/finalize` should run or resume |
+| `COMPLETE` | finalization finished |
+
+### Legal transitions
+
+```text
+NO_SPEC       → SPEC_DRAFTING: draft spec written
+SPEC_DRAFTING → SPEC_READY: spec approved and locked
+SPEC_READY    → PLAN_PENDING: automate plan persisted
+PLAN_PENDING  → SETUP: plan approved
+PLAN_PENDING  → SPEC_READY: plan reworked
+SETUP         → EXECUTING: framework ready
+EXECUTING     → VALIDATING: review completed, validation next
+VALIDATING    → EXECUTING: repair loop after failure
+VALIDATING    → ROTATING: group passed
+VALIDATING    → MILESTONE: explicit failure stop or gate
+ROTATING      → EXECUTING: next group promoted and no gate fired
+ROTATING      → MILESTONE: foundation gate or milestone gate fired
+ROTATING      → FINALIZING: no pending groups remain
+MILESTONE     → EXECUTING: user continues execution
+MILESTONE     → FINALIZING: user continues and no groups remain
+SPEC_READY    → SPEC_UPDATING: user starts spec update
+SPEC_UPDATING → SPEC_READY: update approved with no active finalized run
+SPEC_UPDATING → FINALIZING: update approved and the run was already finalizing
+SPEC_UPDATING → COMPLETE: update approved and the run was already complete
+EXECUTING     → DEBUGGING: user explicitly enters `/debug`
+FINALIZING    → DEBUGGING: finalize validation enters `/debug`
+DEBUGGING     → EXECUTING: debug returns to active execution
+DEBUGGING     → FINALIZING: debug returns to finalize
+DEBUGGING     → COMPLETE: debug confirms a finalized run remains complete
+FINALIZING    → COMPLETE: architecture finalized and cleanup done
 ```
 
 ---
 
 ## SPEC.md Reference
 
-Every workflow reads the active spec from: `.postqode/spec/SPEC.md`
+Always extract before execution:
+- target URL
+- framework
+- viewport
+- Step Definitions
+- success criteria
+- anti-patterns
 
-Fields to always extract before execution:
-- `Target URL`
-- `Framework` (may be TBD — resolved in Phase 1)
-- `Viewport`
-- `Step Definitions` table (the authoritative source of steps)
-- `Success Criteria` (used by REVIEWER rubric)
-- `Anti-Patterns` (enforced during WRITER and REVIEWER phases)
-
-If `SPEC.md` does not exist → redirect user to run `/spec-gen`.
-
----
-
-## Session State Machine
-
-States and legal transitions:
-
-```
-NO_SPEC       → Run /spec-gen
-SPEC_READY    → Run /automate (Phase 0)
-PLAN_PENDING  → Waiting for user plan approval
-SETUP         → Framework detection/install
-EXECUTING     → Active group step-by-step
-VALIDATING    → Running validation command
-ROTATING      → Collapsing + promoting next group
-MILESTONE     → Waiting for user milestone review
-FINALIZING    → Architecture decision (COM/POM/Flat) + spec refactor
-COMPLETE      → All done; clean workspace
-
-Transitions:
-  NO_SPEC → SPEC_READY: SPEC.md approved and locked
-  SPEC_READY → PLAN_PENDING: /automate generates plan table
-  PLAN_PENDING → SETUP: User approves plan
-  PLAN_PENDING → SPEC_READY: User requests plan changes
-  SETUP → EXECUTING: Framework ready, browser opened
-  EXECUTING → VALIDATING: All group steps coded
-  VALIDATING → ROTATING: Validation passes
-  VALIDATING → EXECUTING: Validation fails (L1/L2 retry)
-  VALIDATING → MILESTONE: Validation fails after L3 (escalate)
-  ROTATING → EXECUTING: TURBO=ON + milestone not triggered
-  ROTATING → MILESTONE: TURBO=ON + MILESTONE_CHECK fires 2+ signals
-  ROTATING → MILESTONE: TURBO=OFF (always stops)
-  MILESTONE → EXECUTING: User says continue
-  MILESTONE → FINALIZING: All groups done
-  FINALIZING → COMPLETE: POM + final validation done
-```
-
-→ See `references/session-protocol.md` for the full state read and routing logic.
+If the locked spec does not exist, route to `/spec-gen`.

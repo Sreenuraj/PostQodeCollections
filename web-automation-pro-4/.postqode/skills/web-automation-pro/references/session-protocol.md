@@ -1,190 +1,280 @@
 # Session Protocol — State Machine and Routing
 
-This file defines how to read session state and route to the correct workflow. Referenced by the SKILL.md State Router section. Load this file when determining what to do next in any session.
+Canonical session ledger rules for Web Automation Pro.
 
 ---
 
-## test-session.md Header Fields
+## Required Header Fields for `test-session.md`
 
-The first block of `test-session.md` always contains metadata headers:
-
-```
-PHASE: [current state — see state machine below]
+```text
+PHASE: [current state]
+STOP_REASON: NONE | PLAN_APPROVAL | FOUNDATION_GATE | MILESTONE_GATE | FRAMEWORK_CHOICE | STALE_SESSION | L2_ESCALATION | DEBUG_DIAGNOSIS | ARCHITECTURE_CHOICE | SPEC_APPROVAL | SPEC_UPDATE_APPROVAL
+GATE_TYPE: NONE | APPROVAL | CHOICE | ESCALATION
+ACTIVE_WORKFLOW: SPEC_GEN | AUTOMATE | FINALIZE | SPEC_UPDATE | DEBUG
+ACTIVE_GROUP: [group id or NONE]
+ACTIVE_STEP: [step id or NONE]
+LAST_COMPLETED_ROW: [row id or NONE]
+NEXT_EXPECTED_ACTION: [short machine-readable action]
 BROWSER_STATUS: OPEN | CLOSED
-TARGET_URL: [url from SPEC.md]
-MODE: NEW_TEST | EXTEND_EXISTING
-FRAMEWORK: [name, or TBD if not yet selected]
-SPEC_FILE: [path to test spec file, or TBD]
-CONFIG_FILE: [path to framework config, or TBD]
-TEST_COMMAND: [run command, or TBD]
-TURBO: OFF (Default)
-MILESTONE_INTERVAL: [auto — agent-decided]
+TARGET_URL: [from SPEC.md or TBD]
+MODE: NEW_TEST | EXTEND_EXISTING | TBD
+FRAMEWORK: [name or TBD]
+SPEC_FILE: [working spec path or TBD]
+CONFIG_FILE: [framework config path or TBD]
+TEST_COMMAND: [run command or TBD]
+TURBO: ON | OFF
+WORKING_STYLE: FLAT_FIRST
+ARCHITECTURE_DECISION: TBD | COM | POM | FLAT
+FOUNDATION_REVIEW_DONE: YES | NO
+CHECKPOINT_MODE: OFF | SAFE_AUTO | USER_APPROVED
 FINALIZED_GROUPS: [count]
-EXPLORATION_VIEWPORT: [e.g. 1280x800]
+EXPLORATION_VIEWPORT: [e.g. 1280x800 or TBD]
 PRE_CODED_STEPS: [step numbers or NONE]
 PRE_CODED_SOURCE: [file path or NONE]
 ELEMENT_MAPS_DIR: element-maps
 GROUPING_CONFIRMED: YES | NO
-LAST_ACTIVE: [ISO timestamp of last session activity]
+STALE_GROUPS: NONE | [comma-separated group ids]
+LAST_ACTIVE: [ISO timestamp]
 ```
+
+Defaults for a new automation session:
+- `STOP_REASON: NONE`
+- `GATE_TYPE: NONE`
+- `ACTIVE_GROUP: NONE`
+- `ACTIVE_STEP: NONE`
+- `LAST_COMPLETED_ROW: NONE`
+- `NEXT_EXPECTED_ACTION: NONE`
+- `TURBO: ON`
+- `WORKING_STYLE: FLAT_FIRST`
+- `ARCHITECTURE_DECISION: TBD`
+- `FOUNDATION_REVIEW_DONE: NO`
+- `CHECKPOINT_MODE: OFF`
+- `STALE_GROUPS: NONE`
+
+---
+
+## Workflow-Specific Resume Precedence
+
+On every entry, route by the most explicit signal first.
+
+The only exception is `PHASE: COMPLETE`, which always means the finalized run is complete and should not default back into `/finalize`.
+
+Otherwise route by:
+
+1. `ACTIVE_WORKFLOW`
+2. `STOP_REASON`
+3. `PHASE`
+4. supporting files and prose
+
+### Route priority
+
+- `ACTIVE_WORKFLOW: SPEC_GEN`
+  - resume with `/spec-gen`
+
+- `ACTIVE_WORKFLOW: SPEC_UPDATE`
+  - resume with `/spec-update`
+
+- `ACTIVE_WORKFLOW: DEBUG`
+  - resume with `/debug`
+
+- `ACTIVE_WORKFLOW: FINALIZE`
+  - resume with `/finalize`
+
+- `ACTIVE_WORKFLOW: AUTOMATE`
+  - resume with `/automate`
+
+This rule prevents a saved stop inside one workflow from being misrouted by a generic phase name alone.
 
 ---
 
 ## Stale Session Detection
 
-When resuming a session, check the `LAST_ACTIVE` timestamp:
+If `LAST_ACTIVE` is older than 7 days:
 
-```
-Current time − LAST_ACTIVE > 7 days?
-  YES → STALE SESSION WARNING
-  NO  → proceed normally
-```
-
-**If stale (>7 days idle):**
-```
+```text
 ⚠️ Stale Session Detected
 
 This session has been idle since [LAST_ACTIVE].
-The target application may have changed since then.
 
-(A) Resume anyway — I know the app hasn't changed
-(B) Re-validate — run the existing working spec headless to check
-(C) Start fresh — I want to re-plan from SPEC.md
+(A) Resume anyway
+(B) Re-validate before resuming
+(C) Start fresh from the locked spec
 ```
-**⛔ STOP — wait for user reply.**
 
-- **(A):** Update `LAST_ACTIVE` to now, proceed to state router
-- **(B):** Run validation command → if PASS, update timestamp and continue. If FAIL, suggest `/debug` or fresh start.
-- **(C):** Delete `test-session.md`, `active-group.md`, `pending-groups/`, `completed-groups/`. Keep SPEC.md and element-maps. Route to `/automate` Phase 0.
+Before presenting this stop:
+- set `STOP_REASON: STALE_SESSION`
+- set `GATE_TYPE: CHOICE`
+- set `NEXT_EXPECTED_ACTION: RESOLVE_STALE_SESSION`
 
-**Update `LAST_ACTIVE`:** Every time a checklist row is marked `[x]`, update `LAST_ACTIVE` to current timestamp.
+If `(C)` is chosen:
+- delete `active-group.md`
+- delete `pending-groups/`
+- delete `completed-groups/`
+- keep `SPEC.md`
+- keep `element-maps/`
+- reset ledger fields to:
+  - `PHASE: SPEC_READY`
+  - `ACTIVE_WORKFLOW: AUTOMATE`
+  - `STOP_REASON: NONE`
+  - `GATE_TYPE: NONE`
+  - `ACTIVE_GROUP: NONE`
+  - `ACTIVE_STEP: NONE`
+  - `LAST_COMPLETED_ROW: NONE`
+  - `NEXT_EXPECTED_ACTION: PLAN_AUTOMATION`
+
+Update `LAST_ACTIVE` whenever a checklist row is completed or a stop state is intentionally written.
 
 ---
 
-## State Machine
+## Canonical States
 
-### States
-
-| State | Meaning | What to Do |
+| State | Meaning | Default route |
 |---|---|---|
-| `NO_SPEC` | SPEC.md does not exist | Tell user to run `/spec-gen` |
-| `SPEC_READY` | SPEC.md is LOCKED; no session started | Tell user to run `/automate` |
-| `PLAN_PENDING` | Plan table generated; waiting for approval | Tell user to review and reply to the plan |
-| `SETUP` | Framework detection/install in progress | Tell user to run `/automate` to resume |
-| `EXECUTING` | Active group step-by-step in progress | Tell user to run `/automate` to resume |
-| `VALIDATING` | Validation command is pending | Tell user to run `/automate` to resume |
-| `ROTATING` | Group completed; rotating to next | Tell user to run `/automate` to resume |
-| `MILESTONE` | Milestone gate triggered; waiting for user | ⛔ CRITICAL STOP — Show milestone menu and wait for user |
-| `FINALIZING` | All groups done; POM generation in progress | Tell user to run `/finalize` to resume |
-| `COMPLETE` | All done | Workspace is clean; tell user to run `/finalize` if not done |
-
-### Legal Transitions
-
-```
-NO_SPEC       ─ SPEC.md approved ─────────────────────→ SPEC_READY
-SPEC_READY    ─ /automate starts Phase 0 ──────────────→ PLAN_PENDING
-PLAN_PENDING  ─ User approves plan ───────────────────→ SETUP
-PLAN_PENDING  ─ User requests changes ─────────────────→ SPEC_READY (re-plan)
-SETUP         ─ Framework ready + Phase 2 begins ──────→ EXECUTING
-EXECUTING     ─ All group steps coded ─────────────────→ VALIDATING
-VALIDATING    ─ Passes (Reviewer + headless) ──────────→ ROTATING
-VALIDATING    ─ Fails; L1/L2 retry ───────────────────→ EXECUTING
-VALIDATING    ─ Fails; L3 graceful or 3x fail ─────────→ MILESTONE
-ROTATING      ─ TURBO=ON + MILESTONE_CHECK < 2 signals → EXECUTING
-ROTATING      ─ TURBO=ON + MILESTONE_CHECK ≥ 2 signals → MILESTONE
-ROTATING      ─ TURBO=OFF (always) ───────────────────→ MILESTONE
-ROTATING      ─ No more pending groups ────────────────→ FINALIZING
-MILESTONE     ─ User says continue ───────────────────→ EXECUTING
-MILESTONE     ─ All groups done ──────────────────────→ FINALIZING
-FINALIZING    ─ POM + headed validation done ──────────→ COMPLETE
-```
+| `NO_SPEC` | locked spec missing | `/spec-gen` |
+| `SPEC_READY` | locked spec exists, no automate session yet | `/automate` |
+| `SPEC_DRAFTING` | spec draft exists and needs approval or edits | `/spec-gen` |
+| `PLAN_PENDING` | plan persisted and awaiting approval | `/automate` |
+| `SETUP` | framework setup in progress | `/automate` |
+| `EXECUTING` | active group in progress | `/automate` |
+| `VALIDATING` | validation in progress | `/automate` |
+| `ROTATING` | group collapse/rotation in progress | `/automate` |
+| `MILESTONE` | waiting after a foundation or milestone gate | `/automate` |
+| `SPEC_UPDATING` | locked spec update in progress | `/spec-update` |
+| `DEBUGGING` | debug session in progress | `/debug` |
+| `FINALIZING` | architecture decision or finalize validation in progress | `/finalize` |
+| `COMPLETE` | finalized run complete | no default redirect |
 
 ---
 
 ## State Router Logic
 
-Use at the start of every `/automate` session:
+At the start of any automation-related session:
 
-```
-1. Check .postqode/spec/SPEC.md
-   → NOT EXISTS: Set PHASE=NO_SPEC
-     → Tell user: "Please run /spec-gen to create your automation spec first."
-     → ⛔ STOP
+1. Check `.postqode/spec/SPEC.md`
+   - if missing or not locked, route to `/spec-gen` unless `ACTIVE_WORKFLOW: SPEC_GEN` already explains the draft state
 
-2. Read test-session.md
-   → NOT EXISTS: Set PHASE=SPEC_READY
-     → Begin /automate Phase 0
+2. Check `test-session.md`
+   - if missing and the spec is locked, state is `SPEC_READY`
 
-3. Read PHASE field from test-session.md header:
+3. If `test-session.md` exists:
+   - if `PHASE: COMPLETE`, stop routing and treat the run as finalized
+   - route by `ACTIVE_WORKFLOW`
+   - then confirm the route with `STOP_REASON` and `PHASE`
 
-   PLAN_PENDING → Show the plan table from test.md (if present), ask for approval
-   SETUP        → Find first [ ] SETUP row in checklist → resume from there
-   EXECUTING    → Find first [ ] row in active group → resume from there
-   VALIDATING   → Re-run validation command (read from TEST_COMMAND header)
-   ROTATING     → Resume rotation: collapse → rotate → generate next group rows
-   MILESTONE    → ⛔ CRITICAL STOP: Show milestone menu and ask user for permission to proceed. Do NOT proceed automatically.
-   FINALIZING   → Tell user to run /finalize
-   COMPLETE     → Tell user everything is done; suggest /finalize if POM not yet done
-```
+### Route details
 
----
+- `SPEC_GEN`
+  - `STOP_REASON: SPEC_APPROVAL` → resume draft review
 
-## test-session.md Checklist Format
+- `SPEC_UPDATE`
+  - `STOP_REASON: SPEC_UPDATE_APPROVAL` → resume diff review or active-session decision
 
-```
-| # | Phase | Action | Status | Remarks |
-|---|-------|--------|--------|---------|
-| 1 | SETUP | [action] | [ ] | |
-| 2 | SETUP | [action] | [ ] | |
-| 3 | G1-START | Open browser to TARGET_URL | [ ] | |
-| 4 | G1-S1 | EXPLORE: [step description] | [ ] | |
-| 5 | G1-S1 | ELEMENT MAP: [block] | [ ] | |
-| 6 | G1-S1 | WRITE CODE: Step 1 | [ ] | |
-| 7 | G1-S1 | UPDATE: mark active-group step [x] | [ ] | |
-| ... | ... | ... | ... | |
-| N | G1-END | RUN VALIDATION: headless, 0 retries | [ ] | |
-| N+1 | G1-END | REVIEWER: run rubric | [ ] | |
-| N+2 | G1-END | COLLAPSE CHECKLIST | [ ] | |
-| N+3 | G1-END | ROTATE AND GENERATE NEXT CHECKLIST | [ ] | |
-| N+4 | G1-END | MILESTONE CHECK + OFFER STOP/CONTINUE | [ ] | |
-```
+- `DEBUG`
+  - `STOP_REASON: DEBUG_DIAGNOSIS` → resume diagnosis approval
+  - `STOP_REASON: L2_ESCALATION` → resume evidence-gathering escalation
 
-**Stateless rule:** Only SETUP rows + current Group rows are ever present. Future group rows are generated during ROTATE. Past group rows are collapsed to a single SUMMARY row.
+- `AUTOMATE`
+  - `PHASE: PLAN_PENDING` → review saved plan from `test.md`
+  - `PHASE: SETUP` → resume setup
+  - `PHASE: EXECUTING` → resume from `ACTIVE_GROUP` and `ACTIVE_STEP`
+  - `PHASE: VALIDATING` → re-run the saved validation command
+  - `PHASE: ROTATING` → resume collapse/rotate work
+  - `PHASE: MILESTONE` → re-present the saved gate
+
+- `FINALIZE`
+  - `PHASE: FINALIZING` → resume architecture or finalize validation
+
+- `COMPLETE`
+  - inform the user the finalized run is complete
+  - do not default back into `/finalize`
 
 ---
 
-## COLLAPSE CHECKLIST Protocol
+## Plan Persistence Rule
 
-When all rows for Group N are marked `[x]`:
+`PLAN_PENDING` must be real.
 
-1. Read all `[x]` rows for Group N from the checklist
-2. Extract key artifacts: spec file path, element maps created/updated, locators written
-3. Replace ALL Group N rows with ONE summary row:
+When the Strategist generates the plan:
+1. write `test.md`
+2. write `test-session.md`
+3. set:
+   - `PHASE: PLAN_PENDING`
+   - `STOP_REASON: PLAN_APPROVAL`
+   - `GATE_TYPE: APPROVAL`
+   - `ACTIVE_WORKFLOW: AUTOMATE`
+   - `ACTIVE_GROUP: NONE`
+   - `ACTIVE_STEP: NONE`
+   - `LAST_COMPLETED_ROW: NONE`
+   - `NEXT_EXPECTED_ACTION: REVIEW_PLAN`
+   - `GROUPING_CONFIRMED: NO`
+4. stop for approval
 
-```
-| [SUMMARY] | G[N]-DONE | Group [N] complete — [N] steps coded, [M] element maps: [list] | [x] | [key locators/artifacts] |
-```
-
-4. Save test-session.md
-
-This keeps the file lean for the next agent session.
+Only after approval should the session file be expanded into setup + Group 1 rows.
 
 ---
 
-## ROTATE Protocol
+## Checklist Shape
 
-After COLLAPSE CHECKLIST:
+The required order for each group is:
 
-1. `mv active-group.md completed-groups/group-[N].md`
-2. `mv pending-groups/group-[N+1].md active-group.md`
-3. Read new `active-group.md`
-4. Generate Group [N+1] checklist rows and APPEND to test-session.md:
-   - G[N+1]-START rows
-   - G[N+1]-S[1..M] rows (4 rows per step: EXPLORE, ELEMENT MAP, WRITE CODE, UPDATE)
-   - G[N+1]-END rows (VALIDATION, REVIEWER, COLLAPSE, ROTATE, MILESTONE)
-5. Update PHASE to EXECUTING in header
-6. Save test-session.md
+```text
+G[N]-START
+G[N]-S[X] EXPLORE
+G[N]-S[X] ELEMENT MAP
+G[N]-S[X] WRITE CODE
+G[N]-S[X] UPDATE
+G[N]-END REVIEWER
+G[N]-END VALIDATION
+G[N]-END FOUNDATION_OR_MILESTONE_GATE
+G[N]-END COLLAPSE
+G[N]-END ROTATE
+```
 
-**If no pending groups remain:**
-- Update PHASE to FINALIZING
-- Tell user to run `/finalize`
+Reviewer always comes before validation.
+
+---
+
+## Collapse Protocol
+
+When a group is complete:
+1. replace detailed completed rows for that group with one summary row
+2. include:
+   - key locators or assertions
+   - any helper created
+   - whether L2 or L3 was needed
+   - whether the Reviewer issued WARN
+3. save `test-session.md`
+
+This keeps the session lean for fresh-session continuation.
+
+---
+
+## Rotate Protocol
+
+After collapse:
+
+1. move `active-group.md` into `completed-groups/`
+2. promote the next pending group into `active-group.md`
+3. append the new group's checklist rows
+4. evaluate foundation and milestone logic
+5. set:
+   - `PHASE: EXECUTING` if continuing
+   - `PHASE: MILESTONE` if stopping at a gate
+   - `PHASE: FINALIZING` if no groups remain
+6. update:
+   - `ACTIVE_WORKFLOW`
+   - `ACTIVE_GROUP`
+   - `ACTIVE_STEP`
+   - `LAST_COMPLETED_ROW`
+   - `NEXT_EXPECTED_ACTION`
+   - `FINALIZED_GROUPS`
+   - `LAST_ACTIVE`
+
+When no groups remain:
+- `ACTIVE_WORKFLOW: FINALIZE`
+- `PHASE: FINALIZING`
+- `STOP_REASON: NONE`
+- `GATE_TYPE: NONE`
+- `ACTIVE_GROUP: NONE`
+- `ACTIVE_STEP: NONE`
+- `NEXT_EXPECTED_ACTION: RUN_FINALIZE`

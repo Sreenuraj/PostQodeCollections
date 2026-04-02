@@ -1,172 +1,180 @@
 ---
 name: web-automation-pro
 description: >
-  Use this skill for ANY task involving: a browser, URL, website, web page,
-  navigation, login, form fill, click, scrolling, automation, E2E test,
-  Playwright, Cypress, Selenium, WebdriverIO, Puppeteer, page object,
-  web testing, or test generation. If a URL (http:// or https://) appears
-  anywhere in the user's prompt, or they mention any web interaction,
-  or they use the commands `/automate`, `/spec-gen`, `/finalize`, `/spec-update`, or `/debug`
-  — activate this skill immediately.
+  Use this skill for browser automation, test generation, Playwright, Cypress,
+  Selenium, WebdriverIO, Puppeteer, URLs, navigation, login flows, form flows,
+  page objects, component objects, browser exploration, or any reusable web
+  automation request. Activate immediately if the user mentions a workflow
+  command such as /spec-gen, /automate, /finalize, /spec-update, or /debug.
 ---
 
 # Web Automation Pro
 
-Production-quality web automation: spec-first, persona-driven, context-engineered, with zero guesswork in generated code.
+Spec-driven browser automation for long and stateful UI flows.
 
 ---
 
-## 🤝 Workflow Invocation Handshake (Direct Call)
+## Role of This Skill
 
-> **MANDATORY**: If you were invoked directly by the user typing a workflow command (e.g. `/automate` or `/spec-gen`) without prior context, your VERY FIRST ACTION MUST be to:
-> 1. Announce: `[⚙️ Activating Web Automation Pro Skill]`
-> 2. Read `.postqode/rules/core.md` to load the Five Laws.
-> 3. Pass control back to the specifically requested workflow file to begin its Phase 0 execution.
-> You must NOT skip this handshake.
+This skill is the orchestrator and router for the system.
+
+It must:
+- detect whether the user wants reusable automation or a one-time browser task
+- read saved state from disk
+- route the user to the correct workflow
+- prevent direct freeform coding when the workflow path should be used
+
+It must not:
+- skip the workflow chain
+- reconstruct state from memory when state files exist
+- make the COM/POM/Flat decision during `/automate`
 
 ---
 
-## ⚠️ Tool Priority — Read This First
+## Workflow Invocation Handshake
 
-**Always follow this order for browser actions:**
+If a workflow command is typed directly:
 
-| Priority | Tool | Use For |
+1. announce: `[⚙️ Activating Web Automation Pro Skill]`
+2. read `.postqode/rules/core.md`
+3. read the requested workflow file
+4. continue according to persisted state, not memory
+
+Do not skip this handshake.
+
+---
+
+## Browser Tool Priority
+
+| Priority | Tool | Use |
 |---|---|---|
-| **1st** | `postqode_browser_agent` MCP | ALL standard browser actions |
-| **2nd** | `playwright` CLI | Fallback if Priority 1 unavailable |
-| **3rd** | `chrome-devtools` MCP | **LAST RESORT** — DevTools-exclusive features ONLY |
+| 1 | `postqode_browser_agent` MCP | standard browser work |
+| 2 | Playwright browser tooling | fallback browser work |
+| 3 | DevTools tooling | last resort only |
 
-→ Full details: `references/tool-priority.md`
-
----
-
-## Step 0 — Intent Detection
-
-Before any browser action or planning, determine intent:
-
-> "Are you automating this flow to generate reusable tests, or is this a one-time browser task?"
-
-| Answer | Mode | What Changes |
-|---|---|---|
-| Automation / tests | **Recording Mode** | Full lifecycle: spec → plan → explore → code → validate |
-| One-time task | **Exploration Mode** | Standard browser interaction only; no spec or test generation |
-
-**If the user directly asks to "generate tests", "automate this", or provides a test case → activate Recording Mode immediately without asking.**
+See `references/tool-priority.md` for details.
 
 ---
 
-## Step 1 — State Detection (Recording Mode Only)
+## Step 0 — Mode Detection
 
-Read the session state to determine which workflow to direct the user to.
+Decide first:
+- **Recording Mode** for reusable automation
+- **Exploration Mode** for one-time browser work
 
-→ See `references/session-protocol.md` for full state routing logic.
+If the user asks to generate tests, automate a flow, or gives a reusable browser scenario, enter Recording Mode immediately.
 
-**Quick routing:**
+---
 
-```
-.postqode/spec/SPEC.md missing AND test-session.md missing?
-  → FIRST RUN — Show welcome:
+## Step 1 — State Detection for Recording Mode
 
-    👋 Welcome to Web Automation Pro.
-    I'll guide you through automating your web application tests.
+Read in this order:
+1. `.postqode/spec/SPEC.md`
+2. `test-session.md` if present
+3. `PHASE`
+4. `ACTIVE_WORKFLOW`
+5. `STOP_REASON`
+6. `LAST_ACTIVE`
 
-    Start with `/spec-gen` — I'll ask a few questions about your app,
-    then build your automation spec.
+Use `references/session-protocol.md` as the canonical state router.
 
-  → ⛔ **AGENT AUTONOMY GUARD:** Do NOT act on the user's requirements yet. Do NOT write any framework files, POMs, or test scripts. You MUST NOT skip the workflow rules. 
-  → **ACTION REQUIRED:** Immediately read `.postqode/workflows/spec-gen.md`. Announce the persona defined in that file, and execute its steps exactly as written. Do not guess what to do.
+### Required routing
 
-SPEC.md missing but test-session.md exists?
-  → Orphaned session — warn user and suggest /spec-gen
+- no locked spec
+  - route to `/spec-gen`
 
-SPEC.md exists (LOCKED) but test-session.md missing?
-  → Tell user: "SPEC.md is ready. Loading framework executor..."
-  → ⛔ **AGENT AUTONOMY GUARD:** Do NOT execute setup tasks. Do NOT generate test code yet.
-  → **ACTION REQUIRED:** Immediately read `.postqode/workflows/automate.md`. Announce the persona defined in that file, and begin its execution path rigorously.
+- `PHASE: COMPLETE`
+  - inform the user the run is already finalized
+  - suggest `/debug` or `/spec-update` only if relevant
+  - do not route back to `/finalize` by default
 
-test-session.md exists?
-  → Check LAST_ACTIVE for stale session (see session-protocol.md)
-  → Read PHASE field → route accordingly
-  → Show resume diagnostic:
-    "Resumed session. Last completed: [last [x] row]. Resuming at [first [ ] row]."
-```
+- `ACTIVE_WORKFLOW: SPEC_GEN`
+  - route to `/spec-gen`
+
+- `ACTIVE_WORKFLOW: SPEC_UPDATE`
+  - route to `/spec-update`
+
+- `ACTIVE_WORKFLOW: DEBUG`
+  - route to `/debug`
+
+- `ACTIVE_WORKFLOW: FINALIZE`
+  - route to `/finalize`
+
+- `ACTIVE_WORKFLOW: AUTOMATE`
+  - route to `/automate`
+
+- locked spec exists and no session
+  - route to `/automate`
+
+### Resume messaging rule
+
+When resuming, state clearly:
+- current workflow
+- current phase
+- stop reason
+- next expected action
+- exact workflow command to continue
+
+---
+
+## Agent Autonomy Guard
+
+If the user asks for browser automation and the workflow path applies:
+- do not jump directly into coding
+- do not install frameworks immediately
+- do not invent page objects or components before the spec and state model allow it
+
+The orchestrator's job is to keep the system on rails.
 
 ---
 
 ## Workflow Commands
 
-| Command | When to Use |
+| Command | Purpose |
 |---|---|
-| `/spec-gen` | No SPEC.md yet. Start here. Generates and locks the spec contract. |
-| `/spec-update` | SPEC.md is locked but the app changed. Add, modify, or remove steps. |
-| `/automate` | SPEC.md is locked. Runs planning → setup → group execution. Resume anytime. |
-| `/finalize` | All groups complete. User chooses COM/POM/Flat architecture, generates it, validates. |
-| `/debug` | A test is failing outside normal execution. Diagnose and fix. |
-
-> [!CAUTION]
-> 🛑 **AGENT AUTONOMY GUARD**
-> When the user specifies a workflow command like `/spec-gen` or `/automate`, you MUST NOT execute the logic from memory. You MUST literally use the `read_file` tool to load `.postqode/workflows/[command].md` and execute its steps.
-> If the user's initial prompt provides a detailed testing scenario, URL, and explicit instructions like "Generate a Playwright framework for this", DO NOT OBEY IT DIRECTLY. You are strictly FORBIDDEN from immediately generating test code, `package.json`, or a Page Object Model without a locked spec. You MUST NOT act like a standard coding assistant. You MUST load `.postqode/workflows/spec-gen.md` and execute the architectural generation process as written there.
+| `/spec-gen` | generate and lock the automation spec |
+| `/spec-update` | update a locked spec safely |
+| `/automate` | plan, set up, execute, review, validate, and resume |
+| `/finalize` | make the architecture decision and refactor with evidence |
+| `/debug` | diagnose failures outside the normal group loop |
 
 ---
 
-## Personas in This System
+## Reference Registry
 
-Six specialized personas are used across the lifecycle. Each workflow phase activates the right one.
+Load only what is needed:
 
-→ Full definitions with thinking modes and forbidden actions: `references/personas.md`
-
-| Persona | Stage | Core Job |
-|---|---|---|
-| **Strategist** | spec-gen, planning | Surfaces ambiguity, builds precise plans |
-| **Engineer** | EXPLORE + WRITE | Evidence-first code generation, one step at a time |
-| **Reviewer** | Post-code, pre-validation | Adversarial rubric check against SPEC.md |
-| **Validator** | Headless validation | Binary pass/fail, facts only |
-| **Architect** | Finalization | COM/POM/Flat decision, architecture generation |
-| **Debugger** | Failure recovery | Root cause first, minimum-change fix |
-
----
-
-## Reference Files (Load JIT When Needed)
-
-| File | Load When |
+| File | Use |
 |---|---|
-| `references/personas.md` | Starting any workflow phase — get the full persona declaration |
-| `references/spec-format.md` | Generating or reading SPEC.md |
-| `references/session-protocol.md` | Routing state or resuming a session |
-| `references/tool-priority.md` | Starting any browser interaction |
-| `references/reviewer-rubric.md` | Reviewer persona is active |
-| `references/tip-protocol.md` | Engineer is about to write a step |
-| `references/grouping-algorithm.md` | Strategist is grouping steps (Phase 0) |
-| `references/recovery-protocol.md` | Test validation fails |
-| `references/architecture-patterns.md` | /finalize — choosing POM vs COM vs Flat |
-| `references/element-map-schema.md` | Engineer is creating/updating an element map |
-| `references/framework-rule-template.md` | Engineer is generating framework rules during Setup |
+| `references/session-protocol.md` | state routing and resume logic |
+| `references/personas.md` | persona definitions |
+| `references/spec-format.md` | SPEC schema |
+| `references/grouping-algorithm.md` | plan grouping |
+| `references/tip-protocol.md` | evidence-driven exploration |
+| `references/reviewer-rubric.md` | group review |
+| `references/recovery-protocol.md` | failure recovery |
+| `references/architecture-patterns.md` | final architecture decision |
+| `references/element-map-schema.md` | element map format |
+| `references/framework-rule-template.md` | framework rule generation |
 
 ---
 
-## Key Rules (Always Active)
+## Key Always-On Rules
 
-→ `rules/core.md` — 5 Laws + Persona Protocol + Named Templates (ALWAYS in effect)
-→ `rules/automation-standards.md` — Framework-agnostic testing standards
-→ `rules/interaction-fallbacks.md` — Coordinates, hover, slider strategies
-→ `rules/debug-context-capture.md` — Debug injection protocol
-→ `rules/[framework].md` — Generated during Setup; framework-specific conventions
+- `rules/core.md`
+- `rules/automation-standards.md`
+- `rules/interaction-fallbacks.md`
+- `rules/debug-context-capture.md`
+- `rules/[framework].md` when available
 
 ---
 
-## Best Practices
+## Operating Summary
 
-**DO:**
-- ✅ Always run `/spec-gen` before `/automate` — spec is the contract
-- ✅ Use `browser_snapshot` for analysis; `browser_take_screenshot` for visual evidence
-- ✅ Follow TIP protocol for every step (see `references/tip-protocol.md`)
-- ✅ Trust TURBO MODE — it only auto-continues when conditions are safe
-- ✅ Check element maps before creating new ones — reuse what exists
-
-**DON'T:**
-- ❌ Skip intent detection — always ask or infer
-- ❌ Write code before running TIP and capturing evidence
-- ❌ Use chrome-devtools for standard browser actions
-- ❌ Batch checklist rows — one at a time, always
-- ❌ Proceed past a ⛔ STOP without explicit user input
+The intended operating model is:
+- the skill orchestrates
+- `/spec-gen` creates the contract
+- `/automate` executes flat-first group by group
+- `/finalize` makes the actual COM/POM/Flat decision
+- every stop is stateful and resumable
+- saved state, not memory, is what makes long sessions reliable

@@ -1,332 +1,387 @@
 ---
-description: Master web automation orchestrator — planning, execution, and state routing
+description: Plan, set up, execute, review, validate, and resume spec-driven web automation
 ---
 
 # /automate
 
-> **The main workflow.** Handles all phases of execution planning and group-by-group automation.
-> Workflow chain: `/spec-gen` → **`/automate`** → `/finalize`
+> Main execution workflow for a locked automation spec.
 
 > [!CAUTION]
-> ## REQUIRED SKILL CHECK & CORE RULES
-> 1. **MANDATORY PREREQUISITE:** If you were invoked directly into this workflow and have not yet loaded the main skill, you MUST read `.postqode/skills/web-automation-pro/SKILL.md` right now. Execute the "Workflow Invocation Handshake" found there before proceeding.
-> 2. Read `.postqode/rules/core.md` now. All Five Laws apply to every action in this workflow.
-> Read `.postqode/rules/automation-standards.md` — framework-agnostic testing standards.
-> Read the relevant framework rule `.postqode/rules/[framework].md` when framework is known.
+> Before proceeding:
+> 1. load the main skill if it has not been loaded yet
+> 2. read `.postqode/rules/core.md`
+> 3. read `.postqode/rules/automation-standards.md`
+> 4. read `.postqode/rules/[framework].md` when framework is known
 
 ---
 
-## Resume Protocol — State Router
+## Resume Protocol
 
-**Run this every time `/automate` is invoked (new session or resumed).**
+Every `/automate` entry must:
+1. check `.postqode/spec/SPEC.md`
+2. check `test-session.md`
+3. route using `ACTIVE_WORKFLOW`, `STOP_REASON`, and `PHASE`
+4. use `NEXT_EXPECTED_ACTION` as the primary execution hint
 
-1. Check `.postqode/spec/SPEC.md`:
-   - **NOT EXISTS** → "SPEC.md not found. Please run `/spec-gen` first." ⛔ STOP
-   - **EXISTS, Status: DRAFT** → "SPEC.md is still in DRAFT. Please run `/spec-gen` to finalize it." ⛔ STOP
-   - **EXISTS, Status: LOCKED** → continue
-
-2. Check `test-session.md`:
-   - **NOT EXISTS** → Begin Phase 0 (new execution plan)
-   - **EXISTS** → Read PHASE field and route:
-
-| PHASE | Action |
-|---|---|
-| `PLAN_PENDING` | Show `test.md` plan, ask for approval → go to Phase 0 Step 6 |
-| `SETUP` | Find first `[ ]` SETUP row in checklist → resume Phase 1 |
-| `EXECUTING` | Find first `[ ]` row in active group → resume Phase 2 |
-| `VALIDATING` | Re-run validation command (read from TEST_COMMAND header) |
-| `ROTATING` | Resume: collapse → rotate → generate next rows |
-| `MILESTONE` | Show milestone menu (⛔ STOP was hit; get user input to continue) |
-| `FINALIZING` | "All groups complete. Please run `/finalize`." ⛔ STOP |
-| `COMPLETE` | "Execution complete. Run `/finalize` for production architecture." ⛔ STOP |
-
-→ Full state machine in `.postqode/skills/web-automation-pro/references/session-protocol.md`
+If state is:
+- `PLAN_PENDING` → re-show the saved plan
+- `SETUP` → resume setup
+- `EXECUTING` → resume the active group from `ACTIVE_GROUP` and `ACTIVE_STEP`
+- `VALIDATING` → resume validation
+- `ROTATING` → resume collapse or rotate work
+- `MILESTONE` → re-present the saved foundation or milestone gate
+- `FINALIZING` → stop and tell the user to run `/finalize`
+- `COMPLETE` → tell the user this run is already finalized
 
 ---
 
-## Phase 0 — Intelligence → Plan → Approve
+## Phase 0 — Plan and Approval
 
 ### 🎭 PERSONA: The Strategist
-> Mandate: Read the spec, scan the workspace, group the steps intelligently, and get plan approval.
-> Thinking mode: Broad. Surfaces unknowns before committing.
-> FORBIDDEN: Writing code. Touching the browser. Proceeding to session file generation without explicit user approval.
+> Mandate: Turn the locked spec into a persisted execution plan and get explicit approval.
+> Thinking mode: Broad, cautious, state-aware.
+> FORBIDDEN: Writing production test code. Touching the browser. Moving forward without saving `PLAN_PENDING`.
 
-**Step 0.1 — Read SPEC.md**
-Extract: Target URL, Viewport, Framework (or TBD), all Step Definitions, Anti-Patterns.
+### Step 0.1 — Read the locked spec
 
-**Step 0.2 — Workspace Intelligence Scan**
-- Read `package.json` and config files → detect framework, test command, spec file location
-- Scan existing test spec files → detect pre-coded steps
-- Scan `element-maps/` → detect existing maps
-- Read `.postqode/rules/[framework].md` if it exists
+Extract:
+- target URL
+- viewport
+- framework or `TBD`
+- Step Definitions
+- anti-patterns
 
-**Step 0.3 — Pre-Coded Step Detection (Cases A/B/C)**
-→ See `.postqode/skills/web-automation-pro/references/grouping-algorithm.md` for the full CASE A/B/C logic.
-Apply the case, stop for user if needed.
+### Step 0.2 — Workspace intelligence scan
 
-**Step 0.4 — Group the Steps**
-→ Apply grouping algorithm from `.postqode/skills/web-automation-pro/references/grouping-algorithm.md`.
-Produce the plan table. Write to `test.md`.
+Read:
+- `package.json`
+- framework config files
+- existing test files
+- `element-maps/`
+- generated framework rules if they exist
 
-**Step 0.5 — MANDATORY STOP GATE: Plan Approval**
+### Step 0.3 — Detect pre-coded steps
 
-> [!CAUTION]
-> This is a hard stop. After presenting the plan, **immediately end your response**. Do not proceed to session file generation until the user explicitly approves.
+Use `references/grouping-algorithm.md` for CASE A/B/C.
 
-Present:
-```
-📋 Execution plan written to test.md.
+### Step 0.4 — Group the steps
 
-[N] groups, [M] total steps
-Framework detected: [name or "TBD — will ask during setup"]
-TURBO MODE: On by default (auto-continues between groups).
-
-Please review test.md and confirm:
-  (A) Approved — generate session files and begin
-  (B) Changes needed — tell me what to adjust
-  (C) TURBO OFF — approved but stop after every group
-```
-**⛔ STOP — wait for explicit user approval. END YOUR RESPONSE NOW.**
-
-**Step 0.6 — Generate Session Files (ONLY after user approves)**
-
-Prerequisite check: User's message must contain explicit approval (A, "approved", "yes", "proceed", etc.). If not found, re-ask.
+Use `references/grouping-algorithm.md`.
 
 Write:
-1. `test-session.md` — header + SETUP rows + Group 1 rows ONLY (stateless)
-2. `active-group.md` — Group 1 step definitions (full template per step)
-3. `pending-groups/group-[2..N].md` — all remaining groups (step templates, no checklist rows)
-4. `completed-groups/` — empty directory
-5. `element-maps/` — empty directory
+1. `test.md` with the grouped plan
+2. `test-session.md` with at least:
+   - `PHASE: PLAN_PENDING`
+   - `STOP_REASON: PLAN_APPROVAL`
+   - `GATE_TYPE: APPROVAL`
+   - `ACTIVE_WORKFLOW: AUTOMATE`
+   - `ACTIVE_GROUP: NONE`
+   - `ACTIVE_STEP: NONE`
+   - `LAST_COMPLETED_ROW: NONE`
+   - `NEXT_EXPECTED_ACTION: REVIEW_PLAN`
+   - `TURBO: ON`
+   - `WORKING_STYLE: FLAT_FIRST`
+   - `ARCHITECTURE_DECISION: TBD`
+   - `GROUPING_CONFIRMED: NO`
+   - `FOUNDATION_REVIEW_DONE: NO`
 
-Write `TURBO: ON` (or `OFF` if user chose C) to header. Write `PHASE: SETUP` to header.
-Delete `test.md`.
+### Step 0.5 — Plan approval gate
+
+Present:
+
+```text
+Execution plan written to test.md.
+
+[N] groups, [M] total steps
+Framework detected: [name or TBD]
+Execution style: Flat-first during /automate
+TURBO: ON by default
+
+(A) Approved — continue into setup
+(B) Changes needed
+(C) Approved, but TURBO OFF
+```
+
+Stop and wait.
+
+Required footer:
+
+```text
+Paused at: AUTOMATE / PLAN_PENDING
+Reason: PLAN_APPROVAL
+Next action: REVIEW_PLAN
+To continue, run: /automate
+```
+
+### Step 0.6 — Expand session after approval
+
+Only after explicit approval:
+- expand `test-session.md` into setup + Group 1 rows
+- create `active-group.md`
+- create `pending-groups/`
+- create `completed-groups/` if missing
+- create `element-maps/` if missing
+- set:
+  - `PHASE: SETUP`
+  - `STOP_REASON: NONE`
+  - `GATE_TYPE: NONE`
+  - `GROUPING_CONFIRMED: YES`
+  - `ACTIVE_GROUP: G1`
+  - `ACTIVE_STEP: NONE`
+  - `NEXT_EXPECTED_ACTION: RUN_SETUP`
+  - `TURBO: OFF` only if user chose it
+
+If the user asks for plan changes:
+- keep or rewrite `test.md`
+- keep `PHASE: PLAN_PENDING`
+- return to planning
 
 ---
 
-## Phase 1 — Framework Setup
+## Phase 1 — Setup
 
 ### 🎭 PERSONA: The Engineer
-> Mandate: Get the minimum viable framework in place to run tests. Nothing more.
-> FORBIDDEN: Building production architecture. Creating folder structures. Writing Page Objects. Do minimal work — just enough to run a test.
+> Mandate: Prepare the minimum viable framework runtime and working spec for execution.
+> Thinking mode: Minimal and practical.
+> FORBIDDEN: Choosing COM/POM/Flat. Building a full architecture. Refactoring beyond setup needs.
 
-> [!CAUTION]
-> **PREREQUISITE GUARD:** 
-> Do NOT enter Phase 1 (Framework Setup) just because the user asked to "create a framework". You MUST complete Phase 0 and create `test-session.md` first. If `SPEC.md` does not exist, you MUST direct the user to `/spec-gen`.
+### Path A — Framework detected
 
-**If framework detected (Path A):**
-1. Read config and `package.json` → record `FRAMEWORK`, `TEST_COMMAND`, timeouts, `SPEC_FILE`, `CONFIG_FILE`
-2. Verify viewport matches `EXPLORATION_VIEWPORT` in config — update if different
-3. Scan existing test patterns (for reference only — do NOT refactor)
-4. Scan element maps (set `ELEMENT_MAPS_FOUND` in header)
-5. Create working spec file if `MODE: NEW_TEST` — single test body, no Page Objects
-6. If `MODE: EXTEND_EXISTING` — create backup, prepare spec for extension
-7. Update `test-session.md` header. Mark SETUP rows `[x]`. Update `PHASE: EXECUTING`.
+1. record framework metadata in `test-session.md`
+2. confirm or adjust viewport
+3. prepare the working spec file
+4. mark setup rows complete
+5. set:
+   - `PHASE: EXECUTING`
+   - `STOP_REASON: NONE`
+   - `GATE_TYPE: NONE`
+   - `NEXT_EXPECTED_ACTION: EXPLORE_STEP`
 
-**If no framework found (Path B):**
+### Path B — No framework detected
+
+Before asking the user to choose a framework, persist:
+- `PHASE: SETUP`
+- `STOP_REASON: FRAMEWORK_CHOICE`
+- `GATE_TYPE: CHOICE`
+- `ACTIVE_WORKFLOW: AUTOMATE`
+- `ACTIVE_GROUP: G1`
+- `ACTIVE_STEP: NONE`
+- `NEXT_EXPECTED_ACTION: SELECT_FRAMEWORK`
+
+Ask the user which framework to use.
+
+Stop and wait.
+
+Required footer:
+
+```text
+Paused at: AUTOMATE / SETUP
+Reason: FRAMEWORK_CHOICE
+Next action: SELECT_FRAMEWORK
+To continue, run: /automate
 ```
-No testing framework detected.
-
-Which framework would you like to use?
-  (A) Playwright (TypeScript) — Recommended
-  (B) Playwright (JavaScript)
-  (C) Cypress
-  (D) Selenium / WebdriverIO / other — specify which
-  (E) I'll install one manually — tell me when ready
-```
-**⛔ STOP — wait for reply.**
 
 After selection:
-1. Install with minimal config using STRICTLY NON-INTERACTIVE commands (e.g., `npm init playwright@latest --yes -- --quiet --browser=chromium --no-gh-actions`). Do NOT trigger interactive terminal prompts.
-2. Set viewport in config to match `EXPLORATION_VIEWPORT`
-3. **Generate `.postqode/rules/[framework].md`** — framework-specific conventions:
-   → Follow the template in `.postqode/skills/web-automation-pro/references/framework-rule-template.md` exactly.
-   - Locator API (how to implement the locator hierarchy)
-   - Wait API (how to implement wait strategies)
-   - Assertion syntax
-   - How to override config for headless + zero-retry validation runs
-   - Run command
-   - Framework-specific anti-patterns
-4. **Generate basic scaffolding & tracking:**
-   - Execute `git init` in the terminal to initialize the test history.
-   - Create `.gitignore` ignoring `node_modules/`, `test-results/`, and `playwright-report/` (or framework equiv).
-   - Execute `git add .` and `git commit -m "chore: framework installation and scaffolding"`
-5. **Architect Decision Gate:**
-   Ask the user what architecture they prefer for this framework:
-   ```text
-   Basic setup is complete.
-   Choose your test architecture pattern for this run:
-     (A) COM (Component Object Model) — Best for modern apps, incrementally builds components.
-     (B) POM (Page Object Model) — Best for simpler apps, separated page logic.
-     (C) Flat — Keep code purely sequential in the spec file.
-   ```
-   **⛔ CRITICAL STOP: Do NOT auto-answer or auto-select this choice yourself. The Agent MUST NOT decide this. You MUST present this option to the user and await their exact reply (A, B, or C).**
-6. After user replies, update `test-session.md` header: Add `ARCHITECTURE: [COM/POM/Flat]`. Mark SETUP rows `[x]`. Update `PHASE: EXECUTING`.
+1. install the minimum runtime non-interactively
+2. generate `.postqode/rules/[framework].md`
+3. prepare the working spec file
+4. mark setup rows complete
+5. set:
+   - `PHASE: EXECUTING`
+   - `STOP_REASON: NONE`
+   - `GATE_TYPE: NONE`
+   - `NEXT_EXPECTED_ACTION: EXPLORE_STEP`
+
+### Explicit non-goal
+
+Do not ask the user to choose COM, POM, or Flat in setup.
+
+The working mode for `/automate` is always `FLAT_FIRST`.
 
 ---
 
-## Phase 2 — Execution Loop
+## Phase 2 — Group Execution Loop
 
-**This phase repeats for each group until all groups are complete.**
+### Browser continuity
 
-### Browser Continuity (Protocol A/B)
-Before starting the first step of a group:
-- If `BROWSER_STATUS` is `OPEN`, proceed (Protocol A). If action fails (connection lost), ask user for Protocol B.
-- If `BROWSER_STATUS` is `CLOSED` (or browser was lost):
-  ```text
-  Browser needs fresh open. [N] previous steps need replay.
-    (A) I will replay automatically (Headless run to catch up)
-    (B) Open browser to start URL — I will list the steps for you to perform manually.
-  ```
-  **⛔ STOP — wait for reply.** 
-  Execute the choice, then update `BROWSER_STATUS: OPEN`.
+Before a new group:
+- if the browser state is valid, continue
+- if the browser must be re-established and a user choice is required, persist stop state before asking
 
-### Per-Step Loop (ENGINEER persona)
+### 🎭 PERSONA: The Engineer
+> Mandate: Explore evidence first and write one step at a time.
+> Thinking mode: Observe, map, write, save.
+> FORBIDDEN: Batching future steps. Premature COM/POM. Skipping element maps.
 
-> [!CAUTION]
-> 🛑 **THE ANTI-BATCHING LAW (ZERO EXCEPTIONS)**
-> You are STRICTLY FORBIDDEN from generating the full test script at once. You MUST NOT write test code for future steps or groups you haven't explicitly explored in the browser. 
-> You MUST execute exactly ONE `[ ]` checklist row at a time. Read row → Do row → mark `[x]` → STOP. If you batch-write tests without running TIP on them, you have FAILED the protocol.
+For each pending step in the active group:
 
-```
-For each [ ] step row in the checklist (one at a time — ANTI-BATCHING LAW):
+### Step phase persistence
 
-  STATE CHECK: Output "CHECKLIST ROW: [#] | ACTION: [what I'm about to do]"
-  Verify the row matches what I'm about to do before proceeding.
+Before each step starts, update:
+- `PHASE: EXECUTING`
+- `ACTIVE_WORKFLOW: AUTOMATE`
+- `ACTIVE_GROUP`
+- `ACTIVE_STEP`
+- `NEXT_EXPECTED_ACTION: EXPLORE_STEP`
 
-  EXPLORE (G[N]-S[X] EXPLORE row):
-    → Run TIP protocol (.postqode/skills/web-automation-pro/references/tip-protocol.md)
-    → Pre-snapshot → perform action → network monitor → 3s settle → post-snapshot → diff
-    → Record evidence: locators, network calls, DOM changes
+1. **EXPLORE**
+   - run TIP
+   - capture pre and post evidence
 
-  ELEMENT MAP (G[N]-S[X] ELEMENT MAP row):
-    → Follow schema from `.postqode/skills/web-automation-pro/references/element-map-schema.md`
-    → Check if element map exists in element-maps/ for this page + block
-    → If exists: read it, use existing locators, add new ones if discovered
-    → If not exists: create element-maps/[page]__[block].json with all element locators
-    → Note reuse signals: if this block was seen on a previous page, add reuse_signal field
+2. **ELEMENT MAP**
+   - create or update the relevant map
+   - record reuse signals
 
-  WRITE CODE (G[N]-S[X] WRITE CODE row):
-    → Check `ARCHITECTURE` from session header:
-      - If **COM**: Generate or reuse Base/Business Components in `components/`, and Page objects in `pages/`. Write the test spec step utilizing high-level abstractions (e.g., `loginPage.loginForm.submit()`).
-      - If **POM**: Generate/update the Page class. Write test spec using `page.action()`.
-      - If **Flat**: Write raw locator code directly.
-    → Write code for THIS STEP ONLY using TIP evidence
-    → Evidence-based waits only (no sleep())
-    → Add TIP evidence comment (required for Reviewer)
-    → Append to the working spec file
+3. **WRITE CODE**
+   - append flat-first code to the working spec
+   - use evidence-based waits
+   - add TIP evidence comments
+   - a local helper is allowed only after the same interaction pattern has appeared in at least 2 completed explored steps in the same run
+   - record helper creation in `test-session.md` remarks and later in the group summary
+   - do not create page objects or component architecture
 
-  UPDATE (G[N]-S[X] UPDATE row):
-    → Mark step Status=[x] in active-group.md
-    → Mark checklist row [x] in test-session.md  ← SAVE RULE: save file now
-    → **INTRA-GROUP VOLUME GATE**: If you just marked the 3rd, 6th, or 9th exploration step `[x]` for this group, pause and invoke the Reviewer persona mid-group. If the Reviewer issues a WARN or FAIL, ⛔ STOP and wait for User approval before exploring the next step.
-```
+4. **UPDATE**
+   - mark the step complete in `active-group.md`
+   - mark the checklist row complete in `test-session.md`
+   - update `LAST_COMPLETED_ROW`
+   - update `NEXT_EXPECTED_ACTION` to either the next step or `RUN_REVIEWER`
+   - save immediately
 
-### End-of-Group Sequence
+### Intra-group review threshold
 
-When all step rows for the group are marked `[x]`:
+"Drift risk is rising" means either:
+- 3 explored steps have completed since the last reviewer check, or
+- a local helper was introduced in this group, or
+- the group used frame, shadow DOM, coordinate fallback, or L1 recovery on 2 or more steps
 
-**G[N]-END: REVIEWER RUBRIC**
+When that threshold is met:
+- persist a stop if user approval is required
+- otherwise run a reviewer check before the next unexplored step
+
+---
+
+## End of Group
 
 ### 🎭 PERSONA: The Reviewer
-> Mandate: Review the just-written code against the spec before any test runs.
-> FORBIDDEN: Writing or fixing code.
+> Mandate: Review the finished group before validation starts.
+> Thinking mode: Adversarial and rubric-driven.
+> FORBIDDEN: Writing the fix directly.
 
-→ Load `.postqode/skills/web-automation-pro/references/reviewer-rubric.md`. Run all 7 criteria. Generate REVIEWER REPORT.
+Run all 7 rubric criteria from `references/reviewer-rubric.md`.
 
-- **PASS (7/7):** Mark row `[x]`. Proceed to validation.
-- **WARN (5-6/7):** Return to Engineer persona. Fix specific flagged items. Reviewer re-runs rubric.
-- **FAIL (<5/7 or Criterion 7 fails):** Mark row `[FAIL]`. ⛔ STOP — present REVIEWER REPORT to user.
+- `7/7` → PASS
+- `5-6/7` → WARN → Engineer fixes and rubric re-runs
+- `<5/7` or criterion 7 failure → FAIL and stop
 
-**G[N]-END: RUN VALIDATION**
-
-### 🎭 PERSONA: The Validator
-> Mandate: Run the test. Report binary result.
-
-Run validation command with:
-- Retries: 0 (override project config if needed: `--retries=0`)
-- Headless mode
-- Report exact output (pass/fail count, error messages)
-
-Mark row `[x]` if PASS. If FAIL → switch to:
-
-### 🎭 PERSONA: The Debugger
-
-→ Apply L1→L2→L3 from `.postqode/skills/web-automation-pro/references/recovery-protocol.md`:
-- **L1:** 2 auto-fix attempts
-- **L2:** ⛔ STOP — ask for outerHTML/screenshot
-- **L3:** Graceful skip + mark `[⚠️]`
-
-After fix attempt → return to VALIDATOR for re-run.
-
-**G[N]-END: FOUNDATION TRUST GATE**
-
-- **Is this Group 1?** 
-  If YES → ⛔ **CRITICAL STOP.** You are forbidden from collapsing the very first group without human review of the foundations. Output the Reviewer and Validation results, and wait for explicit User Approval. TURBO mode does not bypass this gate.
-
-**G[N]-END: COLLAPSE CHECKLIST**
-
-→ Apply COLLAPSE protocol from `.postqode/skills/web-automation-pro/references/session-protocol.md`
-→ Replace all G[N] rows with one SUMMARY row
-→ Mark row `[x]`. Save file.
-
-**G[N]-END: ROTATE AND GENERATE NEXT CHECKLIST**
-
-→ Apply ROTATE protocol from `.postqode/skills/web-automation-pro/references/session-protocol.md`
-→ Complete rotation → new active-group.md → new G[N+1] checklist rows
-→ Mark row `[x]`. Save file.
-
-**G[N]-END: ATOMIC GIT COMMIT**
-
-→ Execute `git add .` and `git commit -m "test(web-automation): complete Group [N] execution"` in the terminal to save the progress of this group atomically.
-
-**G[N]-END: MILESTONE CHECK + CONTINUE DECISION**
+Only after review is complete should the workflow write:
+- `PHASE: VALIDATING`
+- `STOP_REASON: NONE`
+- `GATE_TYPE: NONE`
+- `NEXT_EXPECTED_ACTION: RUN_VALIDATION`
 
 ### 🎭 PERSONA: The Validator
+> Mandate: Run the current group validation and report the result.
+> Thinking mode: Binary and factual.
 
-Run `MILESTONE_CHECK` template (from `rules/core.md`):
+Run validation:
+- headless
+- zero retries
+- exact output captured
 
-| Signal | Present? |
-|---|---|
-| 1. L2 or L3 recovery was needed this group | |
-| 2. Reviewer flagged issues (WARN or FAIL) | |
-| 3. 5+ groups still pending | |
-| 4. 3+ groups since last user check-in | |
+If validation fails:
+- hand off to the Debugger
+- follow L1 → L2 → L3 recovery
 
-**If 2+ signals OR `TURBO=OFF`:**
+### Foundation trust gate
+
+If this is Group 1 and `FOUNDATION_REVIEW_DONE` is not yet `YES`:
+- persist:
+  - `PHASE: MILESTONE`
+  - `STOP_REASON: FOUNDATION_GATE`
+  - `GATE_TYPE: APPROVAL`
+  - `ACTIVE_GROUP: [current group]`
+  - `ACTIVE_STEP: NONE`
+  - `NEXT_EXPECTED_ACTION: REVIEW_FOUNDATION`
+- present review + validation outcome
+- stop for user approval
+
+Required footer:
+
+```text
+Paused at: AUTOMATE / MILESTONE
+Reason: FOUNDATION_GATE
+Next action: REVIEW_FOUNDATION
+To continue, run: /automate
 ```
-📍 Milestone Review — Group [N] Complete
 
-Status: [N] of [total] groups done
-⚠️ Signals: [list triggered signals]
+On approval:
+- set `FOUNDATION_REVIEW_DONE: YES`
+- clear `STOP_REASON`
+- continue to collapse and rotate
 
-Validation: ✅ PASS (or describe any L3 skips)
-L3 skips this group: [list or "none"]
+### Collapse and rotate
 
-(A) Continue to Group [N+1]
-(B) Run /finalize now (if all groups done)
-(C) Pause — I'll return later
+After a passed group and any required gate:
+1. collapse completed rows
+2. promote the next group if present
+3. update phase:
+   - `EXECUTING` if continuing immediately
+   - `MILESTONE` if a stop gate fired
+   - `FINALIZING` if no pending groups remain
+
+### Milestone logic
+
+Use `MILESTONE_CHECK` from `rules/core.md`.
+
+If stopping for a milestone review, persist:
+- `PHASE: MILESTONE`
+- `STOP_REASON: MILESTONE_GATE`
+- `GATE_TYPE: APPROVAL`
+- `ACTIVE_GROUP: [current group]`
+- `ACTIVE_STEP: NONE`
+- `NEXT_EXPECTED_ACTION: REVIEW_MILESTONE`
+
+Present:
+
+```text
+Milestone Review — Group [N] Complete
+
+Status: [N] of [total] groups complete
+Signals: [...]
+
+(A) Continue
+(B) Pause
+(C) Finalize now if all groups are done
 ```
-**⛔ STOP — wait for user reply.**
 
-**If 0-1 signals AND `TURBO=ON`:**
-→ AUTO-CONTINUE. Log: "🚀 TURBO: Auto-continuing to Group [N+1]"
-→ Return to Per-Step Loop for Group [N+1]
+Stop and wait.
+
+Required footer:
+
+```text
+Paused at: AUTOMATE / MILESTONE
+Reason: MILESTONE_GATE
+Next action: REVIEW_MILESTONE
+To continue, run: /automate
+```
 
 ---
 
-## Phase 2 Complete — All Groups Done
+## End of `/automate`
 
-When no pending groups remain and rotation sets `PHASE: FINALIZING`:
+When no pending groups remain:
+- set `ACTIVE_WORKFLOW: FINALIZE`
+- set `PHASE: FINALIZING`
+- set `STOP_REASON: NONE`
+- set `GATE_TYPE: NONE`
+- set `ACTIVE_GROUP: NONE`
+- set `ACTIVE_STEP: NONE`
+- set `NEXT_EXPECTED_ACTION: RUN_FINALIZE`
 
-```
-✅ All [N] groups executed and validated!
+Then report:
 
-Summary:
-  • [N] groups complete
-  • [M] element maps created
-  • [K] L3 graceful skips (review recommended before /finalize)
-  • [R] reuse signals detected (components shared across pages)
+```text
+All groups are executed and the working flat implementation is validated.
 
-Next step: Run /finalize to generate production architecture.
+Next step: run /finalize to choose COM, POM, or Flat with evidence and complete the handoff.
 ```
