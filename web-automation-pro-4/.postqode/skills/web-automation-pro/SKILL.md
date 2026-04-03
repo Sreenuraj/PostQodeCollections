@@ -14,54 +14,145 @@ Spec-driven browser automation for long and stateful UI flows.
 
 ---
 
-## Role of This Skill
+## ⚠️ CRITICAL RULES — READ FIRST, ENFORCE ALWAYS
 
-This skill is the orchestrator and router for the system.
+These 7 rules are non-negotiable and apply at every turn of every session.
+Before each response, silently verify all 7.
 
-It must:
-- detect whether the user wants reusable automation or a one-time browser task
-- read saved state from disk
-- route the user to the correct workflow
-- prevent direct freeform coding when the workflow path should be used
-- make persona activation visible when the workflow changes phase
-- repair malformed saved state before trusting it for resume
-- force natural-language automation requests onto the workflow chain before any framework or test files are created
-- run the protocol guard before high-impact writes, transitions, and summaries
+1. **Never skip the workflow chain.** Every automation request — vague or detailed — enters through a workflow command or is routed to one. No freeform coding outside the chain.
+2. **State files, not memory.** Always read `test-session.md` and `SPEC.md` from disk before acting. Never reconstruct state from conversation history.
+3. **No code before the spec is locked.** Do not create framework config, fixtures, page objects, or executable tests until `/spec-gen` has produced a `LOCKED` spec and the routing says `/automate`.
+4. **One runnable test file throughout `/automate`.** Never create a new test file per group. `WORKING_TEST_FILE` is set once and stable until `/finalize`.
+5. **Stop at every gate.** Approval gates are mandatory pauses. Always write the stop state to disk before presenting the gate. Never self-approve.
+6. **Run PROTOCOL_GUARD before any write, transition, or summary** that could move the session off-rails. The inline guard below is always available — use it.
+7. **No COM/POM/Flat decision during `/automate`.** That decision belongs to `/finalize` and requires evidence. Never pre-select an architecture during execution.
 
-It must not:
-- skip the workflow chain
-- reconstruct state from memory when state files exist
-- make the COM/POM/Flat decision during `/automate`
-- silently default framework or language when the user has not confirmed them
-- treat non-active-group failures as permission to keep coding
-- create multiple runnable group test files during `/automate`
-- present a paused progress checkpoint as if the framework were complete
-- trust markdown-table session ledgers or stray pending files as valid canonical state
-- interpret a natural-language request for automation help as permission to start generic framework scaffolding outside the workflow chain
-- skip the protocol guard when a write, transition, or summary could move the run off-rails
+### Inline PROTOCOL_GUARD
+
+Run this mental checklist before every high-impact action:
+
+```
+PROTOCOL_GUARD:
+[ ] Is ACTIVE_WORKFLOW correct for this step?
+[ ] Is PHASE the right phase for this action?
+[ ] Does this write fall within the current workflow's write boundary?
+[ ] Is the stop state already persisted before I present a gate?
+[ ] Would this summary claim completion for work that is still unresolved?
+If any box is [ ] NO → STOP. Do not proceed. Resolve the conflict first.
+```
 
 ---
 
 ## Workflow Invocation Handshake
 
-If a workflow command is typed directly:
+### On explicit workflow command (`/spec-gen`, `/automate`, `/finalize`, `/spec-update`, `/debug`):
 
-1. announce: `[⚙️ Activating Web Automation Pro Skill]`
-2. read `.postqode/rules/core.md`
-3. read the requested workflow file
-4. continue according to persisted state, not memory
+1. Output: `[⚙️ Activating Web Automation Pro Skill]`
+2. Read `.postqode/rules/core.md`
+3. Confirm load by stating: `core.md loaded. Active rules: [list top 3 rules from the file]`
+4. Read the requested workflow file
+5. Read `test-session.md` and `SPEC.md` from disk
+6. Route using persisted state, not memory
 
-Do not skip this handshake.
+### On natural-language entry (no slash command):
 
-If the user enters through natural language instead of an explicit workflow command:
+Use this decision tree — do not guess:
 
-1. announce the routed workflow, for example:
-   - `[⚙️ Routing to /spec-gen]`
-   - `[⚙️ Routing to /automate]`
-2. read the same rules and workflow file that explicit command would have used
-3. follow that workflow contract exactly, including persisted stops and approval gates
+```
+Does the message mention a URL, flow, login, form, navigation, or test?
+  AND does it imply reuse / repeatability / a test suite?
+    → Recording Mode → route to /spec-gen (if no locked spec) or /automate (if locked spec exists)
 
-Natural-language entry is still workflow entry. It is not a freeform framework-generator mode.
+Does the message ask to "check", "explore", "see what happens", or "try"?
+    → Exploration Mode → one-time browser task, no workflow chain required
+
+Is it ambiguous?
+    → Ask ONE clarifying question: "Do you want a reusable automated test, or a one-time browser check?"
+    → Do not start coding while waiting for the answer
+```
+
+After routing, announce: `[⚙️ Routing to /[workflow]]`
+Then read `core.md` and the workflow file exactly as explicit command entry would.
+
+Natural-language entry is workflow entry. It is never a freeform framework-generator mode.
+
+### core.md load is not optional
+
+If `core.md` cannot be read (file missing, path error), stop and tell the user:
+```
+Cannot load .postqode/rules/core.md. Please verify the file exists before continuing.
+```
+Never proceed past the handshake without confirming core.md loaded.
+
+---
+
+## Step 0 — Mode Detection
+
+Decide before anything else:
+- **Recording Mode** — for reusable automation (test suites, repeatable flows)
+- **Exploration Mode** — for one-time browser inspection
+
+Use the decision tree in the Handshake section above.
+If any signal points toward Recording Mode, enter it immediately regardless of how vague or detailed the request is.
+
+---
+
+## Step 1 — State Detection (Recording Mode only)
+
+Read in this exact order from disk:
+1. `.postqode/spec/SPEC.md`
+2. `test-session.md`
+3. `PHASE`
+4. `ACTIVE_WORKFLOW`
+5. `STOP_REASON`
+6. `LAST_ACTIVE`
+
+Do not rely on earlier conversation turns for any of these values.
+
+### Routing table
+
+| State | Route |
+|---|---|
+| No locked spec | `/spec-gen` |
+| `ACTIVE_WORKFLOW: SPEC_GEN` | `/spec-gen` |
+| `ACTIVE_WORKFLOW: SPEC_UPDATE` | `/spec-update` |
+| `ACTIVE_WORKFLOW: DEBUG` | `/debug` |
+| `ACTIVE_WORKFLOW: FINALIZE` | `/finalize` |
+| `ACTIVE_WORKFLOW: AUTOMATE` | `/automate` |
+| Locked spec, no session | `/automate` Phase 0 |
+| `PHASE: COMPLETE` | Inform user. Suggest `/debug` or `/spec-update` only if relevant. Do not re-route to `/finalize`. |
+
+### Write boundary when routed to `/spec-gen`
+
+May write: `.postqode/spec/SPEC.md`, minimal session ledger fields.
+Must not write: framework config, fixtures, page objects, utility modules, runtime environment files, executable tests.
+
+### Write boundary when routed to `/automate` with no session yet
+
+Begin at Phase 0 planning only. Do not skip to setup. Do not create any runtime files before `PLAN_PENDING` is persisted and approved.
+
+### Resume message format
+
+When resuming any workflow, always state:
+- Current workflow
+- Current phase
+- Stop reason
+- Next expected action
+- Exact command to continue
+
+---
+
+## Phase Transition Re-Anchor
+
+At every workflow phase transition, re-state the 3 most relevant Critical Rules from the top of this file before acting. This prevents rule drift across long sessions.
+
+Example (at start of `/automate` Phase 2 — Execution):
+```
+Re-anchoring rules for EXECUTING phase:
+- Rule 4: One runnable test file. WORKING_TEST_FILE is stable.
+- Rule 5: Stop at every gate. State persisted before presenting.
+- Rule 6: PROTOCOL_GUARD runs before each step write.
+```
 
 ---
 
@@ -77,103 +168,21 @@ See `references/tool-priority.md` for details.
 
 ---
 
-## Step 0 — Mode Detection
-
-Decide first:
-- **Recording Mode** for reusable automation
-- **Exploration Mode** for one-time browser work
-
-If the user asks to generate tests, automate a flow, or gives a reusable browser scenario, enter Recording Mode immediately.
-
-This applies whether the user gives:
-- a vague opener
-- a full detailed step list
-- a framework-specific request
-- or a request spread across multiple messages
-
----
-
-## Step 1 — State Detection for Recording Mode
-
-Read in this order:
-1. `.postqode/spec/SPEC.md`
-2. `test-session.md` if present
-3. `PHASE`
-4. `ACTIVE_WORKFLOW`
-5. `STOP_REASON`
-6. `LAST_ACTIVE`
-
-Use `references/session-protocol.md` as the canonical state router.
-Use `references/protocol-guard.md` as the mandatory anti-deviation loop.
-
-### Required routing
-
-- no locked spec
-  - route to `/spec-gen`
-
-- `PHASE: COMPLETE`
-  - inform the user the run is already finalized
-  - suggest `/debug` or `/spec-update` only if relevant
-  - do not route back to `/finalize` by default
-
-- `ACTIVE_WORKFLOW: SPEC_GEN`
-  - route to `/spec-gen`
-
-- `ACTIVE_WORKFLOW: SPEC_UPDATE`
-  - route to `/spec-update`
-
-- `ACTIVE_WORKFLOW: DEBUG`
-  - route to `/debug`
-
-- `ACTIVE_WORKFLOW: FINALIZE`
-  - route to `/finalize`
-
-- `ACTIVE_WORKFLOW: AUTOMATE`
-  - route to `/automate`
-
-- locked spec exists and no session
-  - route to `/automate`
-
-When routing says `/spec-gen`, the skill must not create:
-- framework config files
-- fixtures
-- page objects
-- utility modules
-- runtime environment files
-- executable tests
-
-When routing says `/automate` but `test-session.md` does not yet exist:
-- begin at `/automate` Phase 0 planning
-- do not skip directly to setup
-
-### Resume messaging rule
-
-When resuming, state clearly:
-- current workflow
-- current phase
-- stop reason
-- next expected action
-- exact workflow command to continue
-
----
-
 ## Agent Autonomy Guard
 
-If the user asks for browser automation and the workflow path applies:
-- do not jump directly into coding
-- do not install frameworks immediately
-- do not create framework scaffolding, fixtures, config helpers, page objects, or utility modules before the routed workflow explicitly allows it
-- do not invent page objects or components before the spec and state model allow it
-- do not write runnable future-group code before those groups are explored
-- do not validate more than the active group during `/automate`
-- do not continue past the Group 1 foundation gate without an explicit user reply
-- do not present a success summary while speculative code or non-target validation failures remain
-- do not create one runnable test file per group during `/automate`
-- do not replay the whole flow before first inspecting the current browser state or saved failure artifacts when diagnosing an in-progress group
-- do not treat a malformed `test-session.md`, a stale `active-group.md`, or a stray non-canonical pending-group file as acceptable resume state
-- do not turn a general request for automation help into a generic framework-generator checklist
+This guard is active throughout every session. Before generating any output that involves writing files or advancing the session, verify each item silently:
 
-The orchestrator's job is to keep the system on rails.
+- [ ] Am I inside the correct workflow for this action?
+- [ ] Did I read `test-session.md` from disk this turn?
+- [ ] Am I about to write code that belongs to a future group?
+- [ ] Am I about to skip a stop gate?
+- [ ] Am I about to create a second runnable test file?
+- [ ] Am I about to default framework or language without user confirmation?
+- [ ] Am I about to present a success summary while unresolved work remains?
+- [ ] Am I about to treat malformed state as valid canonical state?
+- [ ] Am I about to make the COM/POM/Flat decision inside `/automate`?
+
+If any item would answer YES → stop and resolve before continuing.
 
 ---
 
@@ -191,12 +200,12 @@ The orchestrator's job is to keep the system on rails.
 
 ## Reference Registry
 
-Load only what is needed:
+Load only what is needed for the current action:
 
 | File | Use |
 |---|---|
 | `references/session-protocol.md` | state routing and resume logic |
-| `references/protocol-guard.md` | route/write/transition/summary guard |
+| `references/protocol-guard.md` | full route/write/transition/summary guard |
 | `references/personas.md` | persona definitions |
 | `references/spec-format.md` | SPEC schema |
 | `references/grouping-algorithm.md` | plan grouping |
@@ -207,24 +216,27 @@ Load only what is needed:
 | `references/element-map-schema.md` | element map format |
 | `references/framework-rule-template.md` | framework rule generation |
 
+When a reference file is loaded mid-session, re-read it fresh from disk. Do not assume its content from earlier in the conversation.
+
 ---
 
 ## Key Always-On Rules
 
-- `rules/core.md`
+- `rules/core.md` — loaded and confirmed at every handshake
 - `rules/automation-standards.md`
 - `rules/interaction-fallbacks.md`
 - `rules/debug-context-capture.md`
-- `rules/[framework].md` when available
+- `rules/[framework].md` when framework is known
 
 ---
 
 ## Operating Summary
 
-The intended operating model is:
-- the skill orchestrates
-- `/spec-gen` creates the contract
-- `/automate` executes flat-first group by group
-- `/finalize` makes the actual COM/POM/Flat decision
-- every stop is stateful and resumable
-- saved state, not memory, is what makes long sessions reliable
+```
+Skill orchestrates
+  → /spec-gen creates the locked contract
+  → /automate executes flat-first, group by group
+  → /finalize makes the COM/POM/Flat decision with evidence
+  → every stop is stateful and resumable from disk
+  → saved state, not memory, is what makes long sessions reliable
+```

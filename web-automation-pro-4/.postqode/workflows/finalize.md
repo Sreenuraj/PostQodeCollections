@@ -6,120 +6,174 @@ description: Make the final architecture decision, refactor the working spec, va
 
 > Run after `/automate` has completed all groups.
 
-> [!CAUTION]
-> Before proceeding:
-> 1. load the skill if needed
-> 2. read `.postqode/rules/core.md`
-> 3. read `.postqode/skills/web-automation-pro/references/architecture-patterns.md`
-> 4. read `.postqode/skills/web-automation-pro/references/protocol-guard.md`
+---
+
+## ⚠️ Entry Checklist — Complete Before Any Other Action
+
+```
+[ ] 1. Announce: [⚙️ Activating Web Automation Pro Skill] (if skill not yet active)
+[ ] 2. Read .postqode/rules/core.md from disk
+[ ] 3. Confirm: "core.md loaded. Active rules: [list top 3 rules]"
+[ ] 4. Read .postqode/skills/web-automation-pro/references/architecture-patterns.md
+[ ] 5. Read .postqode/skills/web-automation-pro/references/protocol-guard.md
+[ ] 6. Read test-session.md from disk — check PHASE, ACTIVE_WORKFLOW, STOP_REASON
+[ ] 7. Route using persisted state — not memory
+```
+
+### Resume routing
+
+| PHASE | Action |
+|---|---|
+| `EXECUTING`, `VALIDATING`, `ROTATING`, `MILESTONE` | Stop — tell the user to complete `/automate` first |
+| `FINALIZING` or `ACTIVE_WORKFLOW: FINALIZE` | Continue from `STOP_REASON` + `NEXT_EXPECTED_ACTION` |
+| `COMPLETE` | Inform the user finalization is done — offer re-run only if they explicitly want it |
 
 ---
 
-## Resume Protocol
+## Inline PROTOCOL_GUARD
 
-`/finalize` should run when:
-- `ACTIVE_WORKFLOW: FINALIZE`, or
-- the user explicitly wants to re-run finalization
+Run before every file write, transition, or summary:
 
-If `PHASE` is:
-- `EXECUTING`, `VALIDATING`, `ROTATING`, or `MILESTONE` → stop and send the user back to `/automate`
-- `COMPLETE` → explain that finalization already finished unless they want a deliberate re-run
+```
+PROTOCOL_GUARD:
+[ ] Is ACTIVE_WORKFLOW = FINALIZE?
+[ ] Is the current PHASE consistent with this action?
+[ ] Does this write fall within the finalize write boundary?
+[ ] Is stop state persisted before presenting the architecture gate?
+[ ] Would this summary claim COMPLETE before final validation has passed?
+If any box is NO → stop and resolve first.
+```
 
 ---
 
-## Phase 0 — Read the evidence
+## Phase 0 — Read the Evidence
+
+### Re-anchor on entry:
+```
+Phase 0 active rules:
+- No architecture decision yet — only evidence gathering
+- No refactor writes yet
+- PROTOCOL_GUARD runs before any write or summary
+- User must approve the architecture choice before any refactor begins
+```
 
 ### 🎭 PERSONA: The Architect
 > Mandate: Use execution evidence and explicit thresholds to recommend and apply the right final structure.
 > Thinking mode: Structural and evidence-based.
 > FORBIDDEN: Auto-selecting the final architecture without user approval.
 
-Read:
+Required first output:
+`[🎭 Activating Persona: The Architect]`
+
+Read from disk:
 1. `.postqode/spec/SPEC.md`
-2. the working spec
+2. the working spec / `WORKING_TEST_FILE`
 3. all `element-maps/*.json`
 4. any local helpers created during `/automate`
 5. `test-session.md`
 
-Quantify:
+Quantify before proceeding:
 - number of element maps
-- repeated blocks
-- shared behaviors across pages
+- repeated blocks across pages
+- shared behaviors
 - page count
 - local helper count
 
-Before any refactor write or completion summary, run `PROTOCOL_GUARD`.
+Do not write anything in Phase 0. Gather and count only.
 
 ---
 
-## Phase 1 — Architecture decision gate
+## Phase 1 — Architecture Decision Gate
 
-Before presenting the decision gate, persist:
-- `PHASE: FINALIZING`
-- `STOP_REASON: ARCHITECTURE_CHOICE`
-- `GATE_TYPE: APPROVAL`
-- `ACTIVE_WORKFLOW: FINALIZE`
-- `ACTIVE_GROUP: NONE`
-- `ACTIVE_STEP: NONE`
-- `NEXT_EXPECTED_ACTION: CHOOSE_ARCHITECTURE`
+### Re-anchor on entry:
+```
+Phase 1 active rules:
+- Architecture choice requires explicit user approval
+- Stop state must be persisted before the gate is presented
+- No refactor writes until approval is received
+```
 
-Present evidence and recommendation:
+Run `PROTOCOL_GUARD` — confirm stop state is about to be written.
 
-```text
+Persist to disk before presenting:
+```
+PHASE: FINALIZING
+STOP_REASON: ARCHITECTURE_CHOICE
+GATE_TYPE: APPROVAL
+ACTIVE_WORKFLOW: FINALIZE
+ACTIVE_GROUP: NONE
+ACTIVE_STEP: NONE
+NEXT_EXPECTED_ACTION: CHOOSE_ARCHITECTURE
+```
+
+Then present:
+
+```
 Architecture Decision
 
 Evidence:
 - [N] element maps analyzed
 - [X] repeated UI blocks across [Y] pages
 - local helper count: [Z]
-- shared patterns: [...]
+- shared patterns: [list]
 
 Recommendation: [COM | POM | Flat]
-Reason: [...]
+Reason: [one concise sentence grounded in the evidence]
 
-(A) COM
-(B) POM
-(C) Flat
+(A) COM — component-oriented, highest reuse
+(B) POM — page-oriented, page-centered logic
+(C) Flat — keep working spec, tidy helpers only
 ```
 
-Stop and wait.
-
-Required footer:
-
-```text
+```
 Paused at: FINALIZE / FINALIZING
 Reason: ARCHITECTURE_CHOICE
 Next action: CHOOSE_ARCHITECTURE
 To continue, run: /finalize
 ```
 
-After approval:
-- set `ARCHITECTURE_DECISION`
-- clear `STOP_REASON`
-- clear `GATE_TYPE`
-- set `NEXT_EXPECTED_ACTION: APPLY_ARCHITECTURE`
+Stop and wait for explicit user reply.
+
+### On approval:
+
+Re-anchor:
+```
+Architecture approved. Refactor write boundary now open.
+Refactor from working implementation and evidence only.
+Do not invent abstractions not supported by execution evidence.
+```
+
+Set:
+```
+ARCHITECTURE_DECISION: [COM | POM | Flat]
+STOP_REASON: NONE
+GATE_TYPE: NONE
+NEXT_EXPECTED_ACTION: APPLY_ARCHITECTURE
+```
 
 ---
 
-## Phase 2 — Apply the chosen structure
+## Phase 2 — Apply the Chosen Structure
 
-### If user chose COM
+Run `PROTOCOL_GUARD` before any refactor write.
+
+### If COM
 
 - extract reusable components from repeated UI blocks only when the COM threshold is met
 - keep pages thin
 - move behavior into components where reuse evidence supports it
 
-### If user chose POM
+### If POM
 
 - create page objects around distinct page responsibilities
 - keep shared logic modest and page-centered
 
-### If user chose Flat
+### If Flat
 
 - keep the working spec as the main artifact
 - tidy local helpers and comments only where useful
 
-### Shared rule
+### Shared rule for all three
 
 Refactor from the working implementation and evidence already gathered.
 Do not invent abstractions that were not supported by execution evidence.
@@ -128,16 +182,29 @@ Do not invent abstractions that were not supported by execution evidence.
 
 ## Phase 3 — Validation
 
+### Re-anchor on entry:
+```
+Phase 3 active rules:
+- Binary result only — PASS or FAIL
+- Do not clean up until validation passes
+- If fix requires user input, persist the stop reason before asking
+```
+
 ### 🎭 PERSONA: The Validator
 > Mandate: Confirm the finalized structure still works.
 > Thinking mode: Binary and factual.
 
-Before validation starts, write:
-- `PHASE: FINALIZING`
-- `ACTIVE_WORKFLOW: FINALIZE`
-- `STOP_REASON: NONE`
-- `GATE_TYPE: NONE`
-- `NEXT_EXPECTED_ACTION: RUN_FINALIZE_VALIDATION`
+Required first output:
+`[🎭 Activating Persona: The Validator]`
+
+Write before running:
+```
+PHASE: FINALIZING
+ACTIVE_WORKFLOW: FINALIZE
+STOP_REASON: NONE
+GATE_TYPE: NONE
+NEXT_EXPECTED_ACTION: RUN_FINALIZE_VALIDATION
+```
 
 Run:
 1. headless validation
@@ -146,48 +213,53 @@ Run:
 If validation fails:
 - hand off to the Debugger
 - repair minimally
-- if user help is required, persist `STOP_REASON: DEBUG_DIAGNOSIS` or `L2_ESCALATION`
+- if user input is required, persist `STOP_REASON: DEBUG_DIAGNOSIS` or `L2_ESCALATION` before asking
 - re-run validation
 
-Do not clean up until the finalized result passes.
+Do not proceed to Phase 4 until validation passes.
 
 ---
 
-## Phase 4 — Cleanup and completion
+## Phase 4 — Cleanup and Completion
 
-After validation passes:
+### Re-anchor on entry:
+```
+Phase 4 active rules:
+- Do not set PHASE: COMPLETE before PROTOCOL_GUARD confirms the transition is legal
+- Final validation must have passed before cleanup begins
+```
 
-Keep:
+Run `PROTOCOL_GUARD` — confirm:
+- final validation passed
+- transition to `COMPLETE` is legal
+- completion wording is accurate and not premature
+
+**Keep:**
 - `.postqode/spec/SPEC.md`
 - `element-maps/`
 - finalized code artifacts
 - `test-session.md` as a slim completion ledger
 
-Remove temporary execution artifacts:
+**Remove temporary execution artifacts:**
 - `test.md` if present
 - `active-group.md`
 - `pending-groups/`
 - `completed-groups/`
 
-Update `test-session.md` to:
-- `PHASE: COMPLETE`
-- `STOP_REASON: NONE`
-- `GATE_TYPE: NONE`
-- `ACTIVE_WORKFLOW: FINALIZE`
-- `ACTIVE_GROUP: NONE`
-- `ACTIVE_STEP: NONE`
-- `NEXT_EXPECTED_ACTION: NONE`
-- `ARCHITECTURE_DECISION: [chosen value]`
-- any other completion metadata needed for later routing
-
-Before setting `PHASE: COMPLETE`, run `PROTOCOL_GUARD` and confirm:
-- final validation passed
-- transition to `COMPLETE` is legal
-- completion wording is now allowed
+Update `test-session.md`:
+```
+PHASE: COMPLETE
+STOP_REASON: NONE
+GATE_TYPE: NONE
+ACTIVE_WORKFLOW: FINALIZE
+ACTIVE_GROUP: NONE
+ACTIVE_STEP: NONE
+NEXT_EXPECTED_ACTION: NONE
+ARCHITECTURE_DECISION: [chosen value]
+```
 
 Report:
-
-```text
+```
 Finalization complete.
 
 Architecture: [COM | POM | Flat]
