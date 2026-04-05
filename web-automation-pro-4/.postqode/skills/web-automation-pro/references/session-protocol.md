@@ -87,6 +87,40 @@ Defaults for a new automation session:
 
 ---
 
+## Ledger Completeness Rule
+
+Every write to `test-session.md` must preserve ALL canonical header fields.
+
+- When creating `test-session.md` for the first time, populate every field from the Required Header Fields list above. Use `TBD` for unknown values — never omit a field entirely.
+- When updating `test-session.md`, read the existing file first. Modify only the fields that are actually changing. Preserve all other fields from the existing file.
+- Always update `LAST_ACTIVE` to the current ISO timestamp on every write.
+- Never write a partial ledger that drops fields present in the previous version.
+
+---
+
+## Browser Status Lifecycle
+
+`BROWSER_STATUS` must reflect actual browser state. Do not guess or assume.
+
+| Event | BROWSER_STATUS |
+|---|---|
+| Agent opens a browser (any tool) | → `OPEN` |
+| Headless validation while headed session exists | stays `OPEN` |
+| Headed validation run | stays `OPEN` |
+| Config changes | stays `OPEN` |
+| All groups done (no pending groups remain) | → `CLOSED` |
+| Level 3 graceful exit | → `CLOSED` |
+| User explicitly asks to stop | → `CLOSED` |
+| Browser connection lost during action | → `CLOSED` (then Protocol A) |
+| New session with `BROWSER_STATUS: OPEN` but no browser accessible | → `CLOSED` (then Protocol B if steps need replay) |
+
+Hard rules:
+- Only `BROWSER_STATUS` is canonical. Do not invent `BROWSER_STATE`, `BROWSER_URL`, `BROWSER_PAGE_TITLE`, or any other browser field.
+- Headless validation does NOT close an exploration browser.
+- Do not set `BROWSER_STATUS: CLOSED` unless a trigger from the table above applies.
+
+---
+
 ## Workflow-Specific Resume Precedence
 
 On every entry, route by the most explicit signal first.
@@ -372,6 +406,10 @@ If `WORKING_TEST_FILE` is missing, changes unexpectedly between groups, or point
 - treat the state as malformed
 - repair the single working artifact before continuing
 - do not claim the later group is resumable until that repair is complete
+
+### Group file metadata sync
+
+When `ACTIVE_GROUP_STATUS` changes in `test-session.md`, update the `Status` field in `active-group.md` to match. The two files must never diverge on group status.
 
 ---
 

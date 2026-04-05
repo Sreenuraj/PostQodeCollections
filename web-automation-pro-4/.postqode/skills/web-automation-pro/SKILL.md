@@ -1,11 +1,17 @@
 ---
 name: web-automation-pro
 description: >
-  Use this skill for browser automation, test generation, Playwright, Cypress,
-  Selenium, WebdriverIO, Puppeteer, URLs, navigation, login flows, form flows,
-  page objects, component objects, browser exploration, or any reusable web
-  automation request. Activate immediately if the user mentions a workflow
-  command such as /spec-gen, /automate, /finalize, /spec-update, or /debug.
+  Activate this skill when the user wants to automate, test, or record a browser
+  flow. Trigger signals include: writing E2E or end-to-end tests, automating a
+  web flow, generating a test suite, testing a URL or web application, creating
+  login/form/navigation/dashboard automation, recording a reusable browser flow,
+  resuming or continuing an automation session, or mentioning any test framework
+  (Playwright, Cypress, Selenium, WebdriverIO, Puppeteer). Also activate when
+  the user mentions workflow commands (/spec-gen, /automate, /finalize,
+  /spec-update, /debug) or when SPEC.md or test-session.md exist in the
+  workspace. Covers: spec generation, browser exploration, element mapping,
+  flat-first test code, review, validation, architecture finalization, and
+  multi-session resumption.
 ---
 
 # Web Automation Pro

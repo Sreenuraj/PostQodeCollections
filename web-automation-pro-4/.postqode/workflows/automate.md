@@ -73,6 +73,23 @@ If `STOP_REASON: GROUP_REFINEMENT`:
 - inspect current browser state or saved failure artifacts **before** replaying steps
 - use `VALIDATION_STATE` and `LAST_FAILURE_REASON` to decide next action
 
+### Cross-session resume
+
+When resuming from a new chat session (no prior conversation context):
+
+1. Follow the entry checklist above as normal
+2. If `BROWSER_STATUS: OPEN` but no browser is accessible → set `BROWSER_STATUS: CLOSED`
+3. Present a resume summary:
+   ```
+   Resuming: [ACTIVE_WORKFLOW] / [PHASE]
+   Stop reason: [STOP_REASON]
+   Active group: [ACTIVE_GROUP]
+   Next action: [NEXT_EXPECTED_ACTION]
+   Browser: [BROWSER_STATUS]
+   ```
+4. Re-present the saved gate with original options — do not skip or auto-approve
+5. If browser needs reopening for execution → trigger Protocol B before first step
+
 ---
 
 ## Phase 0 — Plan and Approval
@@ -153,7 +170,7 @@ Run `PROTOCOL_GUARD` before writing any files.
 
 Write:
 1. `test.md` with the grouped plan
-2. `test-session.md` with at minimum:
+2. `test-session.md` with ALL fields from `references/session-protocol.md` Required Header Fields. Use `TBD` for unknowns. Do not omit fields. Key fields to set:
    ```
    PHASE: PLAN_PENDING
    STOP_REASON: PLAN_APPROVAL
@@ -303,6 +320,35 @@ Phase 2 active rules:
 Do not replay the whole flow before diagnosing a failure.
 If failure artifacts or browser state are available, inspect those first.
 
+### Protocol A — Browser Connection Loss
+
+When `BROWSER_STATUS: OPEN` and a browser action fails (timeout, connection refused, no browser context):
+
+1. Set `BROWSER_STATUS: CLOSED` in `test-session.md`
+2. Present:
+   ```
+   ⚠️ Browser connection lost.
+     (A) Open fresh and replay completed steps (Protocol B)
+     (B) I will fix it manually — wait for me
+   ```
+   ⛔ STOP — wait for user.
+   - (A) → Execute Protocol B
+   - (B) → Wait for user reply. When user says "done" or "fixed", set `BROWSER_STATUS: OPEN` and resume from current step.
+
+### Protocol B — Replay Choice
+
+When the browser needs a fresh open and completed steps exist:
+
+1. Present:
+   ```
+   Browser needs fresh open. [N] completed steps need replay.
+     (A) Replay automatically — run working test headed
+     (B) Open to TARGET_URL — I will list steps for you
+   ```
+   ⛔ STOP — wait for user.
+2. (A) → Set `BROWSER_STATUS: OPEN`, run working test headed, snapshot to verify state.
+3. (B) → Navigate to TARGET_URL, set `BROWSER_STATUS: OPEN`, list steps for manual replay, wait for "Done".
+
 ### 🎭 PERSONA: The Engineer
 > Mandate: Explore evidence first, write one step at a time.
 > Thinking mode: Observe, map, write, save.
@@ -348,9 +394,10 @@ Run `PROTOCOL_GUARD` before writing `active-group.md`, `element-maps/*`, or `WOR
 **4. UPDATE**
 - mark the step complete in `active-group.md`
 - mark the checklist row complete in `test-session.md`
-- update `LAST_COMPLETED_ROW`
+- update `LAST_COMPLETED_ROW` using format `G[N]-S[X] UPDATE` (e.g. `G1-S3 UPDATE`, not `Step 3`)
 - update `NEXT_EXPECTED_ACTION` to the next step or `RUN_REVIEWER`
 - keep `ACTIVE_GROUP_STATUS: EXPLORING` until all steps are complete
+- sync `active-group.md` Status field to match `ACTIVE_GROUP_STATUS`
 - save immediately after each step
 
 ### Intra-group review threshold
@@ -459,6 +506,22 @@ To continue, run: /automate
 
 If `FOUNDATION_REVIEW_DONE` is not `YES` after Group 1:
 
+#### Protocol C — Post-G1 Grouping Check
+
+If `GROUPING_CONFIRMED: NO` (runs once, after G1 validation passes):
+
+1. Assess from `active-group.md` (already loaded): Was G1 fast/simple or slow/complex?
+2. Propose group adjustments if warranted:
+   - Fast app → suggest merging small pending groups
+   - Slow/complex app → suggest keeping or splitting groups
+   - No changes needed → state "grouping looks appropriate"
+3. Include the assessment in the foundation gate presentation below
+4. On approval: apply changes to `pending-groups/`, set `GROUPING_CONFIRMED: YES`
+
+This uses data already in memory — no extra browser calls.
+
+#### Foundation gate presentation
+
 Persist to disk before presenting:
 ```
 PHASE: MILESTONE
@@ -469,7 +532,7 @@ ACTIVE_STEP: NONE
 NEXT_EXPECTED_ACTION: REVIEW_FOUNDATION
 ```
 
-Present review + validation outcome. Stop and wait.
+Present review + validation outcome + Protocol C grouping assessment. Stop and wait.
 
 ```
 Paused at: AUTOMATE / MILESTONE
