@@ -167,3 +167,18 @@ It includes:
 - `/finalize`,
 - stale-session handling,
 - and failure recovery situations.
+
+---
+
+## Future Plans
+
+### Rigor Mode — User-Controlled Execution Depth
+
+Allow users to choose their speed vs. reliability tradeoff at session start via a `RIGOR_MODE` field:
+
+| Mode | Intent | Best for |
+|---|---|---|
+| ⚖️ **BALANCED** | Default — standard TIP, element maps, reviewer, validation | Most automation work |
+| 🔒 **THOROUGH** | Full TIP with Transition Evidence Records, Timeout Tiers, Protocol C grouping re-evaluation, detailed checklists | Production-critical tests, complex/flaky apps |
+
+The mode would be set during plan approval (Phase 0) and stay fixed for the session. Safety features (Foundation Gate, Protocol A/B) remain active in all modes.
