@@ -1,16 +1,18 @@
 # Web Automation Pro Memory
 
+Memory files are created during automation runs. This index is empty until the first session.
+
 ## User
-- [User Preferences](user_preferences.md) — TURBO setting, expertise level, interaction style
+<!-- Created after plan approval: user_preferences.md -->
 
 ## Project
-- [Framework Decision](framework_decision.md) — Chosen framework, language, config
-- [Automation Context](automation_context.md) — Target app, viewport, complexity
-- [Architecture Decision](architecture_decision.md) — COM/POM/Flat choice with evidence
+<!-- Created after setup: framework_decision.md -->
+<!-- Created at milestones: automation_context.md -->
+<!-- Created after finalize: architecture_decision.md -->
 
 ## Feedback
-- [Execution Feedback](execution_feedback.md) — Corrections and confirmations
-- [Spec Feedback](spec_feedback.md) — Patterns in spec revision requests
+<!-- Created when user gives corrections: execution_feedback.md -->
+<!-- Created when user revises spec: spec_feedback.md -->
 
 ## Reference
-- [App URLs](app_urls.md) — Target URLs, environments, dashboards
+<!-- Created when user provides URLs: app_urls.md -->

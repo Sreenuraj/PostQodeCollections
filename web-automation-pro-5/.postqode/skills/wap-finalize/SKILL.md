@@ -1,20 +1,30 @@
+---
+name: wap-finalize
+description: |
+  Finalization procedure for Web Automation Pro. Analyzes reuse evidence from element maps, 
+  recommends COM/POM/Flat architecture, applies user's choice, validates, and cleans up.
+  Do NOT activate directly — invoked by the web-automation-pro agent.
+---
+
 # Finalize Procedure
 
-Detailed procedure for making the architecture decision, refactoring, validating, and cleaning up.  
-The agent loads this reference when entering the finalize phase (all groups complete).
+This skill handles the architecture decision, refactoring, validation, and cleanup after all groups are complete.
+
+**Load these references on entry:**
+- `references/architecture-patterns.md` — COM/POM/Flat guidance and heuristics
+- `references/protocol-guard.md` — Guard checks
 
 ---
 
 ## Phase 0 — Read the Evidence
 
 ### 🎭 PERSONA: The Architect
-> Mandate: Use execution evidence and explicit thresholds to recommend and apply the right final structure.  
-> Thinking mode: Structural and evidence-based.  
-> FORBIDDEN: Auto-selecting the final architecture without user approval.
+> **Mandate:** Use execution evidence and explicit thresholds to recommend and apply the right final structure.
+> **FORBIDDEN:** Auto-selecting the final architecture without user approval.
 
 Read from disk:
 1. `.postqode/spec/SPEC.md`
-2. The working spec / `WORKING_TEST_FILE`
+2. The working test file (`WORKING_TEST_FILE`)
 3. All `element-maps/*.json`
 4. Any local helpers created during execution
 5. `test-session.md`
@@ -28,13 +38,13 @@ Quantify before proceeding:
 
 Tell the user: "I'm analyzing the evidence from your completed automation to recommend the best architecture."
 
-Do not write anything in Phase 0. Gather and count only.
+**Do not write anything in Phase 0.** Gather and count only.
 
 ---
 
 ## Phase 1 — Architecture Decision Gate
 
-Persist to disk before presenting:
+**Persist to disk BEFORE presenting:**
 ```
 PHASE: FINALIZING
 STOP_REASON: ARCHITECTURE_CHOICE
@@ -45,10 +55,27 @@ ACTIVE_STEP: NONE
 NEXT_EXPECTED_ACTION: CHOOSE_ARCHITECTURE
 ```
 
-Present with evidence and reasoning:
+### Recommendation Heuristics
+
+**Recommend COM when ALL true:**
+1. At least 2 distinct UI blocks repeat
+2. Each repeated block appears on 2+ distinct pages
+3. The repeated blocks contain meaningful behavior (not just trivial navigation links)
+
+**Recommend POM when ALL true:**
+1. COM threshold not met
+2. Page responsibilities are clearly distinct
+3. Most interactions are page-specific
+
+**Recommend Flat when ANY true:**
+1. Total scope is small (6 or fewer steps)
+2. Flow spans 2 or fewer pages with low reuse
+3. Refactoring cost exceeds maintainability benefit
+
+### Present with evidence and reasoning:
 
 ```
-Architecture Decision
+📐 Architecture Decision
 
 Evidence:
 - [N] element maps analyzed
@@ -63,27 +90,10 @@ Reason: [one concise sentence grounded in the evidence]
 (B) POM — page-oriented, page-centered logic
 (C) Flat — keep working spec, tidy helpers only
 
-Which approach do you prefer? Here's what each means for your code...
+Which approach do you prefer?
 ```
 
-Stop and wait for explicit user reply.
-
-### Recommendation Heuristics
-
-**Recommend COM when all true:**
-1. At least 2 distinct UI blocks repeat
-2. Each repeated block appears on 2+ distinct pages
-3. The repeated blocks contain meaningful behavior
-
-**Recommend POM when all true:**
-1. COM threshold not met
-2. Page responsibilities are clearly distinct
-3. Most interactions are page-specific
-
-**Recommend Flat when any true:**
-1. Total scope is small (6 or fewer steps)
-2. Flow spans 2 or fewer pages with low reuse
-3. Refactoring cost exceeds maintainability benefit
+**STOP and wait for explicit user reply.**
 
 ---
 
@@ -103,8 +113,7 @@ Stop and wait for explicit user reply.
 - Tidy local helpers and comments only
 
 ### Shared rule
-Refactor from the working implementation and evidence already gathered.  
-Do not invent abstractions not supported by execution evidence.
+Refactor from the working implementation and evidence already gathered. Do not invent abstractions not supported by execution evidence.
 
 Tell the user: "Applying [chosen architecture]. I'll restructure the code based on the evidence we gathered, then validate everything still passes."
 
@@ -113,14 +122,14 @@ Tell the user: "Applying [chosen architecture]. I'll restructure the code based 
 ## Phase 3 — Validation
 
 ### 🎭 PERSONA: The Validator
-> Mandate: Confirm the finalized structure still works.
+> **Mandate:** Confirm the finalized structure still works.
 
 Run:
 1. Headless validation
 2. Headed validation when appropriate
 
 If validation fails:
-- Hand off to Debugger
+- Hand off to Debugger persona
 - Repair minimally
 - Re-run validation
 
@@ -167,3 +176,14 @@ Cleanup: complete
 Your automation is ready to use. The session ledger is retained so I can 
 pick up context if you need changes later.
 ```
+
+---
+
+## Protocol Guard
+
+Before any write in this skill:
+1. **Route check:** PHASE is `FINALIZING` and ACTIVE_WORKFLOW is `FINALIZE`
+2. **Write check:** Working test file and new architecture files are writable; SPEC.md is NOT writable
+3. **Transition check:** Only legal transition is `FINALIZING → COMPLETE`
+
+If any check fails, halt and explain.

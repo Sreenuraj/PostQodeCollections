@@ -1,29 +1,37 @@
+---
+name: wap-debug
+description: |
+  Debug and recovery procedure for Web Automation Pro. Handles L1 auto-recovery, 
+  L2 human-guided recovery, and L3 graceful degradation when validation fails.
+  Do NOT activate directly — invoked by the web-automation-pro agent.
+---
+
 # Debug and Recovery Procedure
 
-Consolidated reference for failure recovery during execution and standalone debugging.  
-Merges: `debug.md` + `recovery-protocol.md` + `debug-context-capture.md` from v4.
+This skill handles failure recovery during execution and standalone debugging.
 
-The agent loads this when entering failure recovery (validation fails) or standalone debug mode.
+**Load these references on entry:**
+- `references/recovery-protocol.md` — Recovery escalation details
+- `references/protocol-guard.md` — Guard checks
 
 ---
 
 ## 🎭 PERSONA: The Debugger
-> Mandate: Find the root cause using evidence and fix with the minimum change.  
-> Thinking mode: Methodical, evidence-driven, escalating.  
-> FORBIDDEN: Guessing. Broad code changes. Fixing multiple unrelated things at once.
+> **Mandate:** Find the root cause using evidence and fix with the minimum change.
+> **FORBIDDEN:** Guessing. Broad code changes. Fixing multiple unrelated things at once.
 
 ---
 
 ## Part 1 — In-Execution Recovery (L1 → L2 → L3)
 
-This flow is used when validation fails during the normal group execution loop.
+Used when validation fails during the normal group execution loop.
 
 ### L1 — Auto Recovery
 
-**When:** Validation fails for the first time on a step or group.  
+**When:** Validation fails for the first time on a step or group.
 **Max attempts:** 2
 
-Allowed actions:
+**Allowed actions:**
 - Inspect the current live browser state first (if browser still open)
 - Inspect saved failure artifacts before replaying
 - Re-snapshot the page
@@ -32,7 +40,7 @@ Allowed actions:
 - Check frame or shadow DOM context
 - Replay only from the nearest state needed
 
-Forbidden:
+**Forbidden:**
 - Broad refactors
 - Changing multiple unrelated steps
 - Asking the user anything
@@ -52,9 +60,9 @@ If L1 fails twice → escalate to L2.
 
 **When:** L1 failed twice.
 
-Persist before presenting:
+**Persist BEFORE presenting:**
 ```
-PHASE: VALIDATING
+PHASE: DEBUGGING
 STOP_REASON: L2_ESCALATION
 GATE_TYPE: ESCALATION
 NEXT_EXPECTED_ACTION: PROVIDE_FAILURE_EVIDENCE
@@ -78,7 +86,7 @@ To help me fix this, you can:
 (C) Skip this step for now — I'll mark it and continue
 ```
 
-Stop and wait.
+**STOP and wait.**
 
 After user input:
 - Use evidence to apply minimal fix
@@ -92,7 +100,12 @@ After user input:
 
 Actions:
 1. Comment out the failing line(s)
-2. Add L3 comment block explaining the skip
+2. Add L3 comment block explaining the skip:
+   ```
+   // L3 SKIP: [step description]
+   // Reason: [failure reason]
+   // Evidence: [what was tried]
+   ```
 3. Update `active-group.md` and `test-session.md`
 4. Continue the group
 5. Surface the skip at the next milestone summary
@@ -105,14 +118,13 @@ Tell user: "Marking this step as skipped with an L3 comment. I'll flag it in the
 
 If an entire group cannot be completed:
 
-Persist:
+**Persist:**
 ```
-PHASE: MILESTONE
+PHASE: DEBUGGING
 STOP_REASON: GROUP_REFINEMENT
 GATE_TYPE: APPROVAL
 ACTIVE_GROUP: [current group]
 NEXT_EXPECTED_ACTION: RESUME_GROUP_REFINEMENT
-VALIDATION_STATE: FAILED or STALE_AFTER_EDIT
 LAST_FAILURE_REASON: [short exact summary]
 ```
 
@@ -129,7 +141,7 @@ Options:
 (C) Re-spec this group — maybe the steps need adjusting
 ```
 
-Stop and wait.
+**STOP and wait.**
 
 ---
 
@@ -178,12 +190,12 @@ Capture 4 artifacts per failing step:
 
 Save to `debug-context/` with step ID prefix.
 
-**Injection pattern:** Single helper function tagged `// DEBUG-HELPER`. Calls tagged `// DEBUG-CONTEXT`.  
+**Injection pattern:** Single helper function tagged `// DEBUG-HELPER`. Calls tagged `// DEBUG-CONTEXT`.
 Strip `<script>`, `<style>`, `<svg>`, `<iframe>`, `<canvas>`, `<noscript>` from DOM. Truncate to 50K chars.
 
 ### Phase 3 — Diagnosis Confirmation
 
-Persist:
+**Persist BEFORE presenting:**
 ```
 STOP_REASON: DEBUG_DIAGNOSIS
 GATE_TYPE: APPROVAL
@@ -208,7 +220,7 @@ Proposed fix: [minimum change — one issue only]
 (C) This diagnosis is wrong — [user redirects]
 ```
 
-Stop and wait.
+**STOP and wait.**
 
 ### Phase 4 — Apply Fix
 1. Apply minimum change — exactly what was diagnosed
@@ -238,3 +250,14 @@ When analyzing the debug bundle, correlate all 4 sources:
 4. **DOM snapshot** — element exists? correct state?
 
 Never diagnose from a single source alone.
+
+---
+
+## Protocol Guard
+
+Before any write in this skill:
+1. **Route check:** PHASE is `DEBUGGING` or recovery is active within EXECUTING
+2. **Write check:** Working test file and debug-context/ are writable; SPEC.md is NOT writable
+3. **Transition check:** Legal transitions are `DEBUGGING → EXECUTING` (on fix) or `DEBUGGING → COMPLETE` (if was finalized)
+
+If any check fails, halt and explain.

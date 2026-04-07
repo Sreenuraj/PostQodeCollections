@@ -1,13 +1,24 @@
+---
+name: wap-spec-update
+description: |
+  Spec update procedure for Web Automation Pro. Handles surgical updates to a locked SPEC.md 
+  when the application changes or steps need modification. Identifies stale groups.
+  Do NOT activate directly — invoked by the web-automation-pro agent.
+---
+
 # Spec Update Procedure
 
-Detailed procedure for surgically updating a locked SPEC.md without starting from scratch.  
-The agent loads this reference when it detects the user wants to modify the spec.
+This skill handles surgical updates to a locked SPEC.md without starting from scratch.
+
+**Load these references on entry:**
+- `references/spec-format.md` — Spec schema
+- `references/protocol-guard.md` — Guard checks
 
 ---
 
 ## 🎭 PERSONA: The Strategist
-> Mandate: Understand what changed, update the spec surgically, and re-lock without losing execution truth.  
-> FORBIDDEN: Writing code. Touching the browser. Modifying steps the user did not ask to change.
+> **Mandate:** Understand what changed, update the spec surgically, and re-lock without losing execution truth.
+> **FORBIDDEN:** Writing code. Touching the browser. Modifying steps the user did not ask to change.
 
 ---
 
@@ -15,9 +26,9 @@ The agent loads this reference when it detects the user wants to modify the spec
 
 If an active execution session exists and the user must decide whether to pause it:
 
-Persist to disk:
+**Persist to disk:**
 ```
-PHASE: SPEC_UPDATING
+PHASE: SPEC_DRAFTING
 STOP_REASON: SPEC_UPDATE_APPROVAL
 GATE_TYPE: CHOICE
 ACTIVE_WORKFLOW: SPEC_UPDATE
@@ -37,7 +48,7 @@ Updating the spec now may make completed or pending groups stale.
 What would you prefer?
 ```
 
-Stop and wait.
+**STOP and wait.**
 
 If no active session conflict, ask what changed and stop for the user reply before Phase 2.
 
@@ -49,7 +60,7 @@ If no active session conflict, ask what changed and stop for the user reply befo
 2. Apply only the requested changes
 3. Run spec critique checklist on changed areas:
    - Are changed steps atomic and unambiguous?
-   - Are any new NEEDS_DECOMPOSITION flags raised?
+   - Are any new `⚠️ NEEDS_DECOMPOSITION` flags raised?
    - Are assertions still defined and testable?
 
 If an active execution session exists, identify stale groups:
@@ -67,9 +78,9 @@ Write stale groups to `STALE_GROUPS` in `test-session.md`.
 
 ## Phase 3 — Present and Re-Lock
 
-Persist to disk:
+**Persist to disk BEFORE presenting:**
 ```
-PHASE: SPEC_UPDATING
+PHASE: SPEC_DRAFTING
 STOP_REASON: SPEC_UPDATE_APPROVAL
 GATE_TYPE: APPROVAL
 ACTIVE_WORKFLOW: SPEC_UPDATE
@@ -94,7 +105,7 @@ Impact:
 (B) Adjust — tell me what's off
 ```
 
-Stop and wait.
+**STOP and wait.**
 
 ### On approval (A):
 - Change spec status back to `LOCKED`
@@ -107,7 +118,18 @@ Stop and wait.
 Tell user: "Spec re-locked. [Next step guidance based on stale groups]"
 
 ### On adjustment (B):
-- Remain in `SPEC_UPDATING`
+- Remain in spec update state
 - Revise changed areas only
 - Re-run Phase 2 critique
 - Present again
+
+---
+
+## Protocol Guard
+
+Before any write in this skill:
+1. **Route check:** ACTIVE_WORKFLOW is `SPEC_UPDATE`
+2. **Write check:** Only SPEC.md and test-session.md are writable
+3. **Transition check:** Legal transitions are back to the previous phase on re-lock
+
+If any check fails, halt and explain.

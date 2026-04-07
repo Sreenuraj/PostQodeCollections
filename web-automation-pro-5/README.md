@@ -1,6 +1,6 @@
-# Web Automation Pro v5
+# Web Automation Pro v5.1
 
-> Spec-driven browser automation, powered by a PostQode Agent.
+> Spec-driven browser automation, powered by a PostQode Agent + Skills architecture.
 
 ## What is this?
 
@@ -16,15 +16,14 @@ Web Automation Pro is a system that turns vague automation requests ("automate t
 
 ## How it works
 
-### The Agent
+### The Agent + Skills Architecture (v5.1)
 
-The core of v5 is a **PostQode Agent** (`.postqode/agents/web-automation-pro.md`) that acts as both the orchestrator and doer. Unlike previous versions that used passive Skills and user-invoked `/commands`, the agent:
+The core of v5.1 is a **PostQode Agent** (`.postqode/agents/web-automation-pro.md`) that acts as the orchestrator, combined with **5 Skills** that handle detailed phase procedures:
 
-- **Detects intent** from natural language — no commands to memorize
-- **Routes itself** through phases automatically based on disk state
-- **Communicates transparently** — explains what it's doing and why at every step
-- **Persists memory** across sessions via `.postqode/memory/`
-- **Enforces strict protocols** — evidence-first, flat-first, spec-driven
+- **Agent** (~1,200 words) — Always in context. Detects intent, routes through phases, invokes skills.
+- **Skills** — Loaded on-demand when entering a phase. Contains the detailed procedures, references, and protocol guards.
+
+This architecture solves v5's problem of a 4,500-word prompt that the LLM couldn't reliably follow, while keeping the agent-based orchestration that v5 introduced.
 
 ### Getting Started
 
@@ -37,24 +36,45 @@ Just describe what you want to automate. The agent handles everything else:
 The agent will:
 1. Scan your workspace for existing setup
 2. Ask clarifying questions
-3. Draft and lock a spec
-4. Plan and execute group by group
-5. Review, validate, and finalize
+3. Draft and lock a spec (via `wap-spec-creation` skill)
+4. Plan and execute group by group (via `wap-execution` skill)
+5. Review, validate, and finalize (via `wap-finalize` skill)
 
 ### Cross-Session Resumption
 
 If a session is interrupted, start a new conversation. The agent reads state from disk and picks up where you left off — no need to re-explain context.
 
-## Architecture (v5 vs v4)
+## Architecture (v5.1)
 
-| Aspect | v4 (Skill-based) | v5 (Agent-based) |
-|---|---|---|
-| Orchestrator | Passive `SKILL.md` — hopes LLM follows instructions | Active agent with own behavioral contract |
-| Subagents | None | `reviewer` (quality gate) + `element-mapper` (evidence → schema) |
-| User interface | `/spec-gen`, `/automate`, `/finalize` commands | Natural language — agent detects intent |
-| Memory | Session artifacts only | `.postqode/memory/` for cross-session + session artifacts |
-| Workflows | 5 user-invoked `/command` files | 0 — logic inlined in agent, details in reference files |
-| Rules | 4 separate files loaded on demand | Core rules inlined in agent prompt (always-on) |
+```
+web-automation-pro (AGENT) — ~1,200 words, always in context
+  │
+  ├── skills/ (loaded on-demand by the agent)
+  │   ├── wap-spec-creation/    — Spec drafting and approval
+  │   ├── wap-execution/        — Planning, setup, group-by-group execution
+  │   ├── wap-finalize/         — Architecture decision and refactoring
+  │   ├── wap-spec-update/      — Surgical spec updates
+  │   └── wap-debug/            — L1→L2→L3 failure recovery
+  │
+  ├── agents/ (parked — not invoked in v5.1)
+  │   ├── reviewer.md           — Quality review subagent (logic in wap-execution)
+  │   └── element-mapper.md     — Element mapping subagent (logic in wap-execution)
+  │
+  └── memory/                   — Cross-session knowledge
+```
+
+Each skill is self-contained with its own `references/` directory containing only the reference files it needs.
+
+### Version Comparison
+
+| Aspect | v4 (Skill-based) | v5 (Agent-based) | v5.1 (Agent + Skills) |
+|---|---|---|---|
+| Orchestrator | Passive `SKILL.md` | 4,500-word agent prompt | ~1,200-word agent + on-demand skills |
+| Phase procedures | User-invoked workflows | Inlined in agent prompt | Skills loaded per-phase |
+| Browser tool | `postqode_browser_agent` | `playwright-cli` (broken) | `postqode_browser_agent` (restored) |
+| User interface | `/spec-gen`, `/automate` commands | Natural language | Natural language |
+| Memory | Session artifacts only | `.postqode/memory/` | `.postqode/memory/` |
+| Subagents | None | `reviewer` + `element-mapper` | Parked (logic in skills) |
 
 ## Key Principles
 
@@ -64,38 +84,62 @@ If a session is interrupted, start a new conversation. The agent reads state fro
 - **One Artifact**: Exactly one working test file during execution (no per-group files)
 - **Gate-Driven**: The agent stops at defined checkpoints and waits for user approval
 - **Memory-Persistent**: User preferences and project decisions survive across sessions
+- **Self-Contained Skills**: Each skill works independently with its own references
 
 ## File Structure
 
 ```
 web-automation-pro-5/
 ├── README.md                          ← you are here
+├── PLAN.md                            ← v5.1 migration plan
 ├── REQUIREMENTS.md                    ← system requirements (authoritative)
 ├── WORKFLOW-DIAGRAMS.md               ← visual lifecycle diagrams
 └── .postqode/
     ├── agents/
-    │   ├── web-automation-pro.md      ← THE AGENT (orchestrator + doer)
-    │   ├── reviewer.md                ← quality review subagent
-    │   └── element-mapper.md          ← element mapping subagent
+    │   ├── web-automation-pro.md      ← THE AGENT (orchestrator)
+    │   ├── reviewer.md                ← parked subagent
+    │   └── element-mapper.md          ← parked subagent
     ├── memory/
     │   └── MEMORY.md                  ← cross-session knowledge index
     ├── skills/
-    │   └── web-automation-pro/
-    │       ├── SKILL.md               ← deprecated (v4 reference only)
-    │       └── references/            ← phase-specific procedure details
-    │           ├── spec-creation-procedure.md
-    │           ├── execution-procedure.md
-    │           ├── finalize-procedure.md
-    │           ├── spec-update-procedure.md
-    │           ├── debug-and-recovery.md
-    │           ├── spec-format.md
-    │           ├── grouping-algorithm.md
-    │           ├── tip-protocol.md
-    │           ├── reviewer-rubric.md
-    │           ├── architecture-patterns.md
-    │           ├── element-map-schema.md
-    │           ├── framework-rule-template.md
-    │           └── interaction-fallbacks.md
+    │   ├── wap-spec-creation/
+    │   │   ├── SKILL.md               ← spec creation procedure
+    │   │   └── references/
+    │   │       ├── spec-format.md
+    │   │       └── protocol-guard.md
+    │   ├── wap-execution/
+    │   │   ├── SKILL.md               ← execution procedure (largest skill)
+    │   │   └── references/
+    │   │       ├── core-laws.md
+    │   │       ├── automation-standards.md
+    │   │       ├── tool-priority.md
+    │   │       ├── session-protocol.md
+    │   │       ├── personas.md
+    │   │       ├── protocol-guard.md
+    │   │       ├── grouping-algorithm.md
+    │   │       ├── tip-protocol.md
+    │   │       ├── element-map-schema.md
+    │   │       ├── reviewer-rubric.md
+    │   │       ├── architecture-patterns.md
+    │   │       ├── spec-format.md
+    │   │       ├── framework-rule-template.md
+    │   │       ├── interaction-fallbacks.md
+    │   │       └── recovery-protocol.md
+    │   ├── wap-finalize/
+    │   │   ├── SKILL.md               ← finalization procedure
+    │   │   └── references/
+    │   │       ├── architecture-patterns.md
+    │   │       └── protocol-guard.md
+    │   ├── wap-spec-update/
+    │   │   ├── SKILL.md               ← spec update procedure
+    │   │   └── references/
+    │   │       ├── spec-format.md
+    │   │       └── protocol-guard.md
+    │   └── wap-debug/
+    │       ├── SKILL.md               ← debug/recovery procedure
+    │       └── references/
+    │           ├── recovery-protocol.md
+    │           └── protocol-guard.md
     └── spec/                          ← empty (populated during runs)
 ```
 
@@ -106,4 +150,5 @@ web-automation-pro-5/
 | v2 | Split-phase workflow | Initial attempt at structured automation |
 | v3 | Context-aware single workflow | Reduced token overhead |
 | v4 | Skill + Workflows + Rules | Full spec-driven framework with state machine |
-| **v5** | **PostQode Agent** | **Agent replaces Skill as orchestrator; workflows become agent phases; memory integration** |
+| v5 | PostQode Agent | Agent replaces Skill as orchestrator; workflows become agent phases |
+| **v5.1** | **Agent + Skills** | **Short agent prompt + on-demand skills; restored `postqode_browser_agent`; self-contained skills with own references** |
