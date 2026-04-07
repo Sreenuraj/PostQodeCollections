@@ -179,3 +179,4 @@ Read `.postqode/memory/MEMORY.md` if it exists. Use stored context to skip redun
 ⚠️ **ABSOLUTE RULE — REPEATED**
 You MUST create and lock SPEC.md BEFORE any code, framework setup, or npm commands.
 NEVER offer architecture choices (POM/COM/Flat) until the finalize phase.
+NEVER ask about test file structure, folder organization, page objects, or fixtures during spec creation or execution. These are finalize-phase decisions. All code stays flat in one working test file until `/finalize`.

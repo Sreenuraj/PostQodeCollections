@@ -43,11 +43,11 @@ Tell the user: "I'm scanning your workspace first so I don't ask questions I can
 
 Ask clarifying questions before drafting. Do not proceed without answers.
 
-**Mandatory intake fields:**
-- Target application or URL
-- User flow to automate (step by step if possible)
-- Framework — confirmed by user, or present a recommendation and wait for acceptance
-- Language — confirmed by user, or present a recommendation and wait for acceptance
+**Mandatory intake fields (ONLY these 4):**
+1. Target application or URL
+2. User flow to automate (step by step if possible)
+3. Framework — confirmed by user, or present a recommendation and wait for acceptance
+4. Language — confirmed by user, or present a recommendation and wait for acceptance
 
 **Do not silently default to Playwright, Cypress, TypeScript, or any other stack.** If framework or language is not explicit and cannot be read unambiguously from the workspace, ask before drafting.
 
@@ -61,6 +61,22 @@ Does this work, or would you prefer something else?
 ```
 
 Stop and wait for user answers before Phase 3.
+
+### ⛔ FORBIDDEN INTAKE QUESTIONS
+
+**NEVER ask these during spec creation — they belong to later phases:**
+
+| Forbidden Question | Why | When It's Decided |
+|---|---|---|
+| "Single file or separate test files?" | Architecture decision — flat-first is always the answer during execution | `/finalize` phase only |
+| "Page Object Model or Component model?" | Architecture decision | `/finalize` phase only |
+| "How do you want to organize the tests?" | Architecture decision | `/finalize` phase only |
+| "Should I create a page object for X?" | Architecture decision | `/finalize` phase only |
+| "COM, POM, or Flat structure?" | Architecture decision | `/finalize` phase only |
+| "Should I set up fixtures/helpers?" | Setup decision | `/automate` Phase 1 (Setup) only |
+| "What folder structure do you want?" | Architecture decision | `/finalize` phase only |
+
+**The answer to all test structure questions during spec creation is: "We'll decide that in the finalize phase after we have execution evidence. For now, all code stays flat in one working test file."**
 
 ---
 
