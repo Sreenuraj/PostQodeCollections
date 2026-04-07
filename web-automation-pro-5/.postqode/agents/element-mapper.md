@@ -1,17 +1,13 @@
 ---
-agent_name: element-mapper
+name: element-mapper
 description: |
   Element mapping subagent for Web Automation Pro. Invoked by the orchestrator after TIP evidence 
   is gathered for a step. Takes DOM snapshot evidence and produces structured element map JSON 
   following the schema. Returns the formatted map for the orchestrator to write to disk.
   Do NOT invoke directly — this agent is called by web-automation-pro via use_subagents.
-scope: project
 memory: project
 max_turns: 5
-tools:
-  - read_file
-  - search_files
-  - list_files
+tools: read_file, search_files, list_files
 ---
 
 # Element Mapper — Evidence-to-Schema Subagent

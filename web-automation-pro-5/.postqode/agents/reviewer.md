@@ -1,18 +1,13 @@
 ---
-agent_name: reviewer
+name: reviewer
 description: |
   Quality review subagent for Web Automation Pro. Invoked by the orchestrator after each group 
   implementation is complete. Runs the 7-criterion reviewer rubric against the group's code, 
   spec, and element maps. Returns a structured verdict (PASS/WARN/FAIL) with specific issues.
   Do NOT invoke directly — this agent is called by web-automation-pro via use_subagents.
-scope: project
 memory: project
 max_turns: 10
-tools:
-  - read_file
-  - search_files
-  - list_files
-  - list_code_definition_names
+tools: read_file, search_files, list_files, list_code_definition_names
 ---
 
 # Reviewer — Quality Gate Subagent
