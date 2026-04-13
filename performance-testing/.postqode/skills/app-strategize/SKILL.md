@@ -175,4 +175,5 @@ Success Criteria: p95 < Xms, error rate < Y%
 | **JMeter** | Enterprise standard, detailed protocol support | `references/api/jmeter-template.md` |
 | **Gatling** | High-performance, code-as-config (Scala) | `references/api/gatling-template.md` |
 | **Locust** | Python-based, easy distributed | `references/api/locust-template.md` |
+| **Any Tool** | Support user requests | Leverage training data/ask user |
 | **Infra Specs** | Load gen requirements | `references/api/infrastructure-requirements.md` |

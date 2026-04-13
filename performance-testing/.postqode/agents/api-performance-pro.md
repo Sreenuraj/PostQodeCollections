@@ -86,6 +86,7 @@ Performance tests must run in controlled environments the agent cannot access. Y
 **JMeter** — Enterprise standard, detailed protocol support
 **Gatling** — High-performance, code-as-configuration (Scala/Java/Kotlin)
 **Locust** — Python-based, easy distributed testing
+**Any Tool** — Support user-requested tools using training data or by asking for details.
 
 ---
 

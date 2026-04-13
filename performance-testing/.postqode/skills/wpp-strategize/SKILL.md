@@ -217,6 +217,7 @@ Protocol-level testing alone misses frontend performance. Browser-level testing 
 | **Playwright** | Browser perf APIs, Navigation/Resource Timing | `references/web/playwright-perf-template.md` |
 | **WebPageTest** | Deep waterfall analysis, multi-location | `references/web/webpagetest-guide.md` |
 | **PageSpeed Insights** | Lab + field data (CrUX), quick check | No setup needed |
+| **Any Tool** | Support user requests | Leverage training data/ask user |
 | **Framework Guide** | App type → right tool combination | `references/web/framework-selection-guide.md` |
 | **Production Monitoring** | RUM, synthetic, alerts | `references/web/production-monitoring.md` |
 | **Infra Specs** | Load gen requirements, env parity | `references/web/infrastructure-requirements.md` |

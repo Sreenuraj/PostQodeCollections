@@ -112,7 +112,7 @@ Ask: "Any custom thresholds? Or use our defaults?"
 
 Ask: "Do you have existing test automation? (Espresso, XCTest, Appium, Maestro, Detox, other)"
 
-- *If existing*: Recommend extending with perf capture (e.g., Apptim wraps Espresso/XCTest)
+- *If existing*: Recommend extending with perf capture, or support their preferred tool.
 - *If none*: Recommend Maestro (lowest setup cost) or Apptim CLI (no code changes)
 
 **Load reference:** `references/mobile/framework-selection-guide.md` → Automation Tool Comparison

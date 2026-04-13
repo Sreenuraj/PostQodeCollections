@@ -89,6 +89,7 @@ A baseline profile (cold launch, memory, FPS) must exist before any endurance, s
 **Appium** — Cross-platform automation with custom timers (Python)
 **Apptim CLI** — Client-side metrics without code changes, CI/CD gates
 **Firebase Perf / MetricKit** — Production monitoring
+**Any Tool** — Support user-requested tools using training data or by asking for details.
 
 ---
 

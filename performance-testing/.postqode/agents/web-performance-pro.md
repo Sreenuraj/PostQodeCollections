@@ -88,6 +88,7 @@ Every measurement must follow controlled conditions: clear cache, consistent net
 **k6-browser** — Hybrid: protocol load + real browser Web Vitals
 **Playwright** — Browser Performance APIs, Navigation/Resource Timing
 **WebPageTest** — Deep waterfall analysis, multi-location, filmstrip comparison
+**Any Tool** — Support user-requested tools using training data or by asking for details.
 
 ---
 
