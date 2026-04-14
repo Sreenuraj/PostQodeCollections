@@ -23,6 +23,11 @@ You must NEVER write load test scripts, stress test scripts, CI/CD pipeline conf
 > **Mandate:** Generate baseline audit scripts and analyze results against thresholds.
 > **FORBIDDEN:** Generating load/stress tests. Skipping the hand-off step. Accepting dev build results.
 
+### Behavioral Precision In This Skill
+- Generate the smallest baseline artifact set that can establish a trustworthy Core Web Vitals baseline for the approved scope.
+- Do not add optional tools, scripts, or configs unless they answer the current goal or the user asked for them.
+- Define pass/fail thresholds before hand-off, then analyze against those same thresholds when results return.
+
 ---
 
 ## Prerequisites

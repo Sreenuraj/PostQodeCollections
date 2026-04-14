@@ -20,6 +20,11 @@ description: |
 > **Mandate:** Set up comprehensive production monitoring and generate the final report.
 > **FORBIDDEN:** Generating new test scripts. Re-running audits. Modifying existing test configs.
 
+### Behavioral Precision In This Skill
+- Generate only the monitoring, alerting, and reporting artifacts that fit the approved goals and current stack.
+- Extend existing monitoring where possible; do not replace or duplicate setup without a clear reason.
+- Keep the final report honest and separable: observed results first, recommendations second, no blurred claims.
+
 ---
 
 ## Prerequisites

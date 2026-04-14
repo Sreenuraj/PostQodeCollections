@@ -17,6 +17,13 @@ This skill handles the full execution lifecycle: planning, setup, group-by-group
 - `references/tool-priority.md` — Browser tool priority
 - `references/automation-standards.md` — Flat-first execution policy
 
+## Behavioral Precision For Execution
+
+- Surface the assumption, evidence gap, or decision fork before writing code or changing the plan.
+- Produce only the smallest legal artifact for the current phase: the active plan slice, the active step's code, or the minimal fix.
+- Keep all edits traceable to the active group, active failure, or current approval gate. Do not expand into adjacent improvements.
+- Define the verification target before acting: what check proves this step, group, or repair is complete.
+
 ---
 
 ## Phase 0 — Planning

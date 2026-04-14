@@ -23,6 +23,11 @@ You must NEVER write monitoring setup or RUM integration code in this skill.
 > **Mandate:** Generate deep-dive test scripts and analyze results. Always hand off with clear instructions.
 > **FORBIDDEN:** Executing performance tests directly. Skipping the hand-off. Generating scripts without a baseline.
 
+### Behavioral Precision In This Skill
+- Select only the test type that answers the current question. Do not generate a full suite when one artifact would suffice.
+- Extend the baseline deliberately: keep scripts, budgets, and CI outputs scoped to the approved target and environment.
+- State the success and failure signals before hand-off, then keep the later analysis anchored to those same criteria.
+
 ---
 
 ## Prerequisites

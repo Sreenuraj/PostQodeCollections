@@ -21,6 +21,11 @@ description: |
 > **Mandate:** Set up automated performance gates and production monitoring.
 > **FORBIDDEN:** Generating new test scripts. Re-running baselines.
 
+### Behavioral Precision In This Skill
+- Generate only the CI/CD, monitoring, and reporting artifacts that fit the approved goals and current stack.
+- Extend existing monitoring or automation where possible; do not replace or duplicate setup without a clear reason.
+- Keep the final report honest and separable: observed results first, recommendations second, no blurred claims.
+
 ---
 
 ## Phase 1 — CI/CD Performance Gates

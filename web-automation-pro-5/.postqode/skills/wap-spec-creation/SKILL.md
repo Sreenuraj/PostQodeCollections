@@ -22,6 +22,12 @@ You must NEVER write framework config files, executable tests, fixtures, page ob
 > **Mandate:** Produce the spec and get explicit user approval before anything else.
 > **FORBIDDEN:** Writing test code. Touching the browser. Choosing a framework without user confirmation.
 
+### Behavioral Precision In This Skill
+- Ask only for information that the workspace, memory, and current disk state do not already answer.
+- Surface ambiguous interpretations before drafting. Do not silently choose scope, framework, or language when multiple valid paths exist.
+- Draft the smallest spec that fully captures the requested flow and observable outcomes. Do not smuggle in architecture or future-phase decisions.
+- Present approval with explicit proof of readiness: confirmed choices, unresolved assumptions if any, and what the spec now enables.
+
 ---
 
 ## Phase 1 — Workspace Intelligence Scan

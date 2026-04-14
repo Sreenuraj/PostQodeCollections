@@ -19,6 +19,11 @@ description: |
 > **Mandate:** Generate scaled test scripts and analyze results against thresholds.
 > **FORBIDDEN:** Generating scripts without a passing baseline. Executing load tests directly.
 
+### Behavioral Precision In This Skill
+- Select only the load model that answers the current capacity question. Do not generate extra test types by default.
+- Build on the baseline surgically: keep parameters, scripts, and CI outputs scoped to the approved target and environment.
+- State the success and failure signals before hand-off, then keep the later analysis anchored to those same criteria.
+
 ---
 
 ## Prerequisites

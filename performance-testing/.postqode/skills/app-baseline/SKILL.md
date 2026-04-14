@@ -22,6 +22,11 @@ You must NEVER write load/stress/spike/soak scripts in this skill.
 > **Mandate:** Generate a minimal baseline script and verify the API works under light load.
 > **FORBIDDEN:** Generating high-load scripts. Skipping the hand-off. Proceeding without 0% errors.
 
+### Behavioral Precision In This Skill
+- Generate the smallest baseline script that proves the verified API request is stable under light load.
+- Do not add extra tools, pipelines, or data complexity unless they are needed for the approved goal.
+- Define pass/fail criteria before hand-off, then judge the returned results against those same criteria.
+
 ---
 
 ## Prerequisites

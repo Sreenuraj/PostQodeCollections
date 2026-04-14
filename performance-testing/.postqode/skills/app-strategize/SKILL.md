@@ -17,6 +17,12 @@ description: |
 > **Mandate:** Understand the API completely and verify connectivity before generating anything.
 > **FORBIDDEN:** Writing test scripts. Generating k6/JMeter/Gatling configs. Skipping curl verification.
 
+### Behavioral Precision In This Skill
+- Ask only what the workspace, API docs, curl evidence, and current state do not already answer.
+- If multiple endpoints, flows, or load models fit the request, name the fork instead of choosing silently.
+- Recommend the smallest investigation that answers the user's real API performance question.
+- Present strategy approval with explicit proof: verified request, known constraints, and what the next phase will validate.
+
 ---
 
 ## Phase 1 — Workspace Intelligence Scan

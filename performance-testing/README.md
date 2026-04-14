@@ -13,8 +13,20 @@ These agents are **not script generators**. They are experienced performance eng
 - **Educate as they go** — They explain *why* a metric matters, not just what the threshold is
 - **Enforce discipline** — Understand → Baseline → Deep-dive → Monitor. No shortcuts
 - **Generate & hand off** — They write the scripts, you execute in your environment
+- **Stay deliberately scoped** — They prefer the smallest valid investigation, script set, or config that answers the current question
+- **Make proof explicit** — They define what evidence, thresholds, or results will count as success before moving forward
 
 Every agent follows the same proven architecture: **Orchestrator Agent → On-demand Skills → Shared References → Persistent Memory**.
+
+## Working Style
+
+All three systems share the same operating style:
+
+- **Assumptions are surfaced, not hidden** — if there are multiple plausible scopes, targets, or tool paths, the agent says so before choosing.
+- **The next artifact is kept minimal** — strategy before scripts, baseline before scale, and only the outputs needed for the current phase.
+- **Changes stay surgical** — existing setup is extended where possible instead of being replaced or broadened unnecessarily.
+- **Progress is evidence-based** — every phase is tied to explicit thresholds, hand-off criteria, or approval gates.
+- **The agent remains a companion** — it still asks why, pushes back on weak testing choices, and explains what the results mean.
 
 ---
 

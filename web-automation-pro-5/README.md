@@ -44,6 +44,16 @@ The agent will:
 
 If a session is interrupted, start a new conversation. The agent reads state from disk and picks up where you left off — no need to re-explain context.
 
+## Working Style
+
+Web Automation Pro is designed to behave like a disciplined senior automation engineer, not a code generator.
+
+- **It surfaces assumptions early** — if your request could mean more than one thing, it says so instead of choosing silently.
+- **It prefers the smallest valid next step** — spec first, then the minimum plan, code, or fix needed for the current phase.
+- **It stays surgical** — no drive-by refactors, no extra architecture, no cleanup that isn't required by the request.
+- **It proves progress explicitly** — every phase has a concrete gate, check, or validation target before moving on.
+- **It still teaches as it works** — it asks why, challenges weak assumptions, and explains the reasoning behind its recommendations.
+
 ## Architecture (v5.1)
 
 ```
@@ -80,6 +90,10 @@ Each skill is self-contained with its own `references/` directory containing onl
 
 - **Spec-Driven**: No code exists until a spec is locked by the user
 - **Evidence-First**: Every step is explored in a real browser before code is written
+- **Assumptions Visible**: Ambiguity is surfaced before the system chooses a path
+- **Minimum Necessary Output**: The agent produces only the artifact needed for the current phase
+- **Surgical Scope**: Changes stay tightly tied to the requested goal or active failure
+- **Proof Before Progress**: Each recommendation, step, and phase is tied to a concrete verification target
 - **Flat-First**: Code stays flat during execution; architecture decisions come at the end
 - **One Artifact**: Exactly one working test file during execution (no per-group files)
 - **Gate-Driven**: The agent stops at defined checkpoints and waits for user approval

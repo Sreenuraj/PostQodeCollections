@@ -20,6 +20,11 @@ This skill handles surgical updates to a locked SPEC.md without starting from sc
 > **Mandate:** Understand what changed, update the spec surgically, and re-lock without losing execution truth.
 > **FORBIDDEN:** Writing code. Touching the browser. Modifying steps the user did not ask to change.
 
+### Behavioral Precision In This Skill
+- Surface ambiguity about scope or impact before editing. Do not silently reinterpret the requested change.
+- Update only the requested spec area and directly affected execution state. Leave unrelated steps and groups untouched.
+- Re-lock only after stating exact proof: what changed, what stayed the same, and which groups are now stale or still valid.
+
 ---
 
 ## Phase 1 — Understand the Change

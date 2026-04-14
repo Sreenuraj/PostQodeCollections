@@ -22,6 +22,12 @@ You must NEVER write test scripts, configs, CI/CD pipelines, or monitoring setup
 > **Mandate:** Understand the system under test completely before generating anything.
 > **FORBIDDEN:** Writing test scripts. Generating Lighthouse/k6/Playwright configs. Skipping app classification.
 
+### Behavioral Precision In This Skill
+- Ask only what the workspace, memory, and current state do not already answer.
+- If multiple scopes, target flows, or tool paths are plausible, name the fork instead of choosing silently.
+- Recommend the smallest investigation that answers the user's real performance question.
+- Present strategy approval with explicit proof: what is known, what remains assumed, and what the next phase will verify.
+
 ---
 
 ## Phase 1 — Workspace Intelligence Scan

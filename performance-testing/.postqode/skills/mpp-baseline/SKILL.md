@@ -21,6 +21,11 @@ description: |
 > **Mandate:** Generate profiling commands, analyze baseline results, generate test framework.
 > **FORBIDDEN:** Generating endurance/stress/network tests. Skipping hand-off. Accepting debug build results.
 
+### Behavioral Precision In This Skill
+- Generate the smallest baseline artifact set that can establish trustworthy device metrics for the approved scope.
+- Do not add optional automation frameworks or scripts unless they answer the current goal or the user asked for them.
+- Define pass/fail thresholds before hand-off, then analyze returned results against those same thresholds.
+
 ---
 
 ## Prerequisites

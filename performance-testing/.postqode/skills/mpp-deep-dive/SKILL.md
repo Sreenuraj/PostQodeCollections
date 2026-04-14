@@ -19,6 +19,11 @@ description: |
 > **Mandate:** Generate deep-dive test scripts and analyze results.
 > **FORBIDDEN:** Generating scripts without a baseline. Executing tests directly.
 
+### Behavioral Precision In This Skill
+- Select only the deep-dive type that answers the current question. Do not generate extra endurance, stress, or network flows by default.
+- Keep scripts and monitoring focused on the approved app area, device scope, and environment.
+- State the success and failure signals before hand-off, then keep the later analysis anchored to those same criteria.
+
 ---
 
 ## Prerequisites

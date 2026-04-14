@@ -69,6 +69,8 @@ For fallback strategies when standard locators fail: load `interaction-fallbacks
 3. Fallback locator documented for every interaction
 4. No hardcoded credentials or secrets
 5. One runnable test body — no per-group files
+6. Smallest valid code for the active step or fix — no speculative abstractions
+7. Every non-trivial edit must trace to the active step, active group, or current failure
 
 ---
 
@@ -81,3 +83,4 @@ For fallback strategies when standard locators fail: load `interaction-fallbacks
 - Never write code until snapshot evidence is captured for that step
 - Never create per-group test files during execution
 - Never offer COM/POM/Flat architecture choices during execution
+- Never add abstractions, helpers, or structural cleanup before repeated evidence justifies them

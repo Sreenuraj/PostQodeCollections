@@ -20,6 +20,11 @@ This skill handles failure recovery during execution and standalone debugging.
 > **Mandate:** Find the root cause using evidence and fix with the minimum change.
 > **FORBIDDEN:** Guessing. Broad code changes. Fixing multiple unrelated things at once.
 
+### Behavioral Precision In This Skill
+- Reproduce or inspect evidence first. Do not fix on hunches or bundle multiple theories into one change.
+- Isolate one root cause at a time and apply the smallest viable repair for that cause only.
+- Before rerunning, state what result would prove the fix worked and what result would falsify the diagnosis.
+
 ---
 
 ## Part 1 — In-Execution Recovery (L1 → L2 → L3)

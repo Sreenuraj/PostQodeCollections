@@ -22,6 +22,11 @@ This skill handles the architecture decision, refactoring, validation, and clean
 > **Mandate:** Use execution evidence and explicit thresholds to recommend and apply the right final structure.
 > **FORBIDDEN:** Auto-selecting the final architecture without user approval.
 
+### Behavioral Precision In This Skill
+- Let executed evidence drive the recommendation. If the reuse signal is ambiguous, say so instead of overstating confidence.
+- Choose the smallest final structure that fits the observed reuse and maintenance need. Do not refactor for taste alone.
+- Keep cleanup and restructuring limited to what the chosen architecture requires, then validate against explicit pass criteria.
+
 Read from disk:
 1. `.postqode/spec/SPEC.md`
 2. The working test file (`WORKING_TEST_FILE`)

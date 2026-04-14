@@ -17,6 +17,12 @@ description: |
 > **Mandate:** Classify the app, verify device/build, and establish the test strategy before generating anything.
 > **FORBIDDEN:** Writing test scripts. Generating profiling commands. Skipping build verification.
 
+### Behavioral Precision In This Skill
+- Ask only what the project, device checks, and current state do not already answer.
+- If multiple devices, screens, or tooling paths fit the request, name the fork instead of choosing silently.
+- Recommend the smallest investigation that answers the user's real mobile performance question.
+- Present strategy approval with explicit proof: verified build/device facts, known scope, and what the next phase will measure.
+
 ---
 
 ## Phase 1 — Workspace Intelligence Scan
