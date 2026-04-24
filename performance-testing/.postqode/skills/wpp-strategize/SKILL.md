@@ -71,6 +71,9 @@ Ask the user to describe their performance goal. Map to one or more categories:
 ## Phase 3 — Identify Scope (The "What")
 
 Ask: "Which pages or user flows should we test?"
+Ask: "Which pages or journeys are most used, most revenue-critical, or most complaint-prone?"
+- If the user is unsure, offer to suggest the likely hot paths from the app structure, routing, and any provided URLs.
+- Do **not** assume every page or route deserves equal baseline coverage.
 
 Common targets:
 - Home page, product/listing page, checkout flow, search, login, dashboard
@@ -84,6 +87,11 @@ Ask: "Which baseline tools do you prefer, or should I use the default path? (Lig
 If the only available target is a local/dev build:
 - Explain that the run is exploratory only and not valid for real performance validation.
 - Do **not** plan a production-valid baseline or deep-dive test until a release-like environment or production build is chosen.
+
+Before leaving this phase, identify a prioritized scope:
+- **Tier 1:** highest-impact pages/journeys for the first baseline
+- **Tier 2:** secondary pages for follow-up validation
+- **Deferred:** routes intentionally excluded from the first pass
 
 **Record target URLs/flows and environment in `test-plan.md`**
 
@@ -148,6 +156,7 @@ Actively search the codebase for:
 PHASE: STRATEGIZING
 INTENT: [audit / load-test / ci-gates / deep-dive / seo / monitoring]
 SCOPE: [target URLs/flows]
+SCOPE_PRIORITY: [tier-1 shortlist + rationale]
 APP_TYPE: [SPA / SSR / SSG / MPA / PWA]
 FRAMEWORK_STACK: [framework + language + build tool]
 ENVIRONMENT: [local / staging / production]
@@ -167,6 +176,7 @@ App Type: [type] using [framework]
 Tech Stack: [details]
 Intent: [what we're testing for]
 Scope: [target pages/flows]
+Priority scope: [top pages/journeys and why]
 Baseline available: [reuse / refresh / none]
 Environment: [value] → [release-like / exploration-only]
 Tool path: [preferred tools or "default Lighthouse CI pending approval"]

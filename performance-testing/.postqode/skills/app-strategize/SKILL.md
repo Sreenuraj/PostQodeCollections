@@ -64,6 +64,9 @@ Ask the user to describe their performance goal:
 
 Ask: "**Single Endpoint** or **User Flow** (multi-step)?"
 Ask: "Do you already have a baseline run or previous performance result we should reuse?"
+Ask: "Which endpoints or flows do you believe are most used, most latency-sensitive, or most business-critical?"
+- If the user is unsure, offer to suggest a shortlist from the OpenAPI spec, auth model, and architecture.
+- Do **not** assume every endpoint in the API doc belongs in the first test plan.
 
 Gather input data:
 - **cURL command** (Preferred — most precise)
@@ -85,6 +88,11 @@ Ask: "Any tool or language preference, or should I use the default k6 path?"
 
 **Test Data Strategy**: Ask "Do we need dynamic data (e.g., new user per request) or static data?"
 **Load reference:** `references/api/test-data-strategy.md`
+
+Before leaving this phase, identify a prioritized test scope:
+- **Tier 1:** hottest or most business-critical endpoints/flows
+- **Tier 2:** supporting endpoints worth validating later
+- **Deferred:** endpoints intentionally excluded from the first baseline
 
 ---
 
@@ -143,6 +151,7 @@ Persist to `test-plan.md`:
 PHASE: STRATEGIZING
 INTENT: [regression / spike / profiling / stress / soak / ci-cd]
 TARGET_ENDPOINTS: [endpoint URLs]
+TARGET_PRIORITY: [tier-1 shortlist + rationale]
 API_ARCHITECTURE: [REST / GraphQL / SOAP / async / microservices]
 AUTH_METHOD: [bearer / api-key / session / oauth / none]
 BASELINE_SOURCE: [none / existing-local / user-supplied]
@@ -164,6 +173,7 @@ API: [architecture] at [endpoint(s)]
 Auth: [method]
 Rate Limits: [found / none detected]
 Intent: [what we're testing for]
+Priority scope: [top endpoints/flows and why]
 Baseline available: [reuse / refresh / none]
 Environment: [value] → [release-like / exploration-only]
 Tool path: [preferred tool or "default k6 pending approval"]

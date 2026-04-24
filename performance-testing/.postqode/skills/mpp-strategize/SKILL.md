@@ -64,6 +64,9 @@ Ask the user to describe their performance goal:
 Ask: "**Specific screen**, **user flow**, or **full app**?"
 Ask: "Which **platform**? **Android**, **iOS**, or **Both**?"
 Ask: "Do you already have a recent baseline profile we should reuse?"
+Ask: "Which screens or flows are most used, most business-critical, most janky, or most risky on low-end devices?"
+- If the user is unsure, offer to suggest a priority set from the app architecture, launch path, and navigation structure.
+- Do **not** assume every screen belongs in the first profiling pass.
 
 Gather:
 - **App package/bundle ID** (required)
@@ -109,6 +112,11 @@ Cross-reference against device coverage rules. Recommend minimum:
 If only emulators/simulators are available:
 - Explain that the run is exploratory only and not valid for performance sign-off.
 - Do **not** route to a real baseline until at least one real device is available.
+
+Before leaving this phase, identify a prioritized scope:
+- **Tier 1:** launch path and highest-impact screens/flows for the first baseline
+- **Tier 2:** secondary screens for follow-up validation
+- **Deferred:** screens intentionally excluded from the first pass
 
 ---
 
@@ -174,6 +182,7 @@ PLATFORM: [android / ios / both]
 APP_TYPE: [native-android / native-ios / react-native / flutter / hybrid / pwa]
 PACKAGE_ID: [com.example.app]
 TARGET_SCREENS: [list]
+TARGET_PRIORITY: [tier-1 shortlist + rationale]
 DEVICES: [device list with tier]
 BASELINE_SOURCE: [none / existing-local / user-supplied]
 TOOL_PREFERENCE: [native / maestro / appium / apptim / existing / undecided]
@@ -190,6 +199,7 @@ Package: [id]
 Devices: [budget/mid-range/flagship]
 Intent: [goal]
 Thresholds: Cold launch < 2s, FPS ≥ 55, Memory growth < 10%
+Priority scope: [top screens/flows and why]
 Baseline available: [reuse / refresh / none]
 Tool path: [preferred tool or "default pending approval"]
 Execution readiness: [real-device + release/profile build / exploratory only]
