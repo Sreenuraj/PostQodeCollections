@@ -27,12 +27,14 @@ You must NEVER write test scripts, configs, CI/CD pipelines, or monitoring setup
 - If multiple scopes, target flows, or tool paths are plausible, name the fork instead of choosing silently.
 - Recommend the smallest investigation that answers the user's real performance question.
 - Present strategy approval with explicit proof: what is known, what remains assumed, and what the next phase will verify.
+- Stop after the strategy approval gate. Do not generate baseline configs, deep-dive scripts, or monitoring artifacts from this skill.
 
 ---
 
 ## Phase 1 — Workspace Intelligence Scan
 
 Run BEFORE asking the user anything. Read silently:
+- `test-plan.md` (if exists) — detect saved phase, existing baseline, selected tools, and pending gate
 - `package.json` — framework, dependencies, build scripts
 - Framework config files (`next.config.js`, `vite.config.ts`, `nuxt.config.ts`, etc.)
 - Existing perf setup (`lighthouserc.js`, `.lighthouseci/`, k6 scripts, `performance-budget.json`)
@@ -42,6 +44,10 @@ Run BEFORE asking the user anything. Read silently:
 Carry findings into the intake interview. Do not ask questions already answered by the workspace.
 
 Tell the user: "I'm scanning your workspace first so I don't ask questions I can already answer."
+
+If `test-plan.md` already shows a baseline or pending approval, surface that immediately.
+- If a baseline exists, ask whether to **reuse**, **refresh**, or **replace** it.
+- If the user claims a prior baseline exists but no local state confirms it, ask for the source or summary before planning new artifacts.
 
 ---
 
@@ -72,6 +78,12 @@ Common targets:
 
 Ask: "What environments do you have access to? (local, staging, production)"
 Ask: "What CI/CD platform? (GitHub Actions, GitLab CI, Jenkins, none)"
+Ask: "Do you already have a baseline audit or recent Lighthouse/WebPageTest result we should reuse?"
+Ask: "Which baseline tools do you prefer, or should I use the default path? (Lighthouse CI recommended; optionally WebPageTest / PSI / existing setup)"
+
+If the only available target is a local/dev build:
+- Explain that the run is exploratory only and not valid for real performance validation.
+- Do **not** plan a production-valid baseline or deep-dive test until a release-like environment or production build is chosen.
 
 **Record target URLs/flows and environment in `test-plan.md`**
 
@@ -139,7 +151,10 @@ SCOPE: [target URLs/flows]
 APP_TYPE: [SPA / SSR / SSG / MPA / PWA]
 FRAMEWORK_STACK: [framework + language + build tool]
 ENVIRONMENT: [local / staging / production]
+ENVIRONMENT_VALIDITY: [RELEASE_LIKE / EXPLORATION_ONLY]
 CI_CD: [GitHub Actions / GitLab CI / Jenkins / none]
+BASELINE_SOURCE: [none / existing-local / user-supplied]
+TOOL_PREFERENCE: [lhci / webpagetest / psi / existing / undecided]
 EXISTING_SETUP: [found items or NONE]
 ```
 
@@ -152,6 +167,9 @@ App Type: [type] using [framework]
 Tech Stack: [details]
 Intent: [what we're testing for]
 Scope: [target pages/flows]
+Baseline available: [reuse / refresh / none]
+Environment: [value] → [release-like / exploration-only]
+Tool path: [preferred tools or "default Lighthouse CI pending approval"]
 
 Existing Performance Setup: [found/none]
 
@@ -175,13 +193,14 @@ Tool selection:
 ## On User Reply
 
 ### If approved (A):
-- Update `test-plan.md`:
+- If `ENVIRONMENT_VALIDITY: RELEASE_LIKE`, update `test-plan.md`:
   ```
   PHASE: BASELINING
   BASELINE_STATUS: PENDING
   ```
-- Tell the user: "Strategy approved. I'll now generate baseline audit scripts for your Core Web Vitals."
-- Route to `wpp-baseline` skill.
+  Tell the user: "Strategy approved. I'll now generate baseline audit scripts for your Core Web Vitals."
+  Route to `wpp-baseline` skill.
+- If `ENVIRONMENT_VALIDITY: EXPLORATION_ONLY`, do **not** route to baseline generation yet. Explain that a release-like target is still needed for valid performance work.
 
 ### If changes requested (B):
 - Keep `PHASE: STRATEGIZING`

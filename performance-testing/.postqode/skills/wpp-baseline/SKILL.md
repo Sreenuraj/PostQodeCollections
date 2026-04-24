@@ -27,6 +27,7 @@ You must NEVER write load test scripts, stress test scripts, CI/CD pipeline conf
 - Generate the smallest baseline artifact set that can establish a trustworthy Core Web Vitals baseline for the approved scope.
 - Do not add optional tools, scripts, or configs unless they answer the current goal or the user asked for them.
 - Define pass/fail thresholds before hand-off, then analyze against those same thresholds when results return.
+- Do not generate anything until strategy approval, environment validity, and baseline tool selection are settled.
 
 ---
 
@@ -36,12 +37,31 @@ Before starting, verify:
 - [ ] App type has been classified (check `test-plan.md`)
 - [ ] Target URLs/flows are defined
 - [ ] Strategy has been approved
+- [ ] Environment is release-like (check `ENVIRONMENT_VALIDITY: RELEASE_LIKE`)
+- [ ] Build target is production-grade, not a dev server or HMR build
+- [ ] Existing baseline decision is made (reuse / refresh / replace)
 
 If any prerequisite is missing, tell the user and route back to `wpp-strategize`.
 
 ---
 
-## Phase 1 — Generate Lighthouse Audit Config
+## Phase 1 — Confirm Baseline Tool Path
+
+Ask the user which baseline tools to use:
+- **Lighthouse CI** (recommended default) — primary baseline config
+- **WebPageTest** — only if waterfall/location analysis is needed
+- **PageSpeed Insights** — optional field-data comparison
+- **Existing setup** — extend what already exists
+
+If the strategy recorded `TOOL_PREFERENCE: undecided`, explicitly ask:
+- "Should I use the default Lighthouse CI path, or do you want a different baseline tool stack?"
+
+If `test-plan.md` or the user indicates a prior baseline exists:
+- Ask whether to **reuse the prior result**, **refresh it with the same tool**, or **replace it with a new setup**.
+
+---
+
+## Phase 2 — Generate Lighthouse Audit Config
 
 Create `lighthouserc.js` with:
 - Target URLs from strategy phase
@@ -62,7 +82,7 @@ Also create `perf-tests/scripts/baseline/` directory structure per `references/w
 
 ---
 
-## Phase 2 — Generate WebPageTest Config (if applicable)
+## Phase 3 — Generate WebPageTest Config (if applicable)
 
 Generate WebPageTest test parameters when deep waterfall analysis is needed.
 
@@ -77,7 +97,7 @@ Provide:
 
 ---
 
-## Phase 3 — Hand Off to User
+## Phase 4 — Hand Off to User
 
 **This is mandatory. Never skip the hand-off.**
 
@@ -86,7 +106,7 @@ Present all generated scripts with clear, copy-paste-ready execution commands:
 ```
 I've generated the baseline audit config. Here's how to run it:
 
-Option 1 — Lighthouse CI (recommended for multiple URLs):
+Option 1 — Lighthouse CI (recommended default for multiple URLs):
   npm install -g @lhci/cli
   lhci autorun
 
@@ -109,7 +129,7 @@ BASELINE_STATUS: AWAITING_RESULTS
 
 ---
 
-## Phase 4 — Analyze Baseline Results
+## Phase 5 — Analyze Baseline Results
 
 When the user returns with reports, parse and analyze:
 
@@ -154,7 +174,7 @@ When the user returns with reports, parse and analyze:
 
 ---
 
-## Phase 5 — Generate Baseline Summary
+## Phase 6 — Generate Baseline Summary
 
 Update `test-plan.md` with baseline findings:
 
@@ -181,7 +201,7 @@ Update `test-plan.md` with baseline findings:
 
 ---
 
-## Phase 6 — Decision Gate
+## Phase 7 — Decision Gate
 
 Present findings to user:
 

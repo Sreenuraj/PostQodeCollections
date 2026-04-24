@@ -239,7 +239,7 @@ Would you like to:
 
 Update `test-plan.md`:
 ```
-PHASE: COMPLETE
+PHASE: MONITORING
 MONITORING_STATUS: [CONFIGURED / SKIPPED]
 ```
 
@@ -254,3 +254,5 @@ On completion, save to `.postqode/memory/`:
 - `app_context.md` — App type, tech stack, target URLs
 - `baseline_results.md` — Core Web Vitals baseline values
 - `performance_preferences.md` — User's threshold overrides, tool preferences
+
+Only mark `PHASE: COMPLETE` after the user chooses `(B) Mark as complete — we're done`.

@@ -26,6 +26,7 @@ You must NEVER write load/stress/spike/soak scripts in this skill.
 - Generate the smallest baseline script that proves the verified API request is stable under light load.
 - Do not add extra tools, pipelines, or data complexity unless they are needed for the approved goal.
 - Define pass/fail criteria before hand-off, then judge the returned results against those same criteria.
+- Do not generate anything until strategy approval, environment validity, and tool choice are settled.
 
 ---
 
@@ -33,18 +34,27 @@ You must NEVER write load/stress/spike/soak scripts in this skill.
 
 - [ ] API has been verified via curl (check `test-plan.md` → CURL_VERIFIED: YES)
 - [ ] Intent and success criteria are defined
+- [ ] Strategy has been approved
+- [ ] Environment is release-like (check `ENVIRONMENT_VALIDITY: RELEASE_LIKE`)
+- [ ] Existing baseline decision is made (reuse / refresh / replace)
 
 If prerequisites missing, route back to `app-strategize`.
 
 ---
 
-## Phase 1 — Tool & CI/CD Selection
+## Phase 1 — Confirm Tool, Baseline Intent, and CI
 
 Ask user to pick their preferred tool:
 - **k6** (recommended default) → `references/api/k6-template.md`
 - **JMeter** → `references/api/jmeter-template.md`
 - **Gatling** → `references/api/gatling-template.md`
 - **Locust** → `references/api/locust-template.md`
+
+If the strategy recorded `TOOL_PREFERENCE: undecided`, explicitly ask:
+- "Should I use the default k6 path, or do you want a different tool/language?"
+
+If `test-plan.md` or the user indicates a prior baseline exists:
+- Ask whether to **reuse the prior baseline result**, **refresh it with the same tool**, or **replace it with a new tool/setup**.
 
 Ask: "Do you want a CI/CD pipeline config? (GitHub Actions / GitLab CI / none)"
 

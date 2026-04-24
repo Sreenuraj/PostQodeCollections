@@ -181,7 +181,7 @@ CI/CD config generated. To activate:
 Update `test-plan.md`:
 
 ```
-PHASE: COMPLETE
+PHASE: SCALING
 SCALE_STATUS: COMPLETE
 MAX_RPS: [achieved]
 BREAKING_POINT: [VUs / RPS]
@@ -213,6 +213,9 @@ On completion:
 - `api_context.md` — endpoints, architecture, auth
 - `baseline_results.md` — latency, error rate
 - `scale_results.md` — max RPS, breaking point, bottleneck
+
+Only mark `PHASE: COMPLETE` after the user chooses `(B) Complete — we're done`.
+If the user chooses `(A)`, stay in `PHASE: SCALING`.
 
 ### Server-Side Pairing
 If the API serves a web or mobile app:

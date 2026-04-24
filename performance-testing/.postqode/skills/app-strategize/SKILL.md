@@ -22,18 +22,24 @@ description: |
 - If multiple endpoints, flows, or load models fit the request, name the fork instead of choosing silently.
 - Recommend the smallest investigation that answers the user's real API performance question.
 - Present strategy approval with explicit proof: verified request, known constraints, and what the next phase will validate.
+- Stop after the strategy approval gate. Do not generate baseline scripts, READMEs, or execution packs from this skill.
 
 ---
 
 ## Phase 1 — Workspace Intelligence Scan
 
 Run BEFORE asking the user anything. Read silently:
+- `test-plan.md` (if exists) — detect saved phase, existing baseline, tool choice, and pending gate
 - `package.json`, `pom.xml`, `build.gradle` — identify language/framework
 - Swagger/OpenAPI specs (`swagger.json`, `openapi.yaml`)
 - Existing perf scripts (`k6`, `jmeter`, `gatling`, `locust` files)
 - `.postqode/memory/api_context.md` (if exists)
 
 Tell the user: "I'm scanning your workspace first so I don't ask questions I can already answer."
+
+If `test-plan.md` already shows a verified baseline or pending approval, surface that immediately.
+- If a baseline exists, ask whether to **reuse**, **refresh**, or **replace** it.
+- If the user claims a prior baseline exists but no local state confirms it, ask for the source or summary before planning new scripts.
 
 ---
 
@@ -54,9 +60,10 @@ Ask the user to describe their performance goal:
 
 ---
 
-## Phase 3 — Identify Target (The "What")
+## Phase 3 — Identify Target, Environment, and Constraints (The "What")
 
 Ask: "**Single Endpoint** or **User Flow** (multi-step)?"
+Ask: "Do you already have a baseline run or previous performance result we should reuse?"
 
 Gather input data:
 - **cURL command** (Preferred — most precise)
@@ -67,6 +74,14 @@ Ask: "What are your success criteria?"
 - Target RPS (Requests Per Second)
 - Max Error Rate (e.g., < 1%)
 - Max Latency p95 (e.g., < 500ms)
+
+Ask: "Which environment should we validate against: staging, production-mirror, pre-prod, or exploration-only localhost/dev?"
+- If the only available target is localhost/dev, explain that this is valid for exploration and script shakedown only, not real performance validation.
+- Do **not** plan a real baseline or scale run until a release-like environment is chosen.
+
+Ask: "Any tool or language preference, or should I use the default k6 path?"
+- Examples: k6 (JS), Locust (Python), Gatling (Scala/Java/Kotlin), JMeter.
+- If the user has no preference, record that explicit acceptance of the default is still required before baseline generation.
 
 **Test Data Strategy**: Ask "Do we need dynamic data (e.g., new user per request) or static data?"
 **Load reference:** `references/api/test-data-strategy.md`
@@ -130,6 +145,10 @@ INTENT: [regression / spike / profiling / stress / soak / ci-cd]
 TARGET_ENDPOINTS: [endpoint URLs]
 API_ARCHITECTURE: [REST / GraphQL / SOAP / async / microservices]
 AUTH_METHOD: [bearer / api-key / session / oauth / none]
+BASELINE_SOURCE: [none / existing-local / user-supplied]
+ENVIRONMENT: [staging / production-mirror / pre-prod / localhost / dev]
+ENVIRONMENT_VALIDITY: [RELEASE_LIKE / EXPLORATION_ONLY]
+TOOL_PREFERENCE: [k6 / jmeter / gatling / locust / user-other / undecided]
 TARGET_RPS: [number]
 SUCCESS_CRITERIA: p95 < Xms, error rate < Y%, RPS >= Z
 TEST_DATA: [static / csv / synthetic]
@@ -145,6 +164,9 @@ API: [architecture] at [endpoint(s)]
 Auth: [method]
 Rate Limits: [found / none detected]
 Intent: [what we're testing for]
+Baseline available: [reuse / refresh / none]
+Environment: [value] → [release-like / exploration-only]
+Tool path: [preferred tool or "default k6 pending approval"]
 Success Criteria: p95 < Xms, error rate < Y%
 
 (A) Approved — proceed to baseline test
@@ -154,7 +176,8 @@ Success Criteria: p95 < Xms, error rate < Y%
 **STOP and wait for reply.**
 
 ### On Approval
-- Update `PHASE: BASELINING` → route to `app-baseline`
+- If `ENVIRONMENT_VALIDITY: RELEASE_LIKE`, update `PHASE: BASELINING` → route to `app-baseline`
+- If `ENVIRONMENT_VALIDITY: EXPLORATION_ONLY`, do **not** route to baseline generation yet. Explain that a release-like target is still needed for valid performance work.
 
 ---
 

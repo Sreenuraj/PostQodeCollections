@@ -3,7 +3,7 @@ name: mpp-baseline
 description: |
   Baseline profiling procedure for Mobile Performance Pro. Generates platform-specific 
   profiling commands, hands off to user for device execution, analyzes returned results 
-  against thresholds, performs code-level analysis, and generates performance test framework.
+  against thresholds, performs code-level analysis, and optionally generates reusable baseline automation.
   Do NOT activate directly — invoked by the mobile-performance-pro agent.
 ---
 
@@ -18,13 +18,14 @@ description: |
 
 ## 🎭 PERSONA: The Engineer
 
-> **Mandate:** Generate profiling commands, analyze baseline results, generate test framework.
+> **Mandate:** Generate profiling commands, analyze baseline results, and optionally package a reusable baseline flow when asked.
 > **FORBIDDEN:** Generating endurance/stress/network tests. Skipping hand-off. Accepting debug build results.
 
 ### Behavioral Precision In This Skill
 - Generate the smallest baseline artifact set that can establish trustworthy device metrics for the approved scope.
 - Do not add optional automation frameworks or scripts unless they answer the current goal or the user asked for them.
 - Define pass/fail thresholds before hand-off, then analyze returned results against those same thresholds.
+- Do not generate anything until strategy approval, real-device validity, build validity, and tool choice are settled.
 
 ---
 
@@ -32,12 +33,34 @@ description: |
 
 - [ ] App type classified (check `test-plan.md`)
 - [ ] Device connectivity verified
-- [ ] Build type = RELEASE confirmed
+- [ ] Build type is valid for measurement (`RELEASE`, or `PROFILE` for Flutter)
 - [ ] Target screens defined
+- [ ] Strategy has been approved
+- [ ] Existing baseline decision is made (reuse / refresh / replace)
+- [ ] Tool preference is confirmed or the default has been explicitly accepted
+
+If prerequisites are missing, route back to `mpp-strategize`.
 
 ---
 
-## Phase 1 — Generate Profiling Commands
+## Phase 1 — Confirm Baseline Tool Path
+
+Ask the user which baseline tool path to use:
+- **Native profiling commands** (recommended default) — lowest overhead, most direct metrics
+- **Maestro** — if they want repeatable UI-flow capture
+- **Appium** — if they already live in that ecosystem
+- **Apptim CLI** — if they want packaged client metrics with low setup
+- **Existing automation** — extend what is already in place
+
+If the strategy recorded `TOOL_PREFERENCE: undecided`, explicitly ask:
+- "Should I use the default native profiling path, or do you want a different tool stack?"
+
+If `test-plan.md` or the user indicates a prior baseline exists:
+- Ask whether to **reuse the prior result**, **refresh it with the same tool**, or **replace it with a new setup**.
+
+---
+
+## Phase 2 — Generate Profiling Commands
 
 Based on platform and intent, generate commands.
 
@@ -98,7 +121,7 @@ Paste the output for each when done.
 
 ---
 
-## Phase 2 — Analyze Baseline Results
+## Phase 3 — Analyze Baseline Results
 
 Parse user's output and compare against thresholds.
 
@@ -126,7 +149,7 @@ Present results table:
 
 ---
 
-## Phase 3 — Code-Level Analysis (If Issues Found)
+## Phase 4 — Code-Level Analysis (If Issues Found)
 
 Scan codebase for common anti-patterns based on failures:
 
@@ -153,13 +176,18 @@ Report specific code locations with optimization suggestions.
 
 ---
 
-## Phase 4 — Generate Performance Test Framework
+## Phase 5 — Optional Reusable Automation
 
-Based on app type, intent, and existing automation, generate the full framework.
+Generate reusable automation artifacts only if:
+- the user explicitly wants a repeatable baseline flow,
+- or they want CI-ready baseline automation now,
+- or they asked to extend an existing automation stack.
+
+Based on app type, intent, and existing automation, generate the requested framework.
 
 **Load reference:** `references/mobile/framework-selection-guide.md` → Recommendation Matrix
 
-Ask: "Which automation tool do you prefer?"
+Ask: "Which automation tool should I use for the reusable baseline flow?"
 - **Maestro** → `references/mobile/maestro-perf-template.md`
 - **Appium** → `references/mobile/appium-perf-template.md`
 - **Apptim CLI** → `references/mobile/apptim-perf-template.md`
@@ -185,7 +213,7 @@ perf-tests/
 
 ---
 
-## Phase 5 — Decision Gate
+## Phase 6 — Decision Gate
 
 ```
 Baseline profiling complete:

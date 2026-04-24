@@ -196,10 +196,13 @@ Performance testing framework complete!
 (B) Mark as complete
 ```
 
-Update `PHASE: COMPLETE`, `MONITORING_STATUS: CONFIGURED`
+Update `PHASE: MONITORING`, `MONITORING_STATUS: CONFIGURED`
 
 ### Save Memory
 - `app_context.md` — app type, platform, devices
 - `baseline_results.md` — launch, FPS, memory
 - `deep_dive_results.md` — endurance, network, stress findings
 - `mobile_preferences.md` — tool choice, threshold overrides
+
+Only mark `PHASE: COMPLETE` after the user chooses `(B) Mark as complete`.
+If the user chooses `(A)`, stay in `PHASE: MONITORING`.

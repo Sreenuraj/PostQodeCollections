@@ -22,18 +22,24 @@ description: |
 - If multiple devices, screens, or tooling paths fit the request, name the fork instead of choosing silently.
 - Recommend the smallest investigation that answers the user's real mobile performance question.
 - Present strategy approval with explicit proof: verified build/device facts, known scope, and what the next phase will measure.
+- Stop after the strategy approval gate. Do not generate profiling commands, automation packs, or monitoring artifacts from this skill.
 
 ---
 
 ## Phase 1 — Workspace Intelligence Scan
 
 Run BEFORE asking the user anything. Read silently:
+- `test-plan.md` (if exists) — detect saved phase, existing baseline, selected tools, and pending gate
 - `package.json` (React Native), `pubspec.yaml` (Flutter), `build.gradle` (Android), `.xcodeproj` (iOS)
 - Existing automation: Espresso, XCTest, Detox, Appium, Maestro configs
 - Existing monitoring: Firebase Performance SDK, Sentry, MetricKit integration
 - `.postqode/memory/app_context.md` (if exists)
 
 Tell the user: "I'm scanning your workspace first so I don't ask questions I can already answer."
+
+If `test-plan.md` already shows a baseline or pending approval, surface that immediately.
+- If a baseline exists, ask whether to **reuse**, **refresh**, or **replace** it.
+- If the user claims a prior baseline exists but no local state confirms it, ask for the source or summary before planning new artifacts.
 
 ---
 
@@ -57,6 +63,7 @@ Ask the user to describe their performance goal:
 
 Ask: "**Specific screen**, **user flow**, or **full app**?"
 Ask: "Which **platform**? **Android**, **iOS**, or **Both**?"
+Ask: "Do you already have a recent baseline profile we should reuse?"
 
 Gather:
 - **App package/bundle ID** (required)
@@ -99,6 +106,10 @@ Cross-reference against device coverage rules. Recommend minimum:
 
 **Single-device exception:** If only ONE device, pick budget/mid-range, NEVER flagship.
 
+If only emulators/simulators are available:
+- Explain that the run is exploratory only and not valid for performance sign-off.
+- Do **not** route to a real baseline until at least one real device is available.
+
 ---
 
 ## Phase 6 — Define Success Criteria
@@ -111,6 +122,7 @@ Propose defaults:
 - Memory Growth (30 min): < 10%
 
 Ask: "Any custom thresholds? Or use our defaults?"
+Ask: "Which tooling path do you prefer, or should I use the default for your stack? (native commands, Maestro, Appium, Apptim, or extend existing automation)"
 
 ---
 
@@ -145,6 +157,10 @@ Ask: "Do you have existing test automation? (Espresso, XCTest, Appium, Maestro, 
 - **iOS**: Xcode → Scheme → Build Configuration = **Release**
 - *If Debug*: Instruct user to install Release build first
 
+If build verification or real-device availability fails:
+- Mark the current situation as exploratory only.
+- Do **not** route to baseline generation until release-build and real-device prerequisites are met.
+
 ---
 
 ## Phase 10 — Document Strategy & Present
@@ -159,7 +175,10 @@ APP_TYPE: [native-android / native-ios / react-native / flutter / hybrid / pwa]
 PACKAGE_ID: [com.example.app]
 TARGET_SCREENS: [list]
 DEVICES: [device list with tier]
-BUILD_TYPE: RELEASE
+BASELINE_SOURCE: [none / existing-local / user-supplied]
+TOOL_PREFERENCE: [native / maestro / appium / apptim / existing / undecided]
+DEVICE_VALIDITY: [REAL_DEVICE / EXPLORATION_ONLY]
+BUILD_TYPE: [RELEASE / PROFILE / DEBUG / UNKNOWN]
 BASELINE_STATUS: PENDING
 ```
 
@@ -171,6 +190,9 @@ Package: [id]
 Devices: [budget/mid-range/flagship]
 Intent: [goal]
 Thresholds: Cold launch < 2s, FPS ≥ 55, Memory growth < 10%
+Baseline available: [reuse / refresh / none]
+Tool path: [preferred tool or "default pending approval"]
+Execution readiness: [real-device + release/profile build / exploratory only]
 
 (A) Approved — proceed to baseline profiling
 (B) Changes needed
@@ -179,4 +201,5 @@ Thresholds: Cold launch < 2s, FPS ≥ 55, Memory growth < 10%
 **STOP and wait.**
 
 ### On Approval
-Update `PHASE: BASELINING` → route to `mpp-baseline`.
+If `DEVICE_VALIDITY: REAL_DEVICE` and `BUILD_TYPE` is `RELEASE` or `PROFILE`, update `PHASE: BASELINING` → route to `mpp-baseline`.
+Otherwise, do **not** route to baseline generation yet. Explain that a real device and release/profile build are still required for valid performance work.
