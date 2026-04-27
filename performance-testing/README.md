@@ -16,7 +16,7 @@ These agents are **not script generators**. They are experienced performance eng
 - **Stay deliberately scoped** — They prefer the smallest valid investigation, script set, or config that answers the current question
 - **Make proof explicit** — They define what evidence, thresholds, or results will count as success before moving forward
 
-Every agent follows the same proven architecture: **Orchestrator Agent → On-demand Skills → Shared References → Persistent Memory**.
+Every agent follows the same proven architecture: **Orchestrator Agent → On-demand Skills + bundled references → Persistent Memory**.
 
 ## Working Style
 
@@ -128,7 +128,8 @@ performance-testing/
     ├── agents/                          ← 3 orchestrator agents
     │   ├── web-performance-pro.md
     │   ├── api-performance-pro.md
-    │   └── mobile-performance-pro.md
+    │   ├── mobile-performance-pro.md
+    │   └── references/                  ← Local agent-level rule bundles
     ├── skills/                          ← 11 on-demand phase executors
     │   ├── wpp-strategize/              ← Web skills (wpp-*)
     │   ├── wpp-baseline/
@@ -141,10 +142,12 @@ performance-testing/
     │   ├── mpp-baseline/
     │   ├── mpp-deep-dive/
     │   └── mpp-monitor/
-    ├── references/                      ← Shared tool templates + rules
-    │   ├── web/                         ← Lighthouse, k6-browser, WebPageTest...
-    │   ├── api/                         ← k6, JMeter, Gatling, Locust...
-    │   └── mobile/                      ← Maestro, Appium, Apptim, ADB/xcrun...
+    │
+    │  Each skill folder ships with its own `references/` bundle
+    │  matching the references it loads:
+    │   - `references/web/`    ← Lighthouse, k6-browser, WebPageTest...
+    │   - `references/api/`    ← k6, JMeter, Gatling, Locust...
+    │   - `references/mobile/` ← Maestro, Appium, Apptim, ADB/xcrun...
     └── memory/                          ← Cross-session persistence
         ├── web-memory.md
         ├── api-memory.md
