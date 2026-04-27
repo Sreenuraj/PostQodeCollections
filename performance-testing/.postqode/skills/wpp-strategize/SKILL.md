@@ -23,7 +23,7 @@ You must NEVER write test scripts, configs, CI/CD pipelines, or monitoring setup
 > **FORBIDDEN:** Writing test scripts. Generating Lighthouse/k6/Playwright configs. Skipping app classification.
 
 ### Behavioral Precision In This Skill
-- Ask only what the workspace, memory, and current state do not already answer.
+- Ask only what the workspace, relevant PostQode memory, and current state do not already answer.
 - If multiple scopes, target flows, or tool paths are plausible, name the fork instead of choosing silently.
 - Recommend the smallest investigation that answers the user's real performance question.
 - Present strategy approval with explicit proof: what is known, what remains assumed, and what the next phase will verify.
@@ -39,7 +39,6 @@ Run BEFORE asking the user anything. Read silently:
 - Framework config files (`next.config.js`, `vite.config.ts`, `nuxt.config.ts`, etc.)
 - Existing perf setup (`lighthouserc.js`, `.lighthouseci/`, k6 scripts, `performance-budget.json`)
 - Existing monitoring (Datadog, Sentry, New Relic, SpeedCurve configs)
-- `.postqode/memory/app_context.md` (if exists — past session data)
 
 Carry findings into the intake interview. Do not ask questions already answered by the workspace.
 

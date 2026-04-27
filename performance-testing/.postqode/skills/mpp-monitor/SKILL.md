@@ -198,11 +198,10 @@ Performance testing framework complete!
 
 Update `PHASE: MONITORING`, `MONITORING_STATUS: CONFIGURED`
 
-### Save Memory
-- `app_context.md` — app type, platform, devices
-- `baseline_results.md` — launch, FPS, memory
-- `deep_dive_results.md` — endurance, network, stress findings
-- `mobile_preferences.md` — tool choice, threshold overrides
+### Memory Reminder
+- Save to PostQode memory only for durable preferences, constraints, collaboration guidance, or external references.
+- If the user did not explicitly ask to remember it, ask a short confirmation first.
+- Do not save profiling captures, baseline results, or deep-dive findings to memory.
 
 Only mark `PHASE: COMPLETE` after the user chooses `(B) Mark as complete`.
 If the user chooses `(A)`, stay in `PHASE: MONITORING`.

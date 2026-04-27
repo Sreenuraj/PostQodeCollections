@@ -246,13 +246,11 @@ MONITORING_STATUS: [CONFIGURED / SKIPPED]
 ### On User Reply
 
 - **(A)**: Address specific refinements, stay in current skill
-- **(B)**: Mark PHASE: COMPLETE, save memory files
+- **(B)**: Mark PHASE: COMPLETE and finish cleanly
 
-### Save Memory
+### Memory Reminder
 
-On completion, save to `.postqode/memory/`:
-- `app_context.md` — App type, tech stack, target URLs
-- `baseline_results.md` — Core Web Vitals baseline values
-- `performance_preferences.md` — User's threshold overrides, tool preferences
+Only save to PostQode memory when the user explicitly asks to remember something, or when a durable preference/constraint/external reference is clearly useful and the user confirms.
+Do not save baseline reports, deep-dive findings, or generated monitoring configs to memory.
 
 Only mark `PHASE: COMPLETE` after the user chooses `(B) Mark as complete — we're done`.

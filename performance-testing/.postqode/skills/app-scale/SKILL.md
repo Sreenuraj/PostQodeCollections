@@ -208,11 +208,10 @@ Files Generated:
 (B) Complete — we're done
 ```
 
-### Save Memory
-On completion:
-- `api_context.md` — endpoints, architecture, auth
-- `baseline_results.md` — latency, error rate
-- `scale_results.md` — max RPS, breaking point, bottleneck
+### Memory Reminder
+If the user explicitly asks to remember a stable preference or project constraint, save it through PostQode memory.
+If you think a durable preference or constraint is worth remembering but the user did not ask, ask for brief confirmation first.
+Do not save run outputs or scale results to memory.
 
 Only mark `PHASE: COMPLETE` after the user chooses `(B) Complete — we're done`.
 If the user chooses `(A)`, stay in `PHASE: SCALING`.

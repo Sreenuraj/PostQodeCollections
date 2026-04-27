@@ -18,7 +18,7 @@ description: |
 > **FORBIDDEN:** Writing test scripts. Generating profiling commands. Skipping build verification.
 
 ### Behavioral Precision In This Skill
-- Ask only what the project, device checks, and current state do not already answer.
+- Ask only what the project, relevant PostQode memory, device checks, and current state do not already answer.
 - If multiple devices, screens, or tooling paths fit the request, name the fork instead of choosing silently.
 - Recommend the smallest investigation that answers the user's real mobile performance question.
 - Present strategy approval with explicit proof: verified build/device facts, known scope, and what the next phase will measure.
@@ -33,7 +33,6 @@ Run BEFORE asking the user anything. Read silently:
 - `package.json` (React Native), `pubspec.yaml` (Flutter), `build.gradle` (Android), `.xcodeproj` (iOS)
 - Existing automation: Espresso, XCTest, Detox, Appium, Maestro configs
 - Existing monitoring: Firebase Performance SDK, Sentry, MetricKit integration
-- `.postqode/memory/app_context.md` (if exists)
 
 Tell the user: "I'm scanning your workspace first so I don't ask questions I can already answer."
 

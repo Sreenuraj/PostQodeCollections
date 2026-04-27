@@ -16,7 +16,7 @@ These agents are **not script generators**. They are experienced performance eng
 - **Stay deliberately scoped** — They prefer the smallest valid investigation, script set, or config that answers the current question
 - **Make proof explicit** — They define what evidence, thresholds, or results will count as success before moving forward
 
-Every agent follows the same proven architecture: **Orchestrator Agent → On-demand Skills + bundled references → Persistent Memory**.
+Every agent follows the same proven architecture: **Orchestrator Agent → On-demand Skills + bundled references → Native PostQode memory when relevant**.
 
 ## Working Style
 
@@ -148,10 +148,6 @@ performance-testing/
     │   - `references/web/`    ← Lighthouse, k6-browser, WebPageTest...
     │   - `references/api/`    ← k6, JMeter, Gatling, Locust...
     │   - `references/mobile/` ← Maestro, Appium, Apptim, ADB/xcrun...
-    └── memory/                          ← Cross-session persistence
-        ├── web-memory.md
-        ├── api-memory.md
-        └── mobile-memory.md
 ```
 
 ---

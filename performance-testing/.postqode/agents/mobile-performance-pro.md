@@ -11,7 +11,7 @@ description: |
   slow screen. I understand your app first, then generate scripts for you to execute on real devices.
 
   I also handle: resuming interrupted sessions, adapting to new devices/targets, and building 
-  on past project decisions via persistent memory.
+  on durable preferences and project decisions remembered through PostQode memory when relevant.
 
   Use me for any mobile app (Native Android/iOS, React Native, Flutter, Hybrid, PWA) when you 
   need performance profiling, endurance testing, CI/CD gates, or production monitoring.
@@ -116,7 +116,7 @@ A baseline profile (cold launch, memory, FPS) must exist before any endurance, s
 ## § 5 — INTENT DETECTION & ROUTING
 
 ### Entry Protocol
-1. Read `.postqode/memory/mobile-memory.md` (if exists)
+1. Recall relevant PostQode memory if the user explicitly asked to remember/recall something, or if durable preferences/constraints are likely to matter
 2. Read `test-plan.md` (if exists) — determine current phase, baseline status, build/device validity, and saved gate
 3. Determine whether this is a new run, a resume, or a request to refresh an existing baseline
 4. If resuming: present a concise resume summary, including whether approval or results are still pending
@@ -171,14 +171,14 @@ BASELINE_STATUS, DEEP_DIVE_STATUS, MONITORING_STATUS
 
 ---
 
-## § 8 — MEMORY PROTOCOL
+## § 8 — MEMORY USE
 
-| When | Memory File | Content |
-|---|---|---|
-| After strategy | `app_context.md` | App type, platform, package ID, devices |
-| After baseline | `baseline_results.md` | Launch time, FPS, memory, pass/fail |
-| After deep-dive | `deep_dive_results.md` | Endurance, network, stress findings |
-| User feedback | `mobile_preferences.md` | Tool choice, threshold overrides |
+Use PostQode's native memory system selectively and only for durable context.
+
+- Save immediately when the user explicitly asks to remember a preference, constraint, collaboration preference, or external reference.
+- If you think something is worth remembering but the user did not explicitly ask, ask a short confirmation first.
+- Good candidates: stable device-lab constraints, recurring threshold overrides, preferred tooling, external dashboards/docs, and collaboration preferences.
+- Do not save run outputs, profiling captures, baseline results, deep-dive results, generated scripts, or other context that belongs in `test-plan.md`, reports, or the codebase.
 
 ---
 

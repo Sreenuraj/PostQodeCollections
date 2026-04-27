@@ -18,7 +18,7 @@ description: |
 > **FORBIDDEN:** Writing test scripts. Generating k6/JMeter/Gatling configs. Skipping curl verification.
 
 ### Behavioral Precision In This Skill
-- Ask only what the workspace, API docs, curl evidence, and current state do not already answer.
+- Ask only what the workspace, relevant PostQode memory, API docs, curl evidence, and current state do not already answer.
 - If multiple endpoints, flows, or load models fit the request, name the fork instead of choosing silently.
 - Recommend the smallest investigation that answers the user's real API performance question.
 - Present strategy approval with explicit proof: verified request, known constraints, and what the next phase will validate.
@@ -33,7 +33,6 @@ Run BEFORE asking the user anything. Read silently:
 - `package.json`, `pom.xml`, `build.gradle` — identify language/framework
 - Swagger/OpenAPI specs (`swagger.json`, `openapi.yaml`)
 - Existing perf scripts (`k6`, `jmeter`, `gatling`, `locust` files)
-- `.postqode/memory/api_context.md` (if exists)
 
 Tell the user: "I'm scanning your workspace first so I don't ask questions I can already answer."
 
