@@ -67,8 +67,8 @@ Create `lighthouserc.js` with:
 - Target URLs from strategy phase
 - Performance budgets based on thresholds
 
-**Load reference:** `references/web/lighthouse-template.md`
-**Load reference:** `references/web/metric-thresholds.md`
+**Load reference:** `../../references/web/lighthouse-template.md`
+**Load reference:** `../../references/web/metric-thresholds.md`
 
 Include both mobile and desktop presets. Set assertions:
 - `categories:performance` ≥ 0.9
@@ -78,7 +78,7 @@ Include both mobile and desktop presets. Set assertions:
 - `first-contentful-paint` ≤ 1,800ms (warning)
 - `interactive` ≤ 3,800ms (warning)
 
-Also create `perf-tests/scripts/baseline/` directory structure per `references/web/test-naming.md`.
+Also create `perf-tests/scripts/baseline/` directory structure per `../../references/web/test-naming.md`.
 
 ---
 
@@ -86,7 +86,7 @@ Also create `perf-tests/scripts/baseline/` directory structure per `references/w
 
 Generate WebPageTest test parameters when deep waterfall analysis is needed.
 
-**Load reference:** `references/web/webpagetest-guide.md`
+**Load reference:** `../../references/web/webpagetest-guide.md`
 
 Provide:
 - WebPageTest URL + recommended settings
@@ -135,7 +135,7 @@ When the user returns with reports, parse and analyze:
 
 ### Core Web Vitals Assessment
 
-**Load reference:** `references/web/metric-thresholds.md`
+**Load reference:** `../../references/web/metric-thresholds.md`
 
 | Metric | Good | Needs Improvement | Poor |
 |---|---|---|---|
@@ -243,7 +243,7 @@ BASELINE_STATUS: COMPLETE
 
 ## Statistical Validity Rules
 
-**Load reference:** `references/web/metric-thresholds.md` (section 6)
+**Load reference:** `../../references/web/metric-thresholds.md` (section 6)
 
 - **Minimum runs:** 3 per measurement, use the median
 - **Better:** 5 runs, discard highest and lowest, average remaining 3
@@ -255,7 +255,7 @@ BASELINE_STATUS: COMPLETE
 
 ## Browser Coverage Reminder
 
-**Load reference:** `references/web/browser-coverage.md`
+**Load reference:** `../../references/web/browser-coverage.md`
 
 Minimum browser matrix: Chrome Desktop, Chrome Mobile, Safari iOS, Firefox Desktop, Edge Desktop.
 Minimum viewports: Mobile (375×667), Tablet (768×1024), Desktop (1440×900).

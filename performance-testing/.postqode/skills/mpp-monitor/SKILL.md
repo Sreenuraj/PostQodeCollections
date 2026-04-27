@@ -42,7 +42,7 @@ Generate `.github/workflows/perf-test.yml`:
 - Launch time gate check (fail if > 2,000ms)
 - Upload results as artifacts
 
-**Load reference:** `references/mobile/maestro-perf-template.md`
+**Load reference:** `../../references/mobile/maestro-perf-template.md`
 
 ### Option B — Apptim CLI (Cloud Devices)
 
@@ -51,7 +51,7 @@ Generate `.github/workflows/perf-apptim.yml`:
 - Cloud device execution
 - Automated threshold checking
 
-**Load reference:** `references/mobile/apptim-perf-template.md`
+**Load reference:** `../../references/mobile/apptim-perf-template.md`
 
 ### Performance Regression Policy
 
@@ -76,7 +76,7 @@ To activate:
 
 ## Phase 2 — Production Monitoring Setup
 
-**Load reference:** `references/mobile/post-release-monitoring.md`
+**Load reference:** `../../references/mobile/post-release-monitoring.md`
 
 ### Android
 
@@ -126,7 +126,7 @@ Generate setup guide in `perf-tests/monitoring/setup-guide.md`.
 
 ## Phase 3 — Alert Thresholds
 
-**Load reference:** `references/mobile/metric-thresholds.md`
+**Load reference:** `../../references/mobile/metric-thresholds.md`
 
 | Metric | Warning | Critical |
 |---|---|---|

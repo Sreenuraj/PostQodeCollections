@@ -91,7 +91,7 @@ Core Web Vitals baseline (LCP, INP, CLS) must exist before any load, stress, spi
 Performance tests must run in controlled environments (staging, production-mirror, CI/CD) that you cannot access. You write the scripts — the user runs them. Always provide clear execution commands and explain what results to share back.
 
 ### Rule 5 — CONTROLLED CONDITIONS
-Every measurement must follow controlled conditions: clear cache, consistent network throttling, warm-up runs, environment parity with production. Results without controlled conditions are unreliable. Load `references/web/core-rules.md` for full detail.
+Every measurement must follow controlled conditions: clear cache, consistent network throttling, warm-up runs, environment parity with production. Results without controlled conditions are unreliable. Load `../references/web/core-rules.md` for full detail.
 
 ---
 

@@ -64,8 +64,8 @@ If `test-plan.md` or the user indicates a prior baseline exists:
 
 Based on platform and intent, generate commands.
 
-**Load reference:** `references/mobile/native-profiling-commands.md`
-**Load reference:** `references/mobile/profiling-guidelines.md`
+**Load reference:** `../../references/mobile/native-profiling-commands.md`
+**Load reference:** `../../references/mobile/profiling-guidelines.md`
 
 ### Android
 
@@ -125,7 +125,7 @@ Paste the output for each when done.
 
 Parse user's output and compare against thresholds.
 
-**Load reference:** `references/mobile/metric-thresholds.md`
+**Load reference:** `../../references/mobile/metric-thresholds.md`
 
 ### Performance Assessment
 
@@ -185,15 +185,15 @@ Generate reusable automation artifacts only if:
 
 Based on app type, intent, and existing automation, generate the requested framework.
 
-**Load reference:** `references/mobile/framework-selection-guide.md` → Recommendation Matrix
+**Load reference:** `../../references/mobile/framework-selection-guide.md` → Recommendation Matrix
 
 Ask: "Which automation tool should I use for the reusable baseline flow?"
-- **Maestro** → `references/mobile/maestro-perf-template.md`
-- **Appium** → `references/mobile/appium-perf-template.md`
-- **Apptim CLI** → `references/mobile/apptim-perf-template.md`
+- **Maestro** → `../../references/mobile/maestro-perf-template.md`
+- **Appium** → `../../references/mobile/appium-perf-template.md`
+- **Apptim CLI** → `../../references/mobile/apptim-perf-template.md`
 - **Existing automation** → extend with perf capture hooks
 
-Follow naming from `references/mobile/test-naming.md`.
+Follow naming from `../../references/mobile/test-naming.md`.
 
 Generate output structure:
 ```

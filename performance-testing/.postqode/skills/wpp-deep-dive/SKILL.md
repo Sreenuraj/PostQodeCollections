@@ -42,7 +42,7 @@ If no baseline exists, tell the user and route back to `wpp-baseline`.
 **Confirm environment:**
 - Ask: "Where will you execute these tests? (local machine, staging server, CI/CD, cloud)"
 - Ask: "What is your target concurrency? (expected concurrent users)"
-- Ask: "Do you have enough load generation resources?" → **Load reference:** `references/web/infrastructure-requirements.md`
+- Ask: "Do you have enough load generation resources?" → **Load reference:** `../../references/web/infrastructure-requirements.md`
 
 ---
 
@@ -52,15 +52,15 @@ If no baseline exists, tell the user and route back to `wpp-baseline`.
 
 Generate k6 script simulating expected concurrent users on target flows.
 
-**Load reference:** `references/web/k6-browser-template.md`
-**Load reference:** `references/web/metric-thresholds.md`
+**Load reference:** `../../references/web/k6-browser-template.md`
+**Load reference:** `../../references/web/metric-thresholds.md`
 
 Set thresholds:
 - Response time p90 < 500ms
 - Error rate < 1%
 - Throughput meets target RPS
 
-Follow naming convention from `references/web/test-naming.md`:
+Follow naming convention from `../../references/web/test-naming.md`:
 - File: `perf-tests/scripts/load/perf_load_<flow>.js`
 
 **Hand off:**
@@ -121,7 +121,7 @@ When user returns with k6 output, analyze:
 
 ### Compare Against Thresholds
 
-**Load reference:** `references/web/metric-thresholds.md` (section 4 — Backend Metrics)
+**Load reference:** `../../references/web/metric-thresholds.md` (section 4 — Backend Metrics)
 
 | Metric | Target | FAIL |
 |---|---|---|
@@ -147,7 +147,7 @@ Bottleneck: [identified component — DB, app server, CDN, third-party].
 
 Generate when Core Web Vitals under load are needed (not just backend metrics).
 
-**Load reference:** `references/web/k6-browser-template.md`
+**Load reference:** `../../references/web/k6-browser-template.md`
 
 Create k6-browser hybrid script with:
 - `protocol_load` scenario — 95% of VUs via HTTP (backend load)
@@ -178,7 +178,7 @@ When user returns:
 
 For SPA route transition performance and detailed Performance API metrics.
 
-**Load reference:** `references/web/playwright-perf-template.md`
+**Load reference:** `../../references/web/playwright-perf-template.md`
 
 Generate Playwright scripts for:
 - Navigation Timing API (TTFB, DOMContentLoaded, page load)
@@ -198,11 +198,11 @@ Ask: "Which CI/CD? **GitHub Actions** / **GitLab CI** / **Jenkins** / **Other**?
 
 ### Option A — Lighthouse CI (Frontend Gates)
 Generate `lighthouserc.js` with strict budgets + CI workflow file.
-**Load reference:** `references/web/lighthouse-template.md`
+**Load reference:** `../../references/web/lighthouse-template.md`
 
 ### Option B — k6 Smoke Test (Backend Gates)
 Generate lightweight k6 script (50 VUs, 1-min) for CI pipeline.
-**Load reference:** `references/web/k6-browser-template.md` (CI section)
+**Load reference:** `../../references/web/k6-browser-template.md` (CI section)
 
 ### Option C — Both (Recommended)
 Lighthouse CI for frontend budgets + k6 smoke for backend response times.

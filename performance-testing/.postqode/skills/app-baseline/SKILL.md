@@ -45,10 +45,10 @@ If prerequisites missing, route back to `app-strategize`.
 ## Phase 1 — Confirm Tool, Baseline Intent, and CI
 
 Ask user to pick their preferred tool:
-- **k6** (recommended default) → `references/api/k6-template.md`
-- **JMeter** → `references/api/jmeter-template.md`
-- **Gatling** → `references/api/gatling-template.md`
-- **Locust** → `references/api/locust-template.md`
+- **k6** (recommended default) → `../../references/api/k6-template.md`
+- **JMeter** → `../../references/api/jmeter-template.md`
+- **Gatling** → `../../references/api/gatling-template.md`
+- **Locust** → `../../references/api/locust-template.md`
 
 If the strategy recorded `TOOL_PREFERENCE: undecided`, explicitly ask:
 - "Should I use the default k6 path, or do you want a different tool/language?"
@@ -75,7 +75,7 @@ perf-tests/
 └── reports/
 ```
 
-Follow naming conventions from `references/api/core-rules.md`.
+Follow naming conventions from `../../references/api/core-rules.md`.
 
 ---
 
@@ -86,7 +86,7 @@ Generate script with:
 - **1-2 minutes** duration
 - Thresholds: 0% errors, p95 < target
 
-**Load reference:** Tool-specific template from `references/api/`
+**Load reference:** Tool-specific template from `../../references/api/`
 
 Include:
 - Request matching the verified curl
@@ -121,7 +121,7 @@ TOOL: [k6 / jmeter / gatling / locust]
 
 When user returns with results, analyze:
 
-**Load reference:** `references/api/metric-thresholds.md`
+**Load reference:** `../../references/api/metric-thresholds.md`
 
 ### Cleanliness Check
 - [ ] Error rate = 0% (any errors → investigate and fix before proceeding)
@@ -175,7 +175,7 @@ Keep `PHASE: BASELINING`. Help user debug:
 
 Before proceeding to scale-up, share infrastructure requirements.
 
-**Load reference:** `references/api/infrastructure-requirements.md`
+**Load reference:** `../../references/api/infrastructure-requirements.md`
 
 Summarize minimum specs for their chosen tool and target scale:
 - k6: 4 vCPU can handle ~5,000 VUs

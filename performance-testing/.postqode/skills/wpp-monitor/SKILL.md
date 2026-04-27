@@ -39,7 +39,7 @@ Before starting, verify:
 
 Generate `web-vitals` library integration code for the user's app.
 
-**Load reference:** `references/web/production-monitoring.md`
+**Load reference:** `../../references/web/production-monitoring.md`
 
 ### Generate RUM Snippet
 
@@ -97,7 +97,7 @@ or use a commercial RUM tool (Datadog, Sentry, Vercel Analytics, etc.).
 
 Generate scheduled Lighthouse CI workflow for continuous monitoring.
 
-**Load reference:** `references/web/production-monitoring.md`
+**Load reference:** `../../references/web/production-monitoring.md`
 
 ### Scheduled Lighthouse CI
 
@@ -134,7 +134,7 @@ To activate:
 
 Generate alert rules based on metric thresholds:
 
-**Load reference:** `references/web/metric-thresholds.md`
+**Load reference:** `../../references/web/metric-thresholds.md`
 
 | Metric | Warning | Critical | Action |
 |---|---|---|---|
@@ -153,7 +153,7 @@ Document alert configuration in `perf-tests/monitoring/alert-rules.md`.
 
 Generate deploy tracking integration to correlate performance changes with releases.
 
-**Load reference:** `references/web/production-monitoring.md` (Deploy Tracking section)
+**Load reference:** `../../references/web/production-monitoring.md` (Deploy Tracking section)
 
 Provide integration snippets for:
 - SpeedCurve deploy API

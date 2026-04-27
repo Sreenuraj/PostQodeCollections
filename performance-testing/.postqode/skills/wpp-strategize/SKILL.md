@@ -98,7 +98,7 @@ Before leaving this phase, identify a prioritized scope:
 
 ## Phase 4 — Classify App Type
 
-Analyze the project structure to identify app type. **Load reference:** `references/web/framework-selection-guide.md`
+Analyze the project structure to identify app type. **Load reference:** `../../references/web/framework-selection-guide.md`
 
 | Signal | App Type |
 |---|---|
@@ -245,15 +245,15 @@ Protocol-level testing alone misses frontend performance. Browser-level testing 
 
 | Tool | Best For | Reference |
 |---|---|---|
-| **Lighthouse** | Core Web Vitals, SEO, accessibility (lab data) | `references/web/lighthouse-template.md` |
-| **k6** | Protocol-level load/stress/soak testing | `references/web/k6-browser-template.md` |
-| **k6-browser** | Hybrid: protocol load + browser Web Vitals | `references/web/k6-browser-template.md` |
-| **Playwright** | Browser perf APIs, Navigation/Resource Timing | `references/web/playwright-perf-template.md` |
-| **WebPageTest** | Deep waterfall analysis, multi-location | `references/web/webpagetest-guide.md` |
+| **Lighthouse** | Core Web Vitals, SEO, accessibility (lab data) | `../../references/web/lighthouse-template.md` |
+| **k6** | Protocol-level load/stress/soak testing | `../../references/web/k6-browser-template.md` |
+| **k6-browser** | Hybrid: protocol load + browser Web Vitals | `../../references/web/k6-browser-template.md` |
+| **Playwright** | Browser perf APIs, Navigation/Resource Timing | `../../references/web/playwright-perf-template.md` |
+| **WebPageTest** | Deep waterfall analysis, multi-location | `../../references/web/webpagetest-guide.md` |
 | **PageSpeed Insights** | Lab + field data (CrUX), quick check | No setup needed |
 | **Any Tool** | Support user requests | Leverage training data/ask user |
-| **Framework Guide** | App type → right tool combination | `references/web/framework-selection-guide.md` |
-| **Production Monitoring** | RUM, synthetic, alerts | `references/web/production-monitoring.md` |
-| **Infra Specs** | Load gen requirements, env parity | `references/web/infrastructure-requirements.md` |
+| **Framework Guide** | App type → right tool combination | `../../references/web/framework-selection-guide.md` |
+| **Production Monitoring** | RUM, synthetic, alerts | `../../references/web/production-monitoring.md` |
+| **Infra Specs** | Load gen requirements, env parity | `../../references/web/infrastructure-requirements.md` |
 
 > **Backend Pairing**: If the web app calls backend APIs, pair this system with `api-performance-pro` to load-test those APIs under the same conditions.

@@ -91,7 +91,7 @@ A baseline test (1-10 VUs, 0% errors) must pass before any load, stress, spike, 
 Performance tests must run in controlled environments the agent cannot access. You write the scripts — the user runs them. Always provide exact commands and explain what results to share back.
 
 ### Rule 5 — PERCENTILES NOT AVERAGES
-**NEVER** rely on average response time — it hides outliers. Use p95 for standard reporting, p99 for SLA compliance. Load `references/api/core-rules.md` for full statistical rules.
+**NEVER** rely on average response time — it hides outliers. Use p95 for standard reporting, p99 for SLA compliance. Load `../references/api/core-rules.md` for full statistical rules.
 
 ---
 

@@ -37,7 +37,7 @@ If no baseline, route back to `app-baseline`.
 **Confirm environment:**
 - Ask: "Where will you execute? (local machine, staging server, CI/CD, cloud)"
 - Ask: "What is your target concurrency / RPS?"
-- **Load reference:** `references/api/infrastructure-requirements.md` — confirm load gen specs
+- **Load reference:** `../../references/api/infrastructure-requirements.md` — confirm load gen specs
 
 ---
 
@@ -45,7 +45,7 @@ If no baseline, route back to `app-baseline`.
 
 Ask: "What is the target for this run?"
 
-**Load reference:** `references/api/core-rules.md` (load model selection)
+**Load reference:** `../../references/api/core-rules.md` (load model selection)
 
 | Type | Goal | Profile | Duration |
 |---|---|---|---|
@@ -74,7 +74,7 @@ Present: "Calculated [X] VUs for [Y] RPS. Proceed?"
 
 Modify the baseline script for the selected scale and model.
 
-**Load reference:** Tool-specific template from `references/api/`
+**Load reference:** Tool-specific template from `../../references/api/`
 
 ### Load Test
 ```
@@ -123,7 +123,7 @@ Please share the terminal output or JSON results.
 
 When user returns with output, parse and analyze:
 
-**Load reference:** `references/api/metric-thresholds.md`
+**Load reference:** `../../references/api/metric-thresholds.md`
 
 ### Metrics to Check
 

@@ -77,7 +77,7 @@ Gather:
 
 ## Phase 4 — Classify App Type (CRITICAL)
 
-This determines ALL tool choices. **Load reference:** `references/mobile/framework-selection-guide.md`
+This determines ALL tool choices. **Load reference:** `../../references/mobile/framework-selection-guide.md`
 
 | App Type | Indicators | Profiling Approach |
 |---|---|---|
@@ -96,7 +96,7 @@ Record: "App type: **[type]** using **[framework]** on **[platform]**"
 
 Ask: "What devices do you have available?"
 
-**Load reference:** `references/mobile/device-coverage.md`
+**Load reference:** `../../references/mobile/device-coverage.md`
 
 Cross-reference against device coverage rules. Recommend minimum:
 
@@ -121,7 +121,7 @@ Before leaving this phase, identify a prioritized scope:
 
 ## Phase 6 — Define Success Criteria
 
-**Load reference:** `references/mobile/metric-thresholds.md`
+**Load reference:** `../../references/mobile/metric-thresholds.md`
 
 Propose defaults:
 - Cold Launch: < 2,000ms
@@ -140,7 +140,7 @@ Ask: "Do you have existing test automation? (Espresso, XCTest, Appium, Maestro, 
 - *If existing*: Recommend extending with perf capture, or support their preferred tool.
 - *If none*: Recommend Maestro (lowest setup cost) or Apptim CLI (no code changes)
 
-**Load reference:** `references/mobile/framework-selection-guide.md` → Automation Tool Comparison
+**Load reference:** `../../references/mobile/framework-selection-guide.md` → Automation Tool Comparison
 
 ---
 
@@ -157,7 +157,7 @@ Ask: "Do you have existing test automation? (Espresso, XCTest, Appium, Maestro, 
 > [!CAUTION]
 > Is the installed build a **RELEASE** build?
 
-**Load reference:** `references/mobile/profiling-guidelines.md`
+**Load reference:** `../../references/mobile/profiling-guidelines.md`
 
 - **Android**: `adb shell run-as <package>` — if it works, it's DEBUG. **STOP.**
 - **Flutter**: Must be `--profile` or `--release`, NOT `--debug`

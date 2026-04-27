@@ -86,7 +86,7 @@ Ask: "Any tool or language preference, or should I use the default k6 path?"
 - If the user has no preference, record that explicit acceptance of the default is still required before baseline generation.
 
 **Test Data Strategy**: Ask "Do we need dynamic data (e.g., new user per request) or static data?"
-**Load reference:** `references/api/test-data-strategy.md`
+**Load reference:** `../../references/api/test-data-strategy.md`
 
 Before leaving this phase, identify a prioritized test scope:
 - **Tier 1:** hottest or most business-critical endpoints/flows
@@ -209,9 +209,9 @@ Success Criteria: p95 < Xms, error rate < Y%
 
 | Tool | Best For | Reference |
 |---|---|---|
-| **k6** | Developer-friendly, JS-based, high performance | `references/api/k6-template.md` |
-| **JMeter** | Enterprise standard, detailed protocol support | `references/api/jmeter-template.md` |
-| **Gatling** | High-performance, code-as-config (Scala) | `references/api/gatling-template.md` |
-| **Locust** | Python-based, easy distributed | `references/api/locust-template.md` |
+| **k6** | Developer-friendly, JS-based, high performance | `../../references/api/k6-template.md` |
+| **JMeter** | Enterprise standard, detailed protocol support | `../../references/api/jmeter-template.md` |
+| **Gatling** | High-performance, code-as-config (Scala) | `../../references/api/gatling-template.md` |
+| **Locust** | Python-based, easy distributed | `../../references/api/locust-template.md` |
 | **Any Tool** | Support user requests | Leverage training data/ask user |
-| **Infra Specs** | Load gen requirements | `references/api/infrastructure-requirements.md` |
+| **Infra Specs** | Load gen requirements | `../../references/api/infrastructure-requirements.md` |

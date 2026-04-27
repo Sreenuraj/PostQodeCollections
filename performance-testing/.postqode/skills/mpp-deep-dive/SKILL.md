@@ -74,7 +74,7 @@ Share memory_soak_log.txt when complete.
 
 ### Analyze Soak Results
 
-**Load reference:** `references/mobile/metric-thresholds.md`
+**Load reference:** `../../references/mobile/metric-thresholds.md`
 
 - Memory Growth < 10% over 30 min → ✅ PASS
 - Memory Growth < 15% over 2 hours → ✅ PASS
@@ -143,7 +143,7 @@ Generate aggressive Maestro/Appium script:
 ### Analyze
 - State preserved after resume? (scroll position, form data, auth)
 - No duplicate API calls after resume?
-- Background battery drain within limits? (`references/mobile/metric-thresholds.md`)
+- Background battery drain within limits? (`../../references/mobile/metric-thresholds.md`)
 - App doesn't re-launch from scratch after short background?
 
 ---
