@@ -148,8 +148,8 @@ Save framework decision to `.postqode/memory/framework_decision.md`.
 > **FORBIDDEN:** Batching future steps. Premature COM/POM. Skipping element maps.
 
 ### Browser Tool
-**Primary:** `postqode_browser_agent` — use `browser_navigate`, `browser_click`, `browser_snapshot`, `browser_type`, `browser_take_screenshot` for ALL browser interactions.
-**Fallback:** `execute_command` with Playwright CLI.
+**Primary:** `postqode_browser_agent` — use `goto`, `click`, `snapshot`, `fill`, `screenshot`, and all other browser agent tools for ALL browser interactions. DOM-mutating commands automatically return a post-action snapshot.
+**Fallback:** `chrome-devtools` MCP — only for performance traces, device emulation, or detailed network inspection.
 **Load reference:** `references/tool-priority.md`
 
 ### Before each step, update session state:

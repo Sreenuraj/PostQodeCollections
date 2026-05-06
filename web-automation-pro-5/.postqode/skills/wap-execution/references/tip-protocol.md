@@ -14,17 +14,18 @@ AI agents are "blind" to dynamic loading states. Without TIP, the Engineer would
 
 ```
 BEFORE ACTION:
-  1. browser_snapshot → save pre-action DOM state
+  1. snapshot → save pre-action DOM state (accessibility tree)
 
 PERFORM ACTION(S):
   2. Execute the cohesive interactions for this step (e.g., fill email → fill pass → click submit)
-  3. Immediately monitor network after the *final* action in the sequence
+  3. DOM-mutating commands auto-return post-action snapshot — check it immediately
+     Also monitor network after the *final* action in the sequence
 
 SETTLE:
   4. Wait 3 seconds (this is evidence-gathering time, not final test time)
 
 AFTER ACTION:
-  5. browser_snapshot → save post-action DOM state
+  5. snapshot → save post-action DOM state (only needed if last action was non-mutating)
 
 ANALYZE:
   6. Diff the DOM: what elements appeared, disappeared, or changed?

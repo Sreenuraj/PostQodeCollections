@@ -78,15 +78,34 @@ Before every write, transition, or summary, verify: (1) the action is legal for 
 ## § 4 — BROWSER TOOL
 
 **Priority 1 — `postqode_browser_agent`** (ALWAYS USE FIRST)
-Use `browser_navigate`, `browser_click`, `browser_snapshot`, `browser_type`, `browser_take_screenshot`, and other browser agent actions for ALL browser interactions. This is your primary browser tool.
+Use the `postqode_browser_agent` for ALL browser interactions. This is your primary browser tool. All commands accept an `arguments` JSON object. DOM-mutating commands (click, fill, type, etc.) automatically return a post-action snapshot, so you don't need to call `snapshot` again after them.
 
-**Priority 2 — `execute_command` with Playwright CLI**
-Fallback when `postqode_browser_agent` cannot handle a specific scenario. Use actual Playwright CLI commands via the terminal.
+Available tools:
 
-**Priority 3 — `chrome-devtools` MCP** (LAST RESORT)
-Only for performance traces, device emulation, or detailed network inspection not available via Priority 1 or 2. Never use for basic navigation, clicking, or screenshots.
+| Category | Tools |
+|---|---|
+| **Navigation** | `goto`, `go_back`, `go_forward`, `reload` |
+| **Page State** | `snapshot` |
+| **Interaction** | `click`, `dblclick`, `fill`, `set_editor_value`, `type`, `press`, `select`, `hover`, `drag`, `check`, `uncheck`, `upload` |
+| **Dialogs** | `dialog_accept`, `dialog_dismiss` |
+| **Visual** | `screenshot`, `pdf`, `resize` |
+| **Low-Level Input** | `keydown`, `keyup`, `mousemove`, `mousedown`, `mouseup`, `mousewheel` |
+| **Execution** | `eval`, `run_code` |
+| **Inspection** | `console`, `network`, `show` |
+| **Tabs** | `tab_list`, `tab_new`, `tab_close`, `tab_select` |
+| **Cookies** | `cookie_list`, `cookie_get`, `cookie_set`, `cookie_delete`, `cookie_clear` |
+| **Local Storage** | `localstorage_list`, `localstorage_get`, `localstorage_set`, `localstorage_delete`, `localstorage_clear` |
+| **Session Storage** | `sessionstorage_list`, `sessionstorage_get`, `sessionstorage_set`, `sessionstorage_delete`, `sessionstorage_clear` |
+| **Storage State** | `state_save`, `state_load` |
+| **Network Mocking** | `route`, `route_list`, `unroute`, `network_state_set` |
+| **Recording** | `tracing_start`, `tracing_stop`, `video_start`, `video_stop`, `video_chapter` |
+| **Debugging** | `pause_at`, `resume`, `step_over` |
+| **Session** | `close`, `delete_data` |
 
-**Snapshot vs Screenshot:** Default to snapshot (DOM) for analysis. Use screenshot (visual) when visual state matters.
+**Priority 2 — `chrome-devtools` MCP** (FALLBACK)
+Use when `postqode_browser_agent` cannot handle a specific scenario. Only for performance traces, device emulation, or detailed network inspection. Never use for basic navigation, clicking, or screenshots. Always check if `chrome-devtools` MCP is actually enabled before attempting to use it.
+
+**Snapshot vs Screenshot:** Default to `snapshot` (accessibility tree) for analysis. Use `screenshot` (visual) when visual state matters.
 
 ---
 
